@@ -1,9 +1,9 @@
 ﻿namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
-/// Unit tests for BacktestRunRepository using mocked dependencies
+/// Unit tests for BacktestRunRepository using in-memory database
 /// </summary>
-public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
+public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposable
 {
     private readonly Mock<ILogger<BacktestRunRepository>> _mockLogger;
     private readonly BacktestRunRepository _repository;
@@ -11,57 +11,28 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     public BacktestRunRepositoryUnitTests()
     {
         _mockLogger = new Mock<ILogger<BacktestRunRepository>>();
-        _repository = new BacktestRunRepository(MockContext.Object, _mockLogger.Object);
+        _repository = new BacktestRunRepository(Context, _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetByIdAsync_ExistingBacktestRun_ReturnsBacktestRunModel()
     {
         // Arrange
-        var backtestId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
-        var portfolioId = Guid.NewGuid();
-        var backtestRuns = new List<BacktestRunEntity>
-        {
-            new BacktestRunEntity
-            {
-                Id = backtestId,
-                Name = "Test Backtest",
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = portfolioId,
-                UserId = userId,
-                Symbol = "BTCUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                BacktestStartDate = DateTime.UtcNow.AddDays(-30),
-                BacktestEndDate = DateTime.UtcNow.AddDays(-1),
-                Status = (int)BacktestStatus.Completed,
-                InitialBalance = 10000.0m,
-                FinalBalance = 12000.0m,
-                TotalReturnPercent = 20.0m,
-                MaxDrawdownPercent = -5.0m,
-                SharpeRatio = 1.5m,
-                TotalTrades = 10,
-                WinningTrades = 7,
-                LosingTrades = 3,
-                WinRatePercent = 70.0m,
-                AverageTradeReturnPercent = 2.0m,
-                ExecutionDurationTicks = TimeSpan.FromMinutes(5).Ticks,
-                CompletedAt = DateTime.UtcNow.AddDays(-1),
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-2)
-            }
-        };
+        var userId = await SeedTestUserAsync();
+        var portfolioId = await SeedTestPortfolioAsync(userId);
 
-        var mockDbSet = CreateMockDbSetWithAsync(backtestRuns);
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
+        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Test Backtest");
+        var backtestEntity = backtestModel.ToEntity();
+
+        Context.BacktestRuns.Add(backtestEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(backtestId);
+        var result = await _repository.GetByIdAsync(backtestEntity.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(backtestId, result.Id);
+        Assert.Equal(backtestEntity.Id, result.Id);
         Assert.Equal("Test Backtest", result.Name);
         Assert.Equal(userId, result.UserId);
         Assert.Equal(portfolioId, result.PortfolioId);
@@ -87,10 +58,6 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var backtestId = Guid.NewGuid();
-        var backtestRuns = new List<BacktestRunEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(backtestRuns);
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetByIdAsync(backtestId);
@@ -103,62 +70,20 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task GetByUserIdAsync_ExistingUser_ReturnsUserBacktestRuns()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var otherUserId = Guid.NewGuid();
-        var backtestRuns = new List<BacktestRunEntity>
+        var userId = await SeedTestUserAsync();
+        var otherUserId = await SeedTestUserAsync("OtherUser");
+        var portfolioId = await SeedTestPortfolioAsync(userId);
+
+        var backtestModels = new[]
         {
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Backtest 1",
-                UserId = userId,
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                Status = (int)BacktestStatus.Completed,
-                InitialBalance = 10000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-2)
-            },
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Backtest 2",
-                UserId = userId,
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                Status = (int)BacktestStatus.Running,
-                InitialBalance = 5000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            },
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Other User Backtest",
-                UserId = otherUserId,
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = Guid.NewGuid(),
-                Symbol = "ADAUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                Status = (int)BacktestStatus.Pending,
-                InitialBalance = 20000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Backtest 2"),
+            BacktestRunModelFixture.CreatePendingBacktestRun(otherUserId, portfolioId, "Other User Backtest")
         };
 
-        var userBacktestRuns = backtestRuns
-            .Where(b => b.UserId == userId && !b.IsDeleted)
-            .OrderByDescending(b => b.CreatedAt);
-        var mockDbSet = CreateMockDbSetWithAsync(userBacktestRuns);
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
+        var backtestEntities = backtestModels.Select(b => b.ToEntity());
+        Context.BacktestRuns.AddRange(backtestEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByUserIdAsync(userId);
@@ -176,47 +101,18 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task GetByPortfolioIdAsync_ExistingPortfolio_ReturnsPortfolioBacktestRuns()
     {
         // Arrange
-        var portfolioId = Guid.NewGuid();
-        var otherPortfolioId = Guid.NewGuid();
-        var backtestRuns = new List<BacktestRunEntity>
+        var userId = await SeedTestUserAsync();
+        var portfolioId = await SeedTestPortfolioAsync(userId);
+
+        var backtestModels = new[]
         {
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Portfolio Backtest 1",
-                PortfolioId = portfolioId,
-                UserId = Guid.NewGuid(),
-                AlgorithmId = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                Status = (int)BacktestStatus.Completed,
-                InitialBalance = 10000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            },
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Portfolio Backtest 2",
-                PortfolioId = portfolioId,
-                UserId = Guid.NewGuid(),
-                AlgorithmId = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                Status = (int)BacktestStatus.Running,
-                InitialBalance = 5000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Portfolio Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Portfolio Backtest 2")
         };
 
-        var portfolioBacktestRuns = backtestRuns
-            .Where(b => b.PortfolioId == portfolioId && !b.IsDeleted)
-            .OrderByDescending(b => b.CreatedAt);
-        var mockDbSet = CreateMockDbSetWithAsync(portfolioBacktestRuns);
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
+        var backtestEntities = backtestModels.Select(b => b.ToEntity());
+        Context.BacktestRuns.AddRange(backtestEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByPortfolioIdAsync(portfolioId);
@@ -232,45 +128,19 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var status = BacktestStatus.Completed;
-        var backtestRuns = new List<BacktestRunEntity>
+        var userId = await SeedTestUserAsync();
+        var portfolioId = await SeedTestPortfolioAsync(userId);
+
+        var backtestModels = new[]
         {
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Completed Backtest 1",
-                Status = (int)BacktestStatus.Completed,
-                UserId = Guid.NewGuid(),
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                InitialBalance = 10000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-2)
-            },
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Completed Backtest 2",
-                Status = (int)BacktestStatus.Completed,
-                UserId = Guid.NewGuid(),
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                InitialBalance = 5000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            }
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Completed Backtest 1"),
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Completed Backtest 2"),
+            BacktestRunModelFixture.CreatePendingBacktestRun(userId, portfolioId, "Pending Backtest")
         };
 
-        var completedBacktestRuns = backtestRuns
-            .Where(b => b.Status == (int)status && !b.IsDeleted)
-            .OrderByDescending(b => b.CreatedAt);
-        var mockDbSet = CreateMockDbSetWithAsync(completedBacktestRuns);
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
+        var backtestEntities = backtestModels.Select(b => b.ToEntity());
+        Context.BacktestRuns.AddRange(backtestEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByStatusAsync(status);
@@ -285,27 +155,9 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task CreateAsync_ValidBacktestRun_CallsAddAndSaveChanges()
     {
         // Arrange
-        var backtestModel = new BacktestRunModel
-        {
-            Id = Guid.NewGuid(),
-            Name = "New Backtest",
-            AlgorithmId = Guid.NewGuid(),
-            PortfolioId = Guid.NewGuid(),
-            UserId = Guid.NewGuid(),
-            Symbol = "BTCUSDT",
-            Exchange = Exchange.Binance,
-            Timeframe = Timeframe.OneHour,
-            BacktestStartDate = DateTime.UtcNow.AddDays(-30),
-            BacktestEndDate = DateTime.UtcNow.AddDays(-1),
-            Status = BacktestStatus.Pending,
-            InitialBalance = 10000.0m,
-            AlgorithmParameters = "{\"param1\": \"value1\"}",
-            CommissionRate = 0.001m
-        };
-
-        var mockDbSet = new Mock<DbSet<BacktestRunEntity>>();
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        var userId = await SeedTestUserAsync();
+        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var backtestModel = BacktestRunModelFixture.CreatePendingBacktestRun(userId, portfolioId, "New Backtest");
 
         // Act
         var result = await _repository.CreateAsync(backtestModel);
@@ -318,8 +170,10 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(backtestModel.Timeframe, result.Timeframe);
         Assert.Equal(backtestModel.Status, result.Status);
 
-        mockDbSet.Verify(m => m.Add(It.IsAny<BacktestRunEntity>()), Times.Once);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify it was actually saved to the database
+        var savedEntity = await Context.BacktestRuns.FindAsync(result.Id);
+        Assert.NotNull(savedEntity);
+        Assert.Equal(result.Name, savedEntity.Name);
     }
 
     //[Fact]
@@ -390,23 +244,9 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task UpdateAsync_NonExistentBacktestRun_ThrowsNotFoundException()
     {
         // Arrange
-        var backtestModel = new BacktestRunModel
-        {
-            Id = Guid.NewGuid(),
-            Name = "Nonexistent Backtest",
-            AlgorithmId = Guid.NewGuid(),
-            PortfolioId = Guid.NewGuid(),
-            UserId = Guid.NewGuid(),
-            Symbol = "BTCUSDT",
-            Exchange = Exchange.Binance,
-            Timeframe = Timeframe.OneHour,
-            Status = BacktestStatus.Completed
-        };
-
-        var mockDbSet = new Mock<DbSet<BacktestRunEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<BacktestRunEntity>(), b => b.Id);
-
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
+        var userId = await SeedTestUserAsync();
+        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Nonexistent Backtest");
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(backtestModel));
@@ -416,49 +256,46 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task DeleteAsync_ExistingBacktestRun_SoftDeletesBacktestRun()
     {
         // Arrange
-        var backtestId = Guid.NewGuid();
-        var existingBacktest = new BacktestRunEntity
-        {
-            Id = backtestId,
-            Name = "Test Backtest",
-            Status = (int)BacktestStatus.Completed,
-            IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
-        };
+        var userId = await SeedTestUserAsync();
+        var portfolioId = await SeedTestPortfolioAsync(userId);
 
-        var mockDbSet = new Mock<DbSet<BacktestRunEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingBacktest }, b => b.Id);
+        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Test Backtest");
+        var backtestEntity = backtestModel.ToEntity();
 
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        Context.BacktestRuns.Add(backtestEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(backtestId);
+        var result = await _repository.DeleteAsync(backtestEntity.Id);
 
         // Assert
         Assert.True(result);
-        Assert.True(existingBacktest.IsDeleted);
-        Assert.NotNull(existingBacktest.UpdatedAt);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify soft delete was applied
+        var deletedEntity = await Context.BacktestRuns.FindAsync(backtestEntity.Id);
+        Assert.NotNull(deletedEntity);
+        Assert.True(deletedEntity.IsDeleted);
+        Assert.NotNull(deletedEntity.UpdatedAt);
     }
 
     [Fact]
     public async Task CountByUserIdAsync_ExistingUser_ReturnsCorrectCount()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var backtestRuns = new List<BacktestRunEntity>
+        var userId = await SeedTestUserAsync();
+        var otherUserId = await SeedTestUserAsync("OtherUser");
+        var portfolioId = await SeedTestPortfolioAsync(userId);
+
+        var backtestModels = new[]
         {
-            new BacktestRunEntity { Id = Guid.NewGuid(), UserId = userId, IsDeleted = false },
-            new BacktestRunEntity { Id = Guid.NewGuid(), UserId = userId, IsDeleted = false },
-            new BacktestRunEntity { Id = Guid.NewGuid(), UserId = userId, IsDeleted = true }, // Deleted
-            new BacktestRunEntity { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IsDeleted = false } // Different user
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Backtest 2"),
+            BacktestRunModelFixture.CreatePendingBacktestRun(otherUserId, portfolioId, "Different user backtest")
         };
 
-        var userBacktestRuns = backtestRuns.Where(b => b.UserId == userId && !b.IsDeleted);
-        var mockDbSet = CreateMockDbSetWithAsync(userBacktestRuns);
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
+        var backtestEntities = backtestModels.Select(b => b.ToEntity());
+        Context.BacktestRuns.AddRange(backtestEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.CountByUserIdAsync(userId);
@@ -471,42 +308,18 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task GetAllAsync_WithBacktestRuns_ReturnsAllActiveBacktestRuns()
     {
         // Arrange
-        var backtestRuns = new List<BacktestRunEntity>
+        var userId = await SeedTestUserAsync();
+        var portfolioId = await SeedTestPortfolioAsync(userId);
+
+        var backtestModels = new[]
         {
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Backtest 1",
-                UserId = Guid.NewGuid(),
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                Status = (int)BacktestStatus.Completed,
-                InitialBalance = 10000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-2)
-            },
-            new BacktestRunEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Backtest 2",
-                UserId = Guid.NewGuid(),
-                AlgorithmId = Guid.NewGuid(),
-                PortfolioId = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                Exchange = (int)Exchange.Binance,
-                Timeframe = (int)Timeframe.OneHour,
-                Status = (int)BacktestStatus.Running,
-                InitialBalance = 5000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            }
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Backtest 2")
         };
 
-        var mockDbSet = CreateMockDbSetWithAsync(backtestRuns.OrderByDescending(b => b.CreatedAt));
-        MockContext.Setup(c => c.BacktestRuns).Returns(mockDbSet.Object);
+        var backtestEntities = backtestModels.Select(b => b.ToEntity());
+        Context.BacktestRuns.AddRange(backtestEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetAllAsync();

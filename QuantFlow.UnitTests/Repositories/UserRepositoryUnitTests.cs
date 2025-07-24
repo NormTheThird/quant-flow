@@ -1,9 +1,9 @@
 ﻿namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
-/// Unit tests for UserRepository using mocked dependencies
+/// Unit tests for UserRepository using in-memory database
 /// </summary>
-public class UserRepositoryUnitTests : BaseRepositoryUnitTest
+public class UserRepositoryUnitTests : BaseRepositoryUnitTest, IDisposable
 {
     private readonly Mock<ILogger<UserRepository>> _mockLogger;
     private readonly UserRepository _repository;
@@ -11,38 +11,25 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     public UserRepositoryUnitTests()
     {
         _mockLogger = new Mock<ILogger<UserRepository>>();
-        _repository = new UserRepository(MockContext.Object, _mockLogger.Object);
+        _repository = new UserRepository(Context, _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetByIdAsync_ExistingUser_ReturnsUserModel()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var users = new List<UserEntity>
-        {
-            new UserEntity
-            {
-                Id = userId,
-                Username = "testuser",
-                Email = "test@example.com",
-                PasswordHash = "hashedpassword",
-                IsEmailVerified = true,
-                IsSystemAdmin = false,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var userModel = UserModelFixture.CreateVerifiedUser("testuser", "test@example.com");
+        var userEntity = userModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(users);
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(userId);
+        var result = await _repository.GetByIdAsync(userEntity.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(userId, result.Id);
+        Assert.Equal(userEntity.Id, result.Id);
         Assert.Equal("testuser", result.Username);
         Assert.Equal("test@example.com", result.Email);
         Assert.True(result.IsEmailVerified);
@@ -54,10 +41,6 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var userId = Guid.NewGuid();
-        var users = new List<UserEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(users);
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetByIdAsync(userId);
@@ -70,28 +53,18 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task GetByIdAsync_DeletedUser_ReturnsNull()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var users = new List<UserEntity>
-        {
-            new UserEntity
-            {
-                Id = userId,
-                Username = "testuser",
-                Email = "test@example.com",
-                PasswordHash = "hashedpassword",
-                IsDeleted = true,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var userModel = UserModelFixture.CreateDefault("testuser", "test@example.com");
+        var userEntity = userModel.ToEntity();
+        userEntity.IsDeleted = true; // Mark as deleted
 
-        var mockDbSet = CreateMockDbSetWithAsync(users.Where(u => !u.IsDeleted));
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(userId);
+        var result = await _repository.GetByIdAsync(userEntity.Id);
 
         // Assert
-        Assert.Null(result);
+        Assert.Null(result); // Should return null for deleted users
     }
 
     [Fact]
@@ -99,21 +72,11 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var email = "test@example.com";
-        var users = new List<UserEntity>
-        {
-            new UserEntity
-            {
-                Id = Guid.NewGuid(),
-                Username = "testuser",
-                Email = email,
-                PasswordHash = "hashedpassword",
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var userModel = UserModelFixture.CreateDefault("testuser", email);
+        var userEntity = userModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(users);
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByEmailAsync(email);
@@ -129,10 +92,6 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var email = "nonexistent@example.com";
-        var users = new List<UserEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(users);
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetByEmailAsync(email);
@@ -146,21 +105,11 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var username = "testuser";
-        var users = new List<UserEntity>
-        {
-            new UserEntity
-            {
-                Id = Guid.NewGuid(),
-                Username = username,
-                Email = "test@example.com",
-                PasswordHash = "hashedpassword",
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var userModel = UserModelFixture.CreateDefault(username, "test@example.com");
+        var userEntity = userModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(users);
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByUsernameAsync(username);
@@ -172,22 +121,23 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     }
 
     [Fact]
+    public async Task GetByUsernameAsync_NonExistentUsername_ReturnsNull()
+    {
+        // Arrange
+        var username = "nonexistentuser";
+
+        // Act
+        var result = await _repository.GetByUsernameAsync(username);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task CreateAsync_ValidUser_CallsAddAndSaveChanges()
     {
         // Arrange
-        var userModel = new UserModel
-        {
-            Id = Guid.NewGuid(),
-            Username = "newuser",
-            Email = "newuser@example.com",
-            PasswordHash = "hashedpassword",
-            IsEmailVerified = false,
-            IsSystemAdmin = false
-        };
-
-        var mockDbSet = new Mock<DbSet<UserEntity>>();
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        var userModel = UserModelFixture.CreateNewUser("newuser", "newuser@example.com");
 
         // Act
         var result = await _repository.CreateAsync(userModel);
@@ -196,40 +146,28 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.NotNull(result);
         Assert.Equal(userModel.Username, result.Username);
         Assert.Equal(userModel.Email, result.Email);
+        Assert.Equal(userModel.IsEmailVerified, result.IsEmailVerified);
 
-        mockDbSet.Verify(m => m.Add(It.IsAny<UserEntity>()), Times.Once);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify it was actually saved to the database
+        var savedEntity = await Context.Users.FindAsync(result.Id);
+        Assert.NotNull(savedEntity);
+        Assert.Equal(result.Username, savedEntity.Username);
+        Assert.Equal(result.Email, savedEntity.Email);
     }
 
     [Fact]
     public async Task UpdateAsync_ExistingUser_UpdatesAndSaves()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var existingUser = new UserEntity
-        {
-            Id = userId,
-            Username = "originaluser",
-            Email = "original@example.com",
-            PasswordHash = "originalpassword",
-            CreatedAt = DateTime.UtcNow
-        };
+        var originalUser = UserModelFixture.CreateDefault("originaluser", "original@example.com");
+        var userEntity = originalUser.ToEntity();
 
-        var updatedModel = new UserModel
-        {
-            Id = userId,
-            Username = "updateduser",
-            Email = "updated@example.com",
-            PasswordHash = "updatedpassword",
-            IsEmailVerified = true,
-            IsSystemAdmin = false
-        };
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
-        var mockDbSet = new Mock<DbSet<UserEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingUser }, u => u.Id);
-
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        // Get the saved user and modify it
+        var savedUser = await _repository.GetByIdAsync(userEntity.Id);
+        var updatedModel = UserModelFixture.CreateForUpdate(savedUser.Id, "updateduser", "updated@example.com");
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -240,25 +178,18 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal("updated@example.com", result.Email);
         Assert.True(result.IsEmailVerified);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify the changes were persisted
+        var updatedEntity = await Context.Users.FindAsync(result.Id);
+        Assert.NotNull(updatedEntity);
+        Assert.Equal("updateduser", updatedEntity.Username);
+        Assert.Equal("updated@example.com", updatedEntity.Email);
     }
 
     [Fact]
     public async Task UpdateAsync_NonExistentUser_ThrowsNotFoundException()
     {
         // Arrange
-        var userModel = new UserModel
-        {
-            Id = Guid.NewGuid(),
-            Username = "nonexistent",
-            Email = "nonexistent@example.com",
-            PasswordHash = "password"
-        };
-
-        var mockDbSet = new Mock<DbSet<UserEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<UserEntity>(), u => u.Id);
-
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
+        var userModel = UserModelFixture.CreateDefault("nonexistent", "nonexistent@example.com");
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(userModel));
@@ -268,32 +199,23 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task DeleteAsync_ExistingUser_SoftDeletesUser()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var existingUser = new UserEntity
-        {
-            Id = userId,
-            Username = "testuser",
-            Email = "test@example.com",
-            PasswordHash = "hashedpassword",
-            IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
-        };
+        var userModel = UserModelFixture.CreateDefault("testuser", "test@example.com");
+        var userEntity = userModel.ToEntity();
 
-        var mockDbSet = new Mock<DbSet<UserEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingUser }, u => u.Id);
-
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(userId);
+        var result = await _repository.DeleteAsync(userEntity.Id);
 
         // Assert
         Assert.True(result);
-        Assert.True(existingUser.IsDeleted);
-        Assert.NotNull(existingUser.UpdatedAt);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify soft delete was applied
+        var deletedEntity = await Context.Users.FindAsync(userEntity.Id);
+        Assert.NotNull(deletedEntity);
+        Assert.True(deletedEntity.IsDeleted);
+        Assert.NotNull(deletedEntity.UpdatedAt);
     }
 
     [Fact]
@@ -302,47 +224,22 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var userId = Guid.NewGuid();
 
-        var mockDbSet = new Mock<DbSet<UserEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<UserEntity>(), u => u.Id);
-
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
-
         // Act
         var result = await _repository.DeleteAsync(userId);
 
         // Assert
         Assert.False(result);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]
     public async Task GetAllAsync_WithUsers_ReturnsAllActiveUsers()
     {
         // Arrange
-        var users = new List<UserEntity>
-        {
-            new UserEntity
-            {
-                Id = Guid.NewGuid(),
-                Username = "activeuser1",
-                Email = "active1@example.com",
-                PasswordHash = "password",
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new UserEntity
-            {
-                Id = Guid.NewGuid(),
-                Username = "activeuser2",
-                Email = "active2@example.com",
-                PasswordHash = "password",
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var users = UserModelFixture.CreateBatch(2, "activeuser");
+        var userEntities = users.Select(u => u.ToEntity());
 
-        var mockDbSet = CreateMockDbSetWithAsync(users);
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
+        Context.Users.AddRange(userEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetAllAsync();
@@ -357,12 +254,6 @@ public class UserRepositoryUnitTests : BaseRepositoryUnitTest
     [Fact]
     public async Task GetAllAsync_NoUsers_ReturnsEmptyCollection()
     {
-        // Arrange
-        var users = new List<UserEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(users);
-        MockContext.Setup(c => c.Users).Returns(mockDbSet.Object);
-
         // Act
         var result = await _repository.GetAllAsync();
 

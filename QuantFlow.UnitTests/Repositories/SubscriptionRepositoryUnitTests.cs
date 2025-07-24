@@ -1,9 +1,9 @@
 ﻿namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
-/// Unit tests for SubscriptionRepository using mocked dependencies
+/// Unit tests for SubscriptionRepository using in-memory database
 /// </summary>
-public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
+public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest, IDisposable
 {
     private readonly Mock<ILogger<SubscriptionRepository>> _mockLogger;
     private readonly SubscriptionRepository _repository;
@@ -11,42 +11,26 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
     public SubscriptionRepositoryUnitTests()
     {
         _mockLogger = new Mock<ILogger<SubscriptionRepository>>();
-        _repository = new SubscriptionRepository(MockContext.Object, _mockLogger.Object);
+        _repository = new SubscriptionRepository(Context, _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetByIdAsync_ExistingSubscription_ReturnsSubscriptionModel()
     {
         // Arrange
-        var subscriptionId = Guid.NewGuid();
         var userId = Guid.NewGuid();
-        var subscriptions = new List<SubscriptionEntity>
-        {
-            new SubscriptionEntity
-            {
-                Id = subscriptionId,
-                UserId = userId,
-                Type = (int)SubscriptionType.Premium,
-                StartDate = DateTime.UtcNow.AddDays(-30),
-                EndDate = DateTime.UtcNow.AddDays(330),
-                IsActive = true,
-                MaxPortfolios = 10,
-                MaxAlgorithms = 50,
-                MaxBacktestRuns = 500,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-30)
-            }
-        };
+        var subscriptionModel = SubscriptionModelFixture.CreatePremiumSubscription(userId);
+        var subscriptionEntity = subscriptionModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(subscriptions);
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        Context.Subscriptions.Add(subscriptionEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(subscriptionId);
+        var result = await _repository.GetByIdAsync(subscriptionEntity.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(subscriptionId, result.Id);
+        Assert.Equal(subscriptionEntity.Id, result.Id);
         Assert.Equal(userId, result.UserId);
         Assert.Equal(SubscriptionType.Premium, result.Type);
         Assert.True(result.IsActive);
@@ -60,10 +44,6 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var subscriptionId = Guid.NewGuid();
-        var subscriptions = new List<SubscriptionEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(subscriptions);
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetByIdAsync(subscriptionId);
@@ -78,68 +58,29 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var userId = Guid.NewGuid();
         var otherUserId = Guid.NewGuid();
-        var subscriptions = new List<SubscriptionEntity>
-        {
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Type = (int)SubscriptionType.Free,
-                StartDate = DateTime.UtcNow.AddDays(-60),
-                EndDate = DateTime.UtcNow.AddDays(-30),
-                IsActive = false,
-                MaxPortfolios = 1,
-                MaxAlgorithms = 5,
-                MaxBacktestRuns = 10,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-60)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Type = (int)SubscriptionType.Premium,
-                StartDate = DateTime.UtcNow.AddDays(-30),
-                EndDate = DateTime.UtcNow.AddDays(330),
-                IsActive = true,
-                MaxPortfolios = 10,
-                MaxAlgorithms = 50,
-                MaxBacktestRuns = 500,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-30)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = otherUserId,
-                Type = (int)SubscriptionType.Basic,
-                StartDate = DateTime.UtcNow.AddDays(-15),
-                EndDate = DateTime.UtcNow.AddDays(345),
-                IsActive = true,
-                MaxPortfolios = 3,
-                MaxAlgorithms = 15,
-                MaxBacktestRuns = 100,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-15)
-            }
-        };
 
-        var userSubscriptions = subscriptions
-            .Where(s => s.UserId == userId && !s.IsDeleted)
-            .OrderByDescending(s => s.CreatedAt);
-        var mockDbSet = CreateMockDbSetWithAsync(userSubscriptions);
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        var userSubscriptions = SubscriptionModelFixture.CreateSubscriptionHistory(userId);
+        var otherUserSubscription = SubscriptionModelFixture.CreateBasicSubscription(otherUserId);
+
+        var allSubscriptions = userSubscriptions.Concat(new[] { otherUserSubscription });
+        var subscriptionEntities = allSubscriptions.Select(s => s.ToEntity());
+
+        Context.Subscriptions.AddRange(subscriptionEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByUserIdAsync(userId);
 
         // Assert
         var subscriptionList = result.ToList();
-        Assert.Equal(2, subscriptionList.Count);
+        Assert.Equal(3, subscriptionList.Count); // Should return all 3 subscriptions for the user
         Assert.All(subscriptionList, s => Assert.Equal(userId, s.UserId));
         Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Premium);
+        Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Basic);
         Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Free);
-        Assert.DoesNotContain(subscriptionList, s => s.Type == SubscriptionType.Basic);
+
+        // Verify ordering (most recent first)
+        Assert.Equal(SubscriptionType.Premium, subscriptionList[0].Type); // Most recent should be first
     }
 
     [Fact]
@@ -147,39 +88,11 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var userId = Guid.NewGuid();
-        var subscriptions = new List<SubscriptionEntity>
-        {
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Type = (int)SubscriptionType.Free,
-                StartDate = DateTime.UtcNow.AddDays(-60),
-                EndDate = DateTime.UtcNow.AddDays(-30),
-                IsActive = false, // Inactive
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-60)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Type = (int)SubscriptionType.Premium,
-                StartDate = DateTime.UtcNow.AddDays(-30),
-                EndDate = DateTime.UtcNow.AddDays(330),
-                IsActive = true, // Active
-                MaxPortfolios = 10,
-                MaxAlgorithms = 50,
-                MaxBacktestRuns = 500,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-30)
-            }
-        };
+        var subscriptions = SubscriptionModelFixture.CreateSubscriptionHistory(userId);
+        var subscriptionEntities = subscriptions.Select(s => s.ToEntity());
 
-        var activeSubscription = subscriptions
-            .Where(s => s.UserId == userId && s.IsActive && !s.IsDeleted);
-        var mockDbSet = CreateMockDbSetWithAsync(activeSubscription);
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        Context.Subscriptions.AddRange(subscriptionEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetActiveByUserIdAsync(userId);
@@ -187,7 +100,7 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
         // Assert
         Assert.NotNull(result);
         Assert.Equal(userId, result.UserId);
-        Assert.Equal(SubscriptionType.Premium, result.Type);
+        Assert.Equal(SubscriptionType.Premium, result.Type); // Should return the active Premium subscription
         Assert.True(result.IsActive);
         Assert.Equal(10, result.MaxPortfolios);
         Assert.Equal(50, result.MaxAlgorithms);
@@ -199,29 +112,17 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var userId = Guid.NewGuid();
-        var subscriptions = new List<SubscriptionEntity>
-        {
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Type = (int)SubscriptionType.Free,
-                IsActive = false, // All subscriptions inactive
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var inactiveSubscription = SubscriptionModelFixture.CreateInactiveSubscription(userId);
+        var subscriptionEntity = inactiveSubscription.ToEntity();
 
-        var activeSubscriptions = subscriptions
-            .Where(s => s.UserId == userId && s.IsActive && !s.IsDeleted);
-        var mockDbSet = CreateMockDbSetWithAsync(activeSubscriptions);
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        Context.Subscriptions.Add(subscriptionEntity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetActiveByUserIdAsync(userId);
 
         // Assert
-        Assert.Null(result);
+        Assert.Null(result); // Should return null since no active subscriptions
     }
 
     [Fact]
@@ -229,42 +130,14 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var subscriptionType = SubscriptionType.Premium;
-        var subscriptions = new List<SubscriptionEntity>
-        {
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Premium,
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-30)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Premium,
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-15)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Basic,
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var premiumSubscriptions = SubscriptionModelFixture.CreateActiveSubscriptionsByType(subscriptionType, 2);
+        var basicSubscription = SubscriptionModelFixture.CreateBasicSubscription();
 
-        var premiumSubscriptions = subscriptions
-            .Where(s => s.Type == (int)subscriptionType && !s.IsDeleted)
-            .OrderByDescending(s => s.CreatedAt);
-        var mockDbSet = CreateMockDbSetWithAsync(premiumSubscriptions);
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        var allSubscriptions = premiumSubscriptions.Concat(new[] { basicSubscription });
+        var subscriptionEntities = allSubscriptions.Select(s => s.ToEntity());
+
+        Context.Subscriptions.AddRange(subscriptionEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByTypeAsync(subscriptionType);
@@ -280,46 +153,14 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task GetExpiredAsync_WithExpiredSubscriptions_ReturnsExpiredSubscriptions()
     {
         // Arrange
-        var now = DateTime.UtcNow;
-        var subscriptions = new List<SubscriptionEntity>
-        {
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Premium,
-                EndDate = now.AddDays(-10), // Expired
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-40)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Basic,
-                EndDate = now.AddDays(-5), // Expired
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-35)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Free,
-                EndDate = now.AddDays(10), // Not expired
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-20)
-            }
-        };
+        var expiredSubscriptions = SubscriptionModelFixture.CreateExpiredSubscriptionBatch(2);
+        var activeSubscription = SubscriptionModelFixture.CreatePremiumSubscription(); // Not expired
 
-        var expiredSubscriptions = subscriptions
-            .Where(s => s.EndDate < now && s.IsActive && !s.IsDeleted)
-            .OrderBy(s => s.EndDate);
-        var mockDbSet = CreateMockDbSetWithAsync(expiredSubscriptions);
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        var allSubscriptions = expiredSubscriptions.Concat(new[] { activeSubscription });
+        var subscriptionEntities = allSubscriptions.Select(s => s.ToEntity());
+
+        Context.Subscriptions.AddRange(subscriptionEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetExpiredAsync();
@@ -328,32 +169,18 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
         var subscriptionList = result.ToList();
         Assert.Equal(2, subscriptionList.Count);
         Assert.All(subscriptionList, s => Assert.True(s.EndDate < DateTime.UtcNow));
-        Assert.All(subscriptionList, s => Assert.True(s.IsActive));
-        Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Premium);
+        Assert.All(subscriptionList, s => Assert.True(s.IsActive)); // Still marked as active but expired by date
         Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Basic);
-        Assert.DoesNotContain(subscriptionList, s => s.Type == SubscriptionType.Free);
+        Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Premium);
+        Assert.DoesNotContain(subscriptionList, s => s.EndDate > DateTime.UtcNow); // No non-expired subscriptions
     }
 
     [Fact]
     public async Task CreateAsync_ValidSubscription_CallsAddAndSaveChanges()
     {
         // Arrange
-        var subscriptionModel = new SubscriptionModel
-        {
-            Id = Guid.NewGuid(),
-            UserId = Guid.NewGuid(),
-            Type = SubscriptionType.Premium,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = true,
-            MaxPortfolios = 10,
-            MaxAlgorithms = 50,
-            MaxBacktestRuns = 500
-        };
-
-        var mockDbSet = new Mock<DbSet<SubscriptionEntity>>();
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        var userId = Guid.NewGuid();
+        var subscriptionModel = SubscriptionModelFixture.CreatePremiumSubscription(userId);
 
         // Act
         var result = await _repository.CreateAsync(subscriptionModel);
@@ -369,47 +196,31 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(subscriptionModel.MaxAlgorithms, result.MaxAlgorithms);
         Assert.Equal(subscriptionModel.MaxBacktestRuns, result.MaxBacktestRuns);
 
-        mockDbSet.Verify(m => m.Add(It.IsAny<SubscriptionEntity>()), Times.Once);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify it was actually saved to the database
+        var savedEntity = await Context.Subscriptions.FindAsync(result.Id);
+        Assert.NotNull(savedEntity);
+        Assert.Equal(result.UserId, savedEntity.UserId);
     }
 
     [Fact]
     public async Task UpdateAsync_ExistingSubscription_UpdatesAndSaves()
     {
         // Arrange
-        var subscriptionId = Guid.NewGuid();
-        var existingSubscription = new SubscriptionEntity
-        {
-            Id = subscriptionId,
-            UserId = Guid.NewGuid(),
-            Type = (int)SubscriptionType.Free,
-            StartDate = DateTime.UtcNow.AddDays(-30),
-            EndDate = DateTime.UtcNow.AddDays(330),
-            IsActive = false,
-            MaxPortfolios = 1,
-            MaxAlgorithms = 5,
-            MaxBacktestRuns = 10,
-            CreatedAt = DateTime.UtcNow.AddDays(-30)
-        };
+        var userId = Guid.NewGuid();
+        var originalSubscription = SubscriptionModelFixture.CreateFreeSubscription(userId);
+        var subscriptionEntity = originalSubscription.ToEntity();
 
-        var updatedModel = new SubscriptionModel
-        {
-            Id = subscriptionId,
-            UserId = existingSubscription.UserId,
-            Type = SubscriptionType.Premium, // Upgraded
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = true, // Activated
-            MaxPortfolios = 10, // Increased limits
-            MaxAlgorithms = 50,
-            MaxBacktestRuns = 500
-        };
+        Context.Subscriptions.Add(subscriptionEntity);
+        await Context.SaveChangesAsync();
 
-        var mockDbSet = new Mock<DbSet<SubscriptionEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingSubscription }, s => s.Id);
-
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        // Get the saved subscription and create update model
+        var savedSubscription = await _repository.GetByIdAsync(subscriptionEntity.Id);
+        var updatedModel = SubscriptionModelFixture.CreateSubscriptionForUpdate(
+            savedSubscription.Id,
+            userId,
+            SubscriptionType.Premium,
+            true
+        );
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -422,30 +233,18 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(50, result.MaxAlgorithms);
         Assert.Equal(500, result.MaxBacktestRuns);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify the changes were persisted
+        var updatedEntity = await Context.Subscriptions.FindAsync(result.Id);
+        Assert.NotNull(updatedEntity);
+        Assert.Equal((int)SubscriptionType.Premium, updatedEntity.Type);
+        Assert.True(updatedEntity.IsActive);
     }
 
     [Fact]
     public async Task UpdateAsync_NonExistentSubscription_ThrowsNotFoundException()
     {
         // Arrange
-        var subscriptionModel = new SubscriptionModel
-        {
-            Id = Guid.NewGuid(),
-            UserId = Guid.NewGuid(),
-            Type = SubscriptionType.Premium,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = true,
-            MaxPortfolios = 10,
-            MaxAlgorithms = 50,
-            MaxBacktestRuns = 500
-        };
-
-        var mockDbSet = new Mock<DbSet<SubscriptionEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<SubscriptionEntity>(), s => s.Id);
-
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        var subscriptionModel = SubscriptionModelFixture.CreatePremiumSubscription();
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(subscriptionModel));
@@ -455,32 +254,23 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task DeleteAsync_ExistingSubscription_SoftDeletesSubscription()
     {
         // Arrange
-        var subscriptionId = Guid.NewGuid();
-        var existingSubscription = new SubscriptionEntity
-        {
-            Id = subscriptionId,
-            UserId = Guid.NewGuid(),
-            Type = (int)SubscriptionType.Premium,
-            IsActive = true,
-            IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
-        };
+        var subscriptionModel = SubscriptionModelFixture.CreatePremiumSubscription();
+        var subscriptionEntity = subscriptionModel.ToEntity();
 
-        var mockDbSet = new Mock<DbSet<SubscriptionEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingSubscription }, s => s.Id);
-
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        Context.Subscriptions.Add(subscriptionEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(subscriptionId);
+        var result = await _repository.DeleteAsync(subscriptionEntity.Id);
 
         // Assert
         Assert.True(result);
-        Assert.True(existingSubscription.IsDeleted);
-        Assert.NotNull(existingSubscription.UpdatedAt);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify soft delete was applied
+        var deletedEntity = await Context.Subscriptions.FindAsync(subscriptionEntity.Id);
+        Assert.NotNull(deletedEntity);
+        Assert.True(deletedEntity.IsDeleted);
+        Assert.NotNull(deletedEntity.UpdatedAt);
     }
 
     [Fact]
@@ -489,47 +279,26 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var subscriptionId = Guid.NewGuid();
 
-        var mockDbSet = new Mock<DbSet<SubscriptionEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<SubscriptionEntity>(), s => s.Id);
-
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
-
         // Act
         var result = await _repository.DeleteAsync(subscriptionId);
 
         // Assert
         Assert.False(result);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]
     public async Task GetAllAsync_WithSubscriptions_ReturnsAllActiveSubscriptions()
     {
         // Arrange
-        var subscriptions = new List<SubscriptionEntity>
+        var subscriptions = new List<SubscriptionModel>
         {
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Premium,
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-30)
-            },
-            new SubscriptionEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = Guid.NewGuid(),
-                Type = (int)SubscriptionType.Basic,
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-15)
-            }
+            SubscriptionModelFixture.CreatePremiumSubscription(),
+            SubscriptionModelFixture.CreateBasicSubscription()
         };
+        var subscriptionEntities = subscriptions.Select(s => s.ToEntity());
 
-        var mockDbSet = CreateMockDbSetWithAsync(subscriptions.OrderByDescending(s => s.CreatedAt));
-        MockContext.Setup(c => c.Subscriptions).Returns(mockDbSet.Object);
+        Context.Subscriptions.AddRange(subscriptionEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetAllAsync();
@@ -539,5 +308,15 @@ public class SubscriptionRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(2, subscriptionList.Count);
         Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Premium);
         Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Basic);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_NoSubscriptions_ReturnsEmptyCollection()
+    {
+        // Act
+        var result = await _repository.GetAllAsync();
+
+        // Assert
+        Assert.Empty(result);
     }
 }

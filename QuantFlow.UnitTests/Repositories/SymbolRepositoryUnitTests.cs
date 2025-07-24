@@ -1,9 +1,9 @@
 ﻿namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
-/// Unit tests for SymbolRepository using mocked dependencies
+/// Unit tests for SymbolRepository using in-memory database
 /// </summary>
-public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
+public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest, IDisposable
 {
     private readonly Mock<ILogger<SymbolRepository>> _mockLogger;
     private readonly SymbolRepository _repository;
@@ -11,40 +11,25 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     public SymbolRepositoryUnitTests()
     {
         _mockLogger = new Mock<ILogger<SymbolRepository>>();
-        _repository = new SymbolRepository(MockContext.Object, _mockLogger.Object);
+        _repository = new SymbolRepository(Context, _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetByIdAsync_ExistingSymbol_ReturnsSymbolModel()
     {
         // Arrange
-        var symbolId = Guid.NewGuid();
-        var symbols = new List<SymbolEntity>
-        {
-            new SymbolEntity
-            {
-                Id = symbolId,
-                Symbol = "BTCUSDT",
-                BaseAsset = "BTC",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                MinTradeAmount = 0.001m,
-                PricePrecision = 2,
-                QuantityPrecision = 8,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var symbolModel = SymbolModelFixture.CreateBTCUSDT();
+        var symbolEntity = symbolModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(symbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
+        Context.Symbols.Add(symbolEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(symbolId);
+        var result = await _repository.GetByIdAsync(symbolEntity.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(symbolId, result.Id);
+        Assert.Equal(symbolEntity.Id, result.Id);
         Assert.Equal("BTCUSDT", result.Symbol);
         Assert.Equal("BTC", result.BaseAsset);
         Assert.Equal("USDT", result.QuoteAsset);
@@ -59,10 +44,6 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var symbolId = Guid.NewGuid();
-        var symbols = new List<SymbolEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(symbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetByIdAsync(symbolId);
@@ -76,25 +57,11 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var symbolName = "ETHUSDT";
-        var symbols = new List<SymbolEntity>
-        {
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = symbolName,
-                BaseAsset = "ETH",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                MinTradeAmount = 0.01m,
-                PricePrecision = 2,
-                QuantityPrecision = 6,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var symbolModel = SymbolModelFixture.CreateETHUSDT();
+        var symbolEntity = symbolModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(symbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
+        Context.Symbols.Add(symbolEntity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetBySymbolAsync(symbolName);
@@ -115,10 +82,6 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var symbolName = "NONEXISTENT";
-        var symbols = new List<SymbolEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(symbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetBySymbolAsync(symbolName);
@@ -131,56 +94,24 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task GetActiveAsync_WithActiveSymbols_ReturnsActiveSymbolsOnly()
     {
         // Arrange
-        var symbols = new List<SymbolEntity>
-        {
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                BaseAsset = "BTC",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                BaseAsset = "ETH",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "ADAUSDT",
-                BaseAsset = "ADA",
-                QuoteAsset = "USDT",
-                IsActive = false, // Inactive
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var mixedSymbols = SymbolModelFixture.CreateMixedStatusSymbolBatch();
+        var symbolEntities = mixedSymbols.Select(s => s.ToEntity());
 
-        var activeSymbols = symbols
-            .Where(s => s.IsActive && !s.IsDeleted)
-            .OrderBy(s => s.Symbol);
-        var mockDbSet = CreateMockDbSetWithAsync(activeSymbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
+        Context.Symbols.AddRange(symbolEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetActiveAsync();
 
         // Assert
         var symbolList = result.ToList();
-        Assert.Equal(2, symbolList.Count);
+        Assert.Equal(3, symbolList.Count); // Should only return active symbols
         Assert.All(symbolList, s => Assert.True(s.IsActive));
         Assert.Contains(symbolList, s => s.Symbol == "BTCUSDT");
         Assert.Contains(symbolList, s => s.Symbol == "ETHUSDT");
-        Assert.DoesNotContain(symbolList, s => s.Symbol == "ADAUSDT");
+        Assert.Contains(symbolList, s => s.Symbol == "ADAUSDT");
+        Assert.DoesNotContain(symbolList, s => s.Symbol == "DOGEUSDT");
+        Assert.DoesNotContain(symbolList, s => s.Symbol == "SHIBUSDT");
     }
 
     [Fact]
@@ -188,55 +119,25 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var baseAsset = "BTC";
-        var symbols = new List<SymbolEntity>
-        {
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                BaseAsset = "BTC",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "BTCEUR",
-                BaseAsset = "BTC",
-                QuoteAsset = "EUR",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                BaseAsset = "ETH",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var btcSymbols = SymbolModelFixture.CreateSymbolBatchByBaseAsset(baseAsset, new[] { "USDT", "EUR", "BNB" });
+        var otherSymbol = SymbolModelFixture.CreateETHUSDT(); // Different base asset
 
-        var btcSymbols = symbols
-            .Where(s => s.BaseAsset == baseAsset && s.IsActive && !s.IsDeleted)
-            .OrderBy(s => s.Symbol);
-        var mockDbSet = CreateMockDbSetWithAsync(btcSymbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
+        var allSymbols = btcSymbols.Concat(new[] { otherSymbol });
+        var symbolEntities = allSymbols.Select(s => s.ToEntity());
+
+        Context.Symbols.AddRange(symbolEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByBaseAssetAsync(baseAsset);
 
         // Assert
         var symbolList = result.ToList();
-        Assert.Equal(2, symbolList.Count);
+        Assert.Equal(3, symbolList.Count);
         Assert.All(symbolList, s => Assert.Equal("BTC", s.BaseAsset));
         Assert.Contains(symbolList, s => s.Symbol == "BTCUSDT");
         Assert.Contains(symbolList, s => s.Symbol == "BTCEUR");
+        Assert.Contains(symbolList, s => s.Symbol == "BTCBNB");
         Assert.DoesNotContain(symbolList, s => s.Symbol == "ETHUSDT");
     }
 
@@ -245,55 +146,25 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var quoteAsset = "USDT";
-        var symbols = new List<SymbolEntity>
-        {
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                BaseAsset = "BTC",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                BaseAsset = "ETH",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "BTCEUR",
-                BaseAsset = "BTC",
-                QuoteAsset = "EUR",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var usdtSymbols = SymbolModelFixture.CreateSymbolBatchByQuoteAsset(quoteAsset, new[] { "BTC", "ETH", "ADA" });
+        var otherSymbol = SymbolModelFixture.CreateCustomSymbol("BTC", "EUR"); // Different quote asset
 
-        var usdtSymbols = symbols
-            .Where(s => s.QuoteAsset == quoteAsset && s.IsActive && !s.IsDeleted)
-            .OrderBy(s => s.Symbol);
-        var mockDbSet = CreateMockDbSetWithAsync(usdtSymbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
+        var allSymbols = usdtSymbols.Concat(new[] { otherSymbol });
+        var symbolEntities = allSymbols.Select(s => s.ToEntity());
+
+        Context.Symbols.AddRange(symbolEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByQuoteAssetAsync(quoteAsset);
 
         // Assert
         var symbolList = result.ToList();
-        Assert.Equal(2, symbolList.Count);
+        Assert.Equal(3, symbolList.Count);
         Assert.All(symbolList, s => Assert.Equal("USDT", s.QuoteAsset));
         Assert.Contains(symbolList, s => s.Symbol == "BTCUSDT");
         Assert.Contains(symbolList, s => s.Symbol == "ETHUSDT");
+        Assert.Contains(symbolList, s => s.Symbol == "ADAUSDT");
         Assert.DoesNotContain(symbolList, s => s.Symbol == "BTCEUR");
     }
 
@@ -301,21 +172,7 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task CreateAsync_ValidSymbol_CallsAddAndSaveChanges()
     {
         // Arrange
-        var symbolModel = new SymbolModel
-        {
-            Id = Guid.NewGuid(),
-            Symbol = "ADAUSDT",
-            BaseAsset = "ADA",
-            QuoteAsset = "USDT",
-            IsActive = true,
-            MinTradeAmount = 1.0m,
-            PricePrecision = 4,
-            QuantityPrecision = 2
-        };
-
-        var mockDbSet = new Mock<DbSet<SymbolEntity>>();
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        var symbolModel = SymbolModelFixture.CreateADAUSDT();
 
         // Act
         var result = await _repository.CreateAsync(symbolModel);
@@ -330,45 +187,32 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(symbolModel.PricePrecision, result.PricePrecision);
         Assert.Equal(symbolModel.QuantityPrecision, result.QuantityPrecision);
 
-        mockDbSet.Verify(m => m.Add(It.IsAny<SymbolEntity>()), Times.Once);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify it was actually saved to the database
+        var savedEntity = await Context.Symbols.FindAsync(result.Id);
+        Assert.NotNull(savedEntity);
+        Assert.Equal(result.Symbol, savedEntity.Symbol);
     }
 
     [Fact]
     public async Task UpdateAsync_ExistingSymbol_UpdatesAndSaves()
     {
         // Arrange
-        var symbolId = Guid.NewGuid();
-        var existingSymbol = new SymbolEntity
-        {
-            Id = symbolId,
-            Symbol = "BTCUSDT",
-            BaseAsset = "BTC",
-            QuoteAsset = "USDT",
-            IsActive = true,
-            MinTradeAmount = 0.001m,
-            PricePrecision = 2,
-            QuantityPrecision = 8,
-            CreatedAt = DateTime.UtcNow
-        };
+        var originalSymbol = SymbolModelFixture.CreateBTCUSDT();
+        var symbolEntity = originalSymbol.ToEntity();
 
-        var updatedModel = new SymbolModel
-        {
-            Id = symbolId,
-            Symbol = "BTCUSDT",
-            BaseAsset = "BTC",
-            QuoteAsset = "USDT",
-            IsActive = false, // Updated to inactive
-            MinTradeAmount = 0.01m, // Updated minimum trade amount
-            PricePrecision = 4, // Updated precision
-            QuantityPrecision = 6 // Updated precision
-        };
+        Context.Symbols.Add(symbolEntity);
+        await Context.SaveChangesAsync();
 
-        var mockDbSet = new Mock<DbSet<SymbolEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingSymbol }, s => s.Id);
-
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        // Get the saved symbol and create update model
+        var savedSymbol = await _repository.GetByIdAsync(symbolEntity.Id);
+        var updatedModel = SymbolModelFixture.CreateSymbolForUpdate(
+            savedSymbol.Id,
+            "BTCUSDT",
+            isActive: false,
+            minTradeAmount: 0.01m,
+            pricePrecision: 4,
+            quantityPrecision: 6
+        );
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -383,29 +227,18 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(4, result.PricePrecision);
         Assert.Equal(6, result.QuantityPrecision);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify the changes were persisted
+        var updatedEntity = await Context.Symbols.FindAsync(result.Id);
+        Assert.NotNull(updatedEntity);
+        Assert.False(updatedEntity.IsActive);
+        Assert.Equal(0.01m, updatedEntity.MinTradeAmount);
     }
 
     [Fact]
     public async Task UpdateAsync_NonExistentSymbol_ThrowsNotFoundException()
     {
         // Arrange
-        var symbolModel = new SymbolModel
-        {
-            Id = Guid.NewGuid(),
-            Symbol = "NONEXISTENT",
-            BaseAsset = "NON",
-            QuoteAsset = "EXISTENT",
-            IsActive = true,
-            MinTradeAmount = 1.0m,
-            PricePrecision = 2,
-            QuantityPrecision = 8
-        };
-
-        var mockDbSet = new Mock<DbSet<SymbolEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<SymbolEntity>(), s => s.Id);
-
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
+        var symbolModel = SymbolModelFixture.CreateDefault("NONEXISTENT", "NON", "EXISTENT");
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(symbolModel));
@@ -415,33 +248,23 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task DeleteAsync_ExistingSymbol_SoftDeletesSymbol()
     {
         // Arrange
-        var symbolId = Guid.NewGuid();
-        var existingSymbol = new SymbolEntity
-        {
-            Id = symbolId,
-            Symbol = "BTCUSDT",
-            BaseAsset = "BTC",
-            QuoteAsset = "USDT",
-            IsActive = true,
-            IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
-        };
+        var symbolModel = SymbolModelFixture.CreateBTCUSDT();
+        var symbolEntity = symbolModel.ToEntity();
 
-        var mockDbSet = new Mock<DbSet<SymbolEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingSymbol }, s => s.Id);
-
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        Context.Symbols.Add(symbolEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(symbolId);
+        var result = await _repository.DeleteAsync(symbolEntity.Id);
 
         // Assert
         Assert.True(result);
-        Assert.True(existingSymbol.IsDeleted);
-        Assert.NotNull(existingSymbol.UpdatedAt);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify soft delete was applied
+        var deletedEntity = await Context.Symbols.FindAsync(symbolEntity.Id);
+        Assert.NotNull(deletedEntity);
+        Assert.True(deletedEntity.IsDeleted);
+        Assert.NotNull(deletedEntity.UpdatedAt);
     }
 
     [Fact]
@@ -450,49 +273,26 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var symbolId = Guid.NewGuid();
 
-        var mockDbSet = new Mock<DbSet<SymbolEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<SymbolEntity>(), s => s.Id);
-
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
-
         // Act
         var result = await _repository.DeleteAsync(symbolId);
 
         // Assert
         Assert.False(result);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]
     public async Task GetAllAsync_WithSymbols_ReturnsAllActiveSymbols()
     {
         // Arrange
-        var symbols = new List<SymbolEntity>
+        var symbols = new List<SymbolModel>
         {
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                BaseAsset = "BTC",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new SymbolEntity
-            {
-                Id = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                BaseAsset = "ETH",
-                QuoteAsset = "USDT",
-                IsActive = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
+            SymbolModelFixture.CreateBTCUSDT(),
+            SymbolModelFixture.CreateETHUSDT()
         };
+        var symbolEntities = symbols.Select(s => s.ToEntity());
 
-        var mockDbSet = CreateMockDbSetWithAsync(symbols.OrderBy(s => s.Symbol));
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
+        Context.Symbols.AddRange(symbolEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetAllAsync();
@@ -507,12 +307,6 @@ public class SymbolRepositoryUnitTests : BaseRepositoryUnitTest
     [Fact]
     public async Task GetAllAsync_NoSymbols_ReturnsEmptyCollection()
     {
-        // Arrange
-        var symbols = new List<SymbolEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(symbols);
-        MockContext.Setup(c => c.Symbols).Returns(mockDbSet.Object);
-
         // Act
         var result = await _repository.GetAllAsync();
 

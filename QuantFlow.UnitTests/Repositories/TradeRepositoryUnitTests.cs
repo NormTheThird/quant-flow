@@ -1,9 +1,9 @@
 ﻿namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
-/// Unit tests for TradeRepository using mocked dependencies
+/// Unit tests for TradeRepository using in-memory database
 /// </summary>
-public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
+public class TradeRepositoryUnitTests : BaseRepositoryUnitTest, IDisposable
 {
     private readonly Mock<ILogger<TradeRepository>> _mockLogger;
     private readonly TradeRepository _repository;
@@ -11,50 +11,26 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
     public TradeRepositoryUnitTests()
     {
         _mockLogger = new Mock<ILogger<TradeRepository>>();
-        _repository = new TradeRepository(MockContext.Object, _mockLogger.Object);
+        _repository = new TradeRepository(Context, _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetByIdAsync_ExistingTrade_ReturnsTradeModel()
     {
         // Arrange
-        var tradeId = Guid.NewGuid();
         var backtestRunId = Guid.NewGuid();
-        var trades = new List<TradeEntity>
-        {
-            new TradeEntity
-            {
-                Id = tradeId,
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow.AddDays(-1),
-                Quantity = 0.1m,
-                Price = 50000.0m,
-                Value = 5000.0m,
-                Commission = 5.0m,
-                NetValue = 4995.0m,
-                PortfolioBalanceBefore = 10000.0m,
-                PortfolioBalanceAfter = 5000.0m,
-                AlgorithmReason = "Buy signal detected",
-                AlgorithmConfidence = 0.85m,
-                RealizedProfitLoss = null,
-                RealizedProfitLossPercent = null,
-                EntryTradeId = null,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var tradeModel = TradeModelFixture.CreateDefaultBuyTrade(backtestRunId, "BTCUSDT");
+        var tradeEntity = tradeModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(trades);
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
+        Context.Trades.Add(tradeEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(tradeId);
+        var result = await _repository.GetByIdAsync(tradeEntity.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(tradeId, result.Id);
+        Assert.Equal(tradeEntity.Id, result.Id);
         Assert.Equal(backtestRunId, result.BacktestRunId);
         Assert.Equal("BTCUSDT", result.Symbol);
         Assert.Equal(TradeType.Buy, result.Type);
@@ -77,10 +53,6 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var tradeId = Guid.NewGuid();
-        var trades = new List<TradeEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(trades);
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetByIdAsync(tradeId);
@@ -95,62 +67,13 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var backtestRunId = Guid.NewGuid();
         var otherBacktestRunId = Guid.NewGuid();
-        var trades = new List<TradeEntity>
-        {
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow.AddDays(-2),
-                Quantity = 0.1m,
-                Price = 48000.0m,
-                Value = 4800.0m,
-                Commission = 4.8m,
-                NetValue = 4795.2m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-2)
-            },
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Sell,
-                ExecutionTimestamp = DateTime.UtcNow.AddDays(-1),
-                Quantity = 0.1m,
-                Price = 52000.0m,
-                Value = 5200.0m,
-                Commission = 5.2m,
-                NetValue = 5194.8m,
-                RealizedProfitLoss = 399.6m,
-                RealizedProfitLossPercent = 8.33m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            },
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = otherBacktestRunId,
-                Symbol = "ETHUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow,
-                Quantity = 1.0m,
-                Price = 3000.0m,
-                Value = 3000.0m,
-                Commission = 3.0m,
-                NetValue = 2997.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
 
-        var backtestTrades = trades
-            .Where(t => t.BacktestRunId == backtestRunId && !t.IsDeleted)
-            .OrderBy(t => t.ExecutionTimestamp);
-        var mockDbSet = CreateMockDbSetWithAsync(backtestTrades);
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
+        var (buyTrade, sellTrade) = TradeModelFixture.CreateProfitableTradePair(backtestRunId, "BTCUSDT");
+        var otherTrade = TradeModelFixture.CreateDefaultBuyTrade(otherBacktestRunId, "ETHUSDT");
+
+        var tradeEntities = new[] { buyTrade.ToEntity(), sellTrade.ToEntity(), otherTrade.ToEntity() };
+        Context.Trades.AddRange(tradeEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByBacktestRunIdAsync(backtestRunId);
@@ -169,58 +92,18 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var backtestRunId = Guid.NewGuid();
         var symbol = "BTCUSDT";
-        var trades = new List<TradeEntity>
-        {
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow.AddDays(-1),
-                Quantity = 0.1m,
-                Price = 50000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            },
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Sell,
-                ExecutionTimestamp = DateTime.UtcNow,
-                Quantity = 0.1m,
-                Price = 52000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "ETHUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow,
-                Quantity = 1.0m,
-                Price = 3000.0m,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
 
-        var symbolTrades = trades
-            .Where(t => t.BacktestRunId == backtestRunId && t.Symbol == symbol && !t.IsDeleted)
-            .OrderBy(t => t.ExecutionTimestamp);
-        var mockDbSet = CreateMockDbSetWithAsync(symbolTrades);
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
+        var trades = TradeModelFixture.CreateMultiSymbolTradeBatch(backtestRunId);
+        var tradeEntities = trades.Select(t => t.ToEntity());
+        Context.Trades.AddRange(tradeEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetBySymbolAsync(backtestRunId, symbol);
 
         // Assert
         var tradeList = result.ToList();
-        Assert.Equal(2, tradeList.Count);
+        Assert.Equal(2, tradeList.Count); // Should only return BTCUSDT trades
         Assert.All(tradeList, t => Assert.Equal(symbol, t.Symbol));
         Assert.All(tradeList, t => Assert.Equal(backtestRunId, t.BacktestRunId));
     }
@@ -231,52 +114,18 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var backtestRunId = Guid.NewGuid();
         var tradeType = TradeType.Buy;
-        var trades = new List<TradeEntity>
-        {
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow.AddDays(-1),
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            },
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = backtestRunId,
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Sell,
-                ExecutionTimestamp = DateTime.UtcNow,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
 
-        var buyTrades = trades
-            .Where(t => t.BacktestRunId == backtestRunId && t.Type == (int)tradeType && !t.IsDeleted)
-            .OrderBy(t => t.ExecutionTimestamp);
-        var mockDbSet = CreateMockDbSetWithAsync(buyTrades);
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
+        var trades = TradeModelFixture.CreateTradeBatch(backtestRunId, 5, "BTCUSDT", alternateTypes: true);
+        var tradeEntities = trades.Select(t => t.ToEntity());
+        Context.Trades.AddRange(tradeEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByTypeAsync(backtestRunId, tradeType);
 
         // Assert
         var tradeList = result.ToList();
-        Assert.Equal(2, tradeList.Count);
+        Assert.Equal(3, tradeList.Count); // Should be 3 buy trades out of 5 total (alternating)
         Assert.All(tradeList, t => Assert.Equal(TradeType.Buy, t.Type));
         Assert.All(tradeList, t => Assert.Equal(backtestRunId, t.BacktestRunId));
     }
@@ -285,27 +134,16 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task CreateAsync_ValidTrade_CallsAddAndSaveChanges()
     {
         // Arrange
-        var tradeModel = new TradeModel
-        {
-            Id = Guid.NewGuid(),
-            BacktestRunId = Guid.NewGuid(),
-            Symbol = "BTCUSDT",
-            Type = TradeType.Buy,
-            ExecutionTimestamp = DateTime.UtcNow,
-            Quantity = 0.05m,
-            Price = 45000.0m,
-            Value = 2250.0m,
-            Commission = 2.25m,
-            NetValue = 2247.75m,
-            PortfolioBalanceBefore = 10000.0m,
-            PortfolioBalanceAfter = 7752.25m,
-            AlgorithmReason = "Strong buy signal",
-            AlgorithmConfidence = 0.92m
-        };
-
-        var mockDbSet = new Mock<DbSet<TradeEntity>>();
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        var backtestRunId = Guid.NewGuid();
+        var tradeModel = TradeModelFixture.CreateCustomTrade(
+            backtestRunId: backtestRunId,
+            symbol: "BTCUSDT",
+            type: TradeType.Buy,
+            quantity: 0.05m,
+            price: 45000.0m,
+            algorithmReason: "Strong buy signal",
+            confidence: 0.92m
+        );
 
         // Act
         var result = await _repository.CreateAsync(tradeModel);
@@ -322,47 +160,24 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(tradeModel.AlgorithmReason, result.AlgorithmReason);
         Assert.Equal(tradeModel.AlgorithmConfidence, result.AlgorithmConfidence);
 
-        mockDbSet.Verify(m => m.Add(It.IsAny<TradeEntity>()), Times.Once);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify it was actually saved to the database
+        var savedEntity = await Context.Trades.FindAsync(result.Id);
+        Assert.NotNull(savedEntity);
+        Assert.Equal(result.Symbol, savedEntity.Symbol);
     }
 
     [Fact]
     public async Task CreateBatchAsync_ValidTrades_CallsAddRangeAndSaveChanges()
     {
         // Arrange
+        var backtestRunId1 = Guid.NewGuid();
+        var backtestRunId2 = Guid.NewGuid();
+
         var tradeModels = new List<TradeModel>
         {
-            new TradeModel
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                Type = TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow.AddMinutes(-30),
-                Quantity = 0.1m,
-                Price = 50000.0m,
-                Value = 5000.0m,
-                Commission = 5.0m,
-                NetValue = 4995.0m
-            },
-            new TradeModel
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                Type = TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow,
-                Quantity = 1.0m,
-                Price = 3000.0m,
-                Value = 3000.0m,
-                Commission = 3.0m,
-                NetValue = 2997.0m
-            }
+            TradeModelFixture.CreateCustomTrade(backtestRunId1, "BTCUSDT", TradeType.Buy, 0.1m, 50000.0m),
+            TradeModelFixture.CreateCustomTrade(backtestRunId2, "ETHUSDT", TradeType.Buy, 1.0m, 3000.0m)
         };
-
-        var mockDbSet = new Mock<DbSet<TradeEntity>>();
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(2);
 
         // Act
         var result = await _repository.CreateBatchAsync(tradeModels);
@@ -373,63 +188,31 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(tradeModels[0].Symbol, resultList[0].Symbol);
         Assert.Equal(tradeModels[1].Symbol, resultList[1].Symbol);
 
-        mockDbSet.Verify(m => m.AddRange(It.IsAny<IEnumerable<TradeEntity>>()), Times.Once);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify they were actually saved to the database
+        var savedTrades = Context.Trades.ToList();
+        Assert.Equal(2, savedTrades.Count);
     }
 
     [Fact]
     public async Task UpdateAsync_ExistingTrade_UpdatesAndSaves()
     {
         // Arrange
-        var tradeId = Guid.NewGuid();
-        var existingTrade = new TradeEntity
-        {
-            Id = tradeId,
-            BacktestRunId = Guid.NewGuid(),
-            Symbol = "BTCUSDT",
-            Type = (int)TradeType.Buy,
-            ExecutionTimestamp = DateTime.UtcNow,
-            Quantity = 0.1m,
-            Price = 50000.0m,
-            Value = 5000.0m,
-            Commission = 5.0m,
-            NetValue = 4995.0m,
-            PortfolioBalanceBefore = 10000.0m,
-            PortfolioBalanceAfter = 5000.0m,
-            AlgorithmReason = "Original reason",
-            AlgorithmConfidence = 0.8m,
-            RealizedProfitLoss = null,
-            RealizedProfitLossPercent = null,
-            EntryTradeId = null,
-            CreatedAt = DateTime.UtcNow
-        };
+        var backtestRunId = Guid.NewGuid();
+        var originalTrade = TradeModelFixture.CreateDefaultBuyTrade(backtestRunId, "BTCUSDT");
+        var tradeEntity = originalTrade.ToEntity();
 
-        var updatedModel = new TradeModel
-        {
-            Id = tradeId,
-            BacktestRunId = existingTrade.BacktestRunId,
-            Symbol = "BTCUSDT",
-            Type = TradeType.Sell,
-            ExecutionTimestamp = DateTime.UtcNow.AddMinutes(30),
-            Quantity = 0.1m,
-            Price = 52000.0m,
-            Value = 5200.0m,
-            Commission = 5.2m,
-            NetValue = 5194.8m,
-            PortfolioBalanceBefore = 5000.0m,
-            PortfolioBalanceAfter = 10194.8m,
-            AlgorithmReason = "Updated sell signal",
-            AlgorithmConfidence = 0.95m,
-            RealizedProfitLoss = 194.8m,
-            RealizedProfitLossPercent = 3.9m,
-            EntryTradeId = Guid.NewGuid()
-        };
+        Context.Trades.Add(tradeEntity);
+        await Context.SaveChangesAsync();
 
-        var mockDbSet = new Mock<DbSet<TradeEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingTrade }, t => t.Id);
-
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        // Get the saved trade and create update model
+        var savedTrade = await _repository.GetByIdAsync(tradeEntity.Id);
+        var updatedModel = TradeModelFixture.CreateTradeForUpdate(
+            savedTrade.Id,
+            backtestRunId,
+            TradeType.Sell,
+            52000.0m,
+            "Updated sell signal"
+        );
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -445,31 +228,18 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(194.8m, result.RealizedProfitLoss);
         Assert.Equal(3.9m, result.RealizedProfitLossPercent);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify the changes were persisted
+        var updatedEntity = await Context.Trades.FindAsync(result.Id);
+        Assert.NotNull(updatedEntity);
+        Assert.Equal((int)TradeType.Sell, updatedEntity.Type);
+        Assert.Equal(52000.0m, updatedEntity.Price);
     }
 
     [Fact]
     public async Task UpdateAsync_NonExistentTrade_ThrowsNotFoundException()
     {
         // Arrange
-        var tradeModel = new TradeModel
-        {
-            Id = Guid.NewGuid(),
-            BacktestRunId = Guid.NewGuid(),
-            Symbol = "BTCUSDT",
-            Type = TradeType.Buy,
-            ExecutionTimestamp = DateTime.UtcNow,
-            Quantity = 0.1m,
-            Price = 50000.0m,
-            Value = 5000.0m,
-            Commission = 5.0m,
-            NetValue = 4995.0m
-        };
-
-        var mockDbSet = new Mock<DbSet<TradeEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<TradeEntity>(), t => t.Id);
-
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
+        var tradeModel = TradeModelFixture.CreateDefaultBuyTrade();
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(tradeModel));
@@ -479,32 +249,23 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task DeleteAsync_ExistingTrade_SoftDeletesTrade()
     {
         // Arrange
-        var tradeId = Guid.NewGuid();
-        var existingTrade = new TradeEntity
-        {
-            Id = tradeId,
-            BacktestRunId = Guid.NewGuid(),
-            Symbol = "BTCUSDT",
-            Type = (int)TradeType.Buy,
-            IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
-        };
+        var tradeModel = TradeModelFixture.CreateDefaultBuyTrade();
+        var tradeEntity = tradeModel.ToEntity();
 
-        var mockDbSet = new Mock<DbSet<TradeEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingTrade }, t => t.Id);
-
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        Context.Trades.Add(tradeEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(tradeId);
+        var result = await _repository.DeleteAsync(tradeEntity.Id);
 
         // Assert
         Assert.True(result);
-        Assert.True(existingTrade.IsDeleted);
-        Assert.NotNull(existingTrade.UpdatedAt);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify soft delete was applied
+        var deletedEntity = await Context.Trades.FindAsync(tradeEntity.Id);
+        Assert.NotNull(deletedEntity);
+        Assert.True(deletedEntity.IsDeleted);
+        Assert.NotNull(deletedEntity.UpdatedAt);
     }
 
     [Fact]
@@ -513,49 +274,22 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var tradeId = Guid.NewGuid();
 
-        var mockDbSet = new Mock<DbSet<TradeEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<TradeEntity>(), t => t.Id);
-
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
-
         // Act
         var result = await _repository.DeleteAsync(tradeId);
 
         // Assert
         Assert.False(result);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]
     public async Task GetAllAsync_WithTrades_ReturnsAllActiveTrades()
     {
         // Arrange
-        var trades = new List<TradeEntity>
-        {
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = Guid.NewGuid(),
-                Symbol = "BTCUSDT",
-                Type = (int)TradeType.Buy,
-                ExecutionTimestamp = DateTime.UtcNow.AddDays(-1),
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            },
-            new TradeEntity
-            {
-                Id = Guid.NewGuid(),
-                BacktestRunId = Guid.NewGuid(),
-                Symbol = "ETHUSDT",
-                Type = (int)TradeType.Sell,
-                ExecutionTimestamp = DateTime.UtcNow,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var trades = TradeModelFixture.CreateTradeBatch(count: 2, alternateTypes: false);
+        var tradeEntities = trades.Select(t => t.ToEntity());
 
-        var mockDbSet = CreateMockDbSetWithAsync(trades.OrderBy(t => t.ExecutionTimestamp));
-        MockContext.Setup(c => c.Trades).Returns(mockDbSet.Object);
+        Context.Trades.AddRange(tradeEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetAllAsync();
@@ -563,7 +297,16 @@ public class TradeRepositoryUnitTests : BaseRepositoryUnitTest
         // Assert
         var tradeList = result.ToList();
         Assert.Equal(2, tradeList.Count);
-        Assert.Contains(tradeList, t => t.Symbol == "BTCUSDT");
-        Assert.Contains(tradeList, t => t.Symbol == "ETHUSDT");
+        Assert.All(tradeList, t => Assert.Equal("BTCUSDT", t.Symbol));
+    }
+
+    [Fact]
+    public async Task GetAllAsync_NoTrades_ReturnsEmptyCollection()
+    {
+        // Act
+        var result = await _repository.GetAllAsync();
+
+        // Assert
+        Assert.Empty(result);
     }
 }

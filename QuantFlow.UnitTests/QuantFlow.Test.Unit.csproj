@@ -29,6 +29,7 @@
 		<ProjectReference Include="..\QuantFlow.Common\QuantFlow.Common.csproj" />
 		<ProjectReference Include="..\QuantFlow.Domain\QuantFlow.Domain.csproj" />
 		<ProjectReference Include="..\QuantFlow.Data.SQLServer\QuantFlow.Data.SQLServer.csproj" />
+		<ProjectReference Include="..\QuantFlow.Test.Shared\QuantFlow.Test.Shared.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

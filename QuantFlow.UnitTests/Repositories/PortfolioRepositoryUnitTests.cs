@@ -1,9 +1,14 @@
-﻿namespace QuantFlow.Test.Unit.Repositories;
+﻿using QuantFlow.Test.Shared.Fixtures;
+using QuantFlow.Data.SQLServer.Extensions;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
-/// Unit tests for PortfolioRepository using mocked dependencies
+/// Unit tests for PortfolioRepository using in-memory database
 /// </summary>
-public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
+public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest, IDisposable
 {
     private readonly Mock<ILogger<PortfolioRepository>> _mockLogger;
     private readonly PortfolioRepository _repository;
@@ -11,52 +16,35 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
     public PortfolioRepositoryUnitTests()
     {
         _mockLogger = new Mock<ILogger<PortfolioRepository>>();
-        _repository = new PortfolioRepository(MockContext.Object, _mockLogger.Object);
+        _repository = new PortfolioRepository(Context, _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetByIdAsync_ExistingPortfolio_ReturnsPortfolioModel()
     {
         // Arrange
-        var portfolioId = Guid.NewGuid();
         var userId = Guid.NewGuid();
-        var portfolios = new List<PortfolioEntity>
-        {
-            new PortfolioEntity
-            {
-                Id = portfolioId,
-                Name = "Test Portfolio",
-                Description = "Test Description",
-                InitialBalance = 10000.0m,
-                CurrentBalance = 12000.0m,
-                Status = (int)PortfolioStatus.Active,
-                UserId = userId,
-                MaxPositionSizePercent = 15.0m,
-                CommissionRate = 0.002m,
-                AllowShortSelling = true,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userId, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
 
-        var mockDbSet = CreateMockDbSetWithAsync(portfolios);
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
+        Context.Portfolios.Add(portfolioEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(portfolioId);
+        var result = await _repository.GetByIdAsync(portfolioEntity.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(portfolioId, result.Id);
+        Assert.Equal(portfolioEntity.Id, result.Id);
         Assert.Equal("Test Portfolio", result.Name);
-        Assert.Equal("Test Description", result.Description);
+        Assert.Equal("A diversified cryptocurrency trading portfolio", result.Description);
         Assert.Equal(10000.0m, result.InitialBalance);
-        Assert.Equal(12000.0m, result.CurrentBalance);
+        Assert.Equal(10000.0m, result.CurrentBalance);
         Assert.Equal(PortfolioStatus.Active, result.Status);
         Assert.Equal(userId, result.UserId);
         Assert.Equal(15.0m, result.MaxPositionSizePercent);
-        Assert.Equal(0.002m, result.CommissionRate);
-        Assert.True(result.AllowShortSelling);
+        Assert.Equal(0.001m, result.CommissionRate);
+        Assert.False(result.AllowShortSelling);
     }
 
     [Fact]
@@ -64,10 +52,6 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var portfolioId = Guid.NewGuid();
-        var portfolios = new List<PortfolioEntity>();
-
-        var mockDbSet = CreateMockDbSetWithAsync(portfolios);
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
 
         // Act
         var result = await _repository.GetByIdAsync(portfolioId);
@@ -82,46 +66,15 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var userId = Guid.NewGuid();
         var otherUserId = Guid.NewGuid();
-        var portfolios = new List<PortfolioEntity>
-        {
-            new PortfolioEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Portfolio 1",
-                UserId = userId,
-                InitialBalance = 10000.0m,
-                CurrentBalance = 10000.0m,
-                Status = (int)PortfolioStatus.Active,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new PortfolioEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Portfolio 2",
-                UserId = userId,
-                InitialBalance = 5000.0m,
-                CurrentBalance = 5000.0m,
-                Status = (int)PortfolioStatus.Active,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new PortfolioEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Other User Portfolio",
-                UserId = otherUserId,
-                InitialBalance = 20000.0m,
-                CurrentBalance = 20000.0m,
-                Status = (int)PortfolioStatus.Active,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
-        };
 
-        var userPortfolios = portfolios.Where(p => p.UserId == userId && !p.IsDeleted);
-        var mockDbSet = CreateMockDbSetWithAsync(userPortfolios);
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
+        var userPortfolios = PortfolioModelFixture.CreateUserPortfolioBatch(userId, 2);
+        var otherUserPortfolio = PortfolioModelFixture.CreateActivePortfolio(otherUserId, "Other User Portfolio");
+
+        var allPortfolios = userPortfolios.Concat(new[] { otherUserPortfolio });
+        var portfolioEntities = allPortfolios.Select(p => p.ToEntity());
+
+        Context.Portfolios.AddRange(portfolioEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByUserIdAsync(userId);
@@ -130,31 +83,26 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
         var portfolioList = result.ToList();
         Assert.Equal(2, portfolioList.Count);
         Assert.All(portfolioList, p => Assert.Equal(userId, p.UserId));
-        Assert.Contains(portfolioList, p => p.Name == "Portfolio 1");
-        Assert.Contains(portfolioList, p => p.Name == "Portfolio 2");
+        Assert.Contains(portfolioList, p => p.Name.Contains("Conservative Portfolio"));
+        Assert.Contains(portfolioList, p => p.Name.Contains("Balanced Portfolio"));
+        Assert.DoesNotContain(portfolioList, p => p.Name == "Other User Portfolio");
     }
 
     [Fact]
     public async Task CreateAsync_ValidPortfolio_CallsAddAndSaveChanges()
     {
         // Arrange
-        var portfolioModel = new PortfolioModel
-        {
-            Id = Guid.NewGuid(),
-            Name = "New Portfolio",
-            Description = "New Description",
-            InitialBalance = 15000.0m,
-            CurrentBalance = 15000.0m,
-            Status = PortfolioStatus.Active,
-            UserId = Guid.NewGuid(),
-            MaxPositionSizePercent = 10.0m,
-            CommissionRate = 0.001m,
-            AllowShortSelling = false
-        };
-
-        var mockDbSet = new Mock<DbSet<PortfolioEntity>>();
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        var userId = Guid.NewGuid();
+        var portfolioModel = PortfolioModelFixture.CreateCustomPortfolio(
+            userId: userId,
+            name: "New Portfolio",
+            description: "New Description",
+            initialBalance: 15000.0m,
+            currentBalance: 15000.0m,
+            maxPositionSizePercent: 10.0m,
+            commissionRate: 0.001m,
+            allowShortSelling: false
+        );
 
         // Act
         var result = await _repository.CreateAsync(portfolioModel);
@@ -168,49 +116,36 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(portfolioModel.Status, result.Status);
         Assert.Equal(portfolioModel.UserId, result.UserId);
 
-        mockDbSet.Verify(m => m.Add(It.IsAny<PortfolioEntity>()), Times.Once);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify it was actually saved to the database
+        var savedEntity = await Context.Portfolios.FindAsync(result.Id);
+        Assert.NotNull(savedEntity);
+        Assert.Equal(result.Name, savedEntity.Name);
     }
 
     [Fact]
     public async Task UpdateAsync_ExistingPortfolio_UpdatesAndSaves()
     {
         // Arrange
-        var portfolioId = Guid.NewGuid();
-        var existingPortfolio = new PortfolioEntity
-        {
-            Id = portfolioId,
-            Name = "Original Name",
-            Description = "Original Description",
-            InitialBalance = 10000.0m,
-            CurrentBalance = 10000.0m,
-            Status = (int)PortfolioStatus.Active,
-            UserId = Guid.NewGuid(),
-            MaxPositionSizePercent = 10.0m,
-            CommissionRate = 0.001m,
-            AllowShortSelling = false,
-            CreatedAt = DateTime.UtcNow
-        };
+        var userId = Guid.NewGuid();
+        var originalPortfolio = PortfolioModelFixture.CreateActivePortfolio(userId, "Original Name");
+        var portfolioEntity = originalPortfolio.ToEntity();
 
-        var updatedModel = new PortfolioModel
-        {
-            Id = portfolioId,
-            Name = "Updated Name",
-            Description = "Updated Description",
-            InitialBalance = 10000.0m,
-            CurrentBalance = 12000.0m,
-            Status = PortfolioStatus.Paused,
-            UserId = existingPortfolio.UserId,
-            MaxPositionSizePercent = 15.0m,
-            CommissionRate = 0.002m,
-            AllowShortSelling = true
-        };
+        Context.Portfolios.Add(portfolioEntity);
+        await Context.SaveChangesAsync();
 
-        var mockDbSet = new Mock<DbSet<PortfolioEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingPortfolio }, p => p.Id);
-
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        // Get the saved portfolio and create update model
+        var savedPortfolio = await _repository.GetByIdAsync(portfolioEntity.Id);
+        var updatedModel = PortfolioModelFixture.CreatePortfolioForUpdate(
+            savedPortfolio.Id,
+            userId,
+            "Updated Name",
+            "Updated Description",
+            12000.0m,
+            PortfolioStatus.Paused,
+            15.0m,
+            0.002m,
+            true
+        );
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -225,27 +160,18 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(0.002m, result.CommissionRate);
         Assert.True(result.AllowShortSelling);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify the changes were persisted
+        var updatedEntity = await Context.Portfolios.FindAsync(result.Id);
+        Assert.NotNull(updatedEntity);
+        Assert.Equal("Updated Name", updatedEntity.Name);
+        Assert.Equal((int)PortfolioStatus.Paused, updatedEntity.Status);
     }
 
     [Fact]
     public async Task UpdateAsync_NonExistentPortfolio_ThrowsNotFoundException()
     {
         // Arrange
-        var portfolioModel = new PortfolioModel
-        {
-            Id = Guid.NewGuid(),
-            Name = "Nonexistent Portfolio",
-            InitialBalance = 10000.0m,
-            CurrentBalance = 10000.0m,
-            Status = PortfolioStatus.Active,
-            UserId = Guid.NewGuid()
-        };
-
-        var mockDbSet = new Mock<DbSet<PortfolioEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<PortfolioEntity>(), p => p.Id);
-
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio();
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(portfolioModel));
@@ -255,34 +181,23 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
     public async Task DeleteAsync_ExistingPortfolio_SoftDeletesPortfolio()
     {
         // Arrange
-        var portfolioId = Guid.NewGuid();
-        var existingPortfolio = new PortfolioEntity
-        {
-            Id = portfolioId,
-            Name = "Test Portfolio",
-            InitialBalance = 10000.0m,
-            CurrentBalance = 10000.0m,
-            Status = (int)PortfolioStatus.Active,
-            UserId = Guid.NewGuid(),
-            IsDeleted = false,
-            CreatedAt = DateTime.UtcNow
-        };
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio();
+        var portfolioEntity = portfolioModel.ToEntity();
 
-        var mockDbSet = new Mock<DbSet<PortfolioEntity>>();
-        SetupFindAsync(mockDbSet, new[] { existingPortfolio }, p => p.Id);
-
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
-        MockContext.Setup(c => c.SaveChangesAsync(default)).ReturnsAsync(1);
+        Context.Portfolios.Add(portfolioEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(portfolioId);
+        var result = await _repository.DeleteAsync(portfolioEntity.Id);
 
         // Assert
         Assert.True(result);
-        Assert.True(existingPortfolio.IsDeleted);
-        Assert.NotNull(existingPortfolio.UpdatedAt);
 
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Once);
+        // Verify soft delete was applied
+        var deletedEntity = await Context.Portfolios.FindAsync(portfolioEntity.Id);
+        Assert.NotNull(deletedEntity);
+        Assert.True(deletedEntity.IsDeleted);
+        Assert.NotNull(deletedEntity.UpdatedAt);
     }
 
     [Fact]
@@ -291,17 +206,11 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
         // Arrange
         var portfolioId = Guid.NewGuid();
 
-        var mockDbSet = new Mock<DbSet<PortfolioEntity>>();
-        SetupFindAsync(mockDbSet, Enumerable.Empty<PortfolioEntity>(), p => p.Id);
-
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
-
         // Act
         var result = await _repository.DeleteAsync(portfolioId);
 
         // Assert
         Assert.False(result);
-        MockContext.Verify(c => c.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]
@@ -309,57 +218,42 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
     {
         // Arrange
         var userId = Guid.NewGuid();
-        var portfolios = new List<PortfolioEntity>
-        {
-            new PortfolioEntity { Id = Guid.NewGuid(), UserId = userId, IsDeleted = false },
-            new PortfolioEntity { Id = Guid.NewGuid(), UserId = userId, IsDeleted = false },
-            new PortfolioEntity { Id = Guid.NewGuid(), UserId = userId, IsDeleted = true }, // Deleted
-            new PortfolioEntity { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IsDeleted = false } // Different user
-        };
+        var otherUserId = Guid.NewGuid();
 
-        var userPortfolios = portfolios.Where(p => p.UserId == userId && !p.IsDeleted);
-        var mockDbSet = CreateMockDbSetWithAsync(userPortfolios);
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
+        var userPortfolios = PortfolioModelFixture.CreateUserPortfolioBatch(userId, 2);
+        var deletedPortfolio = PortfolioModelFixture.CreateDeletedPortfolio(userId);
+        var otherUserPortfolio = PortfolioModelFixture.CreateActivePortfolio(otherUserId);
+
+        // Mark the deleted portfolio as actually deleted
+        var deletedEntity = deletedPortfolio.ToEntity();
+        deletedEntity.IsDeleted = true;
+
+        var allPortfolios = userPortfolios.Select(p => p.ToEntity())
+            .Concat(new[] { deletedEntity, otherUserPortfolio.ToEntity() });
+
+        Context.Portfolios.AddRange(allPortfolios);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.CountByUserIdAsync(userId);
 
         // Assert
-        Assert.Equal(2, result);
+        Assert.Equal(2, result); // Should only count non-deleted portfolios for the user
     }
 
     [Fact]
     public async Task GetAllAsync_WithPortfolios_ReturnsAllActivePortfolios()
     {
         // Arrange
-        var portfolios = new List<PortfolioEntity>
+        var portfolios = new List<PortfolioModel>
         {
-            new PortfolioEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Portfolio 1",
-                UserId = Guid.NewGuid(),
-                InitialBalance = 10000.0m,
-                CurrentBalance = 10000.0m,
-                Status = (int)PortfolioStatus.Active,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            },
-            new PortfolioEntity
-            {
-                Id = Guid.NewGuid(),
-                Name = "Portfolio 2",
-                UserId = Guid.NewGuid(),
-                InitialBalance = 5000.0m,
-                CurrentBalance = 5000.0m,
-                Status = (int)PortfolioStatus.Active,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow
-            }
+            PortfolioModelFixture.CreateActivePortfolio(name: "Portfolio 1"),
+            PortfolioModelFixture.CreateProfitablePortfolio(name: "Portfolio 2")
         };
+        var portfolioEntities = portfolios.Select(p => p.ToEntity());
 
-        var mockDbSet = CreateMockDbSetWithAsync(portfolios);
-        MockContext.Setup(c => c.Portfolios).Returns(mockDbSet.Object);
+        Context.Portfolios.AddRange(portfolioEntities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetAllAsync();
@@ -369,5 +263,40 @@ public class PortfolioRepositoryUnitTests : BaseRepositoryUnitTest
         Assert.Equal(2, portfolioList.Count);
         Assert.Contains(portfolioList, p => p.Name == "Portfolio 1");
         Assert.Contains(portfolioList, p => p.Name == "Portfolio 2");
+    }
+
+    [Fact]
+    public async Task GetAllAsync_NoPortfolios_ReturnsEmptyCollection()
+    {
+        // Act
+        var result = await _repository.GetAllAsync();
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetByUserIdAsync_WithDeletedPortfolios_ExcludesDeletedPortfolios()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var activePortfolio = PortfolioModelFixture.CreateActivePortfolio(userId, "Active Portfolio");
+        var deletedPortfolio = PortfolioModelFixture.CreateDeletedPortfolio(userId, "Deleted Portfolio");
+
+        // Mark as deleted
+        var deletedEntity = deletedPortfolio.ToEntity();
+        deletedEntity.IsDeleted = true;
+
+        Context.Portfolios.AddRange(new[] { activePortfolio.ToEntity(), deletedEntity });
+        await Context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByUserIdAsync(userId);
+
+        // Assert
+        var portfolioList = result.ToList();
+        Assert.Single(portfolioList);
+        Assert.Equal("Active Portfolio", portfolioList[0].Name);
+        Assert.DoesNotContain(portfolioList, p => p.Name == "Deleted Portfolio");
     }
 }
