@@ -1,4 +1,4 @@
-﻿namespace QuantFlow.IntegrationTests.Repositories;
+﻿namespace QuantFlow.Test.Integration.Repositories;
 
 /// <summary>
 /// Base class for repository integration tests with in-memory database

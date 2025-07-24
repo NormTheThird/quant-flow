@@ -1,4 +1,4 @@
-﻿namespace QuantFlow.UnitTests.Repositories;
+﻿namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
 /// Unit tests for TradeRepository using mocked dependencies

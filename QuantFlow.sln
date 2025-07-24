@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36301.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Data.MongDB", "QuantFlow.Data.MongDB\QuantFlow.Data.MongDB.csproj", "{ABE2C09D-2FDB-1F24-E8CB-2AE065C71387}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.IntegrationTests", "QuantFlow.IntegrationTests\QuantFlow.IntegrationTests.csproj", "{F9F78618-161C-D5B6-F3A2-D02B45BE3C7C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Test.Integration", "QuantFlow.IntegrationTests\QuantFlow.Test.Integration.csproj", "{F9F78618-161C-D5B6-F3A2-D02B45BE3C7C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Data.SQLServer", "QuantFlow.Data.SQLServer\QuantFlow.Data.SQLServer.csproj", "{87D8F671-37D2-E1E0-2F27-793B38E5DDF8}"
 EndProject
@@ -25,7 +25,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Domain", "QuantFl
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{5E238038-CFBE-4707-B1CD-53637FDE90F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.UnitTests", "QuantFlow.UnitTests\QuantFlow.UnitTests.csproj", "{AEF54A76-FFAF-4F46-9238-A6C614AD0024}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Test.Unit", "QuantFlow.UnitTests\QuantFlow.Test.Unit.csproj", "{AEF54A76-FFAF-4F46-9238-A6C614AD0024}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Test.Shared", "QuantFlow.Test.Shared\QuantFlow.Test.Shared.csproj", "{F0389BD3-366B-4418-AAB7-2884211B46A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,6 +67,10 @@ Global
 		{AEF54A76-FFAF-4F46-9238-A6C614AD0024}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AEF54A76-FFAF-4F46-9238-A6C614AD0024}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AEF54A76-FFAF-4F46-9238-A6C614AD0024}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0389BD3-366B-4418-AAB7-2884211B46A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0389BD3-366B-4418-AAB7-2884211B46A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0389BD3-366B-4418-AAB7-2884211B46A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0389BD3-366B-4418-AAB7-2884211B46A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -78,6 +84,7 @@ Global
 		{6CE92DF2-FAEA-4815-8609-789C671BF35C} = {5E238038-CFBE-4707-B1CD-53637FDE90F7}
 		{A3ABE08E-845F-4DBC-956E-EDEA17C4EAE9} = {5E238038-CFBE-4707-B1CD-53637FDE90F7}
 		{AEF54A76-FFAF-4F46-9238-A6C614AD0024} = {FE7F36FF-76D8-4EB9-A026-75C668E3BD1B}
+		{F0389BD3-366B-4418-AAB7-2884211B46A5} = {FE7F36FF-76D8-4EB9-A026-75C668E3BD1B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {578F7D72-54B3-44F0-ADCE-12E33B921A50}

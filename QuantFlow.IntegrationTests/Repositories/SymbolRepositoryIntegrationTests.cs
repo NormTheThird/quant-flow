@@ -1,4 +1,4 @@
-﻿namespace QuantFlow.IntegrationTests.Repositories;
+﻿namespace QuantFlow.Test.Integration.Repositories;
 
 /// <summary>
 /// Integration tests for SymbolRepository with in-memory database

@@ -1,4 +1,4 @@
-﻿namespace QuantFlow.UnitTests.Repositories;
+﻿namespace QuantFlow.Test.Unit.Repositories;
 
 /// <summary>
 /// Base class for repository unit tests with mocked dependencies
