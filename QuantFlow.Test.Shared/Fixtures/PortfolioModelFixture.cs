@@ -6,6 +6,28 @@
 public static class PortfolioModelFixture
 {
     /// <summary>
+    /// Creates a default portfolio model for testing
+    /// </summary>
+    public static PortfolioModel CreateDefault(Guid? userId = null, string name = "Test Portfolio")
+    {
+        return new PortfolioModel
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Description = "Default test portfolio for integration testing",
+            InitialBalance = 10000.0m,
+            CurrentBalance = 10000.0m,
+            Status = PortfolioStatus.Active,
+            UserId = userId ?? Guid.NewGuid(),
+            MaxPositionSizePercent = 15.0m,
+            CommissionRate = 0.001m,
+            AllowShortSelling = false,
+            CreatedAt = DateTime.UtcNow.AddDays(-30),
+            CreatedBy = "NormTheThird"
+        };
+    }
+
+    /// <summary>
     /// Creates a default active portfolio model for testing
     /// </summary>
     public static PortfolioModel CreateActivePortfolio(Guid? userId = null, string name = "My Trading Portfolio")

@@ -18,13 +18,18 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task GetByIdAsync_ExistingBacktestRun_ReturnsBacktestRunModel()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
 
-        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Test Backtest");
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
+
+        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Test Backtest");
         var backtestEntity = backtestModel.ToEntity();
-
         Context.BacktestRuns.Add(backtestEntity);
+
         await Context.SaveChangesAsync();
 
         // Act
@@ -34,8 +39,8 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
         Assert.NotNull(result);
         Assert.Equal(backtestEntity.Id, result.Id);
         Assert.Equal("Test Backtest", result.Name);
-        Assert.Equal(userId, result.UserId);
-        Assert.Equal(portfolioId, result.PortfolioId);
+        Assert.Equal(userEntity.Id, result.UserId);
+        Assert.Equal(portfolioEntity.Id, result.PortfolioId);
         Assert.Equal("BTCUSDT", result.Symbol);
         Assert.Equal(Exchange.Binance, result.Exchange);
         Assert.Equal(Timeframe.OneHour, result.Timeframe);
@@ -70,15 +75,21 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task GetByUserIdAsync_ExistingUser_ReturnsUserBacktestRuns()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var otherUserId = await SeedTestUserAsync("OtherUser");
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var otherUserModel = UserModelFixture.CreateDefault("OtherUser", "other@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        var otherUserEntity = otherUserModel.ToEntity();
+        Context.Users.AddRange(new[] { userEntity, otherUserEntity });
+
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
 
         var backtestModels = new[]
         {
-            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Backtest 1"),
-            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Backtest 2"),
-            BacktestRunModelFixture.CreatePendingBacktestRun(otherUserId, portfolioId, "Other User Backtest")
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userEntity.Id, portfolioEntity.Id, "Backtest 2"),
+            BacktestRunModelFixture.CreatePendingBacktestRun(otherUserEntity.Id, portfolioEntity.Id, "Other User Backtest")
         };
 
         var backtestEntities = backtestModels.Select(b => b.ToEntity());
@@ -86,12 +97,12 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByUserIdAsync(userId);
+        var result = await _repository.GetByUserIdAsync(userEntity.Id);
 
         // Assert
         var backtestList = result.ToList();
         Assert.Equal(2, backtestList.Count);
-        Assert.All(backtestList, b => Assert.Equal(userId, b.UserId));
+        Assert.All(backtestList, b => Assert.Equal(userEntity.Id, b.UserId));
         Assert.Contains(backtestList, b => b.Name == "Backtest 1");
         Assert.Contains(backtestList, b => b.Name == "Backtest 2");
         Assert.DoesNotContain(backtestList, b => b.Name == "Other User Backtest");
@@ -101,13 +112,18 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task GetByPortfolioIdAsync_ExistingPortfolio_ReturnsPortfolioBacktestRuns()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
 
         var backtestModels = new[]
         {
-            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Portfolio Backtest 1"),
-            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Portfolio Backtest 2")
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Portfolio Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userEntity.Id, portfolioEntity.Id, "Portfolio Backtest 2")
         };
 
         var backtestEntities = backtestModels.Select(b => b.ToEntity());
@@ -115,12 +131,12 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByPortfolioIdAsync(portfolioId);
+        var result = await _repository.GetByPortfolioIdAsync(portfolioEntity.Id);
 
         // Assert
         var backtestList = result.ToList();
         Assert.Equal(2, backtestList.Count);
-        Assert.All(backtestList, b => Assert.Equal(portfolioId, b.PortfolioId));
+        Assert.All(backtestList, b => Assert.Equal(portfolioEntity.Id, b.PortfolioId));
     }
 
     [Fact]
@@ -128,14 +144,19 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     {
         // Arrange
         var status = BacktestStatus.Completed;
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
 
         var backtestModels = new[]
         {
-            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Completed Backtest 1"),
-            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Completed Backtest 2"),
-            BacktestRunModelFixture.CreatePendingBacktestRun(userId, portfolioId, "Pending Backtest")
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Completed Backtest 1"),
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Completed Backtest 2"),
+            BacktestRunModelFixture.CreatePendingBacktestRun(userEntity.Id, portfolioEntity.Id, "Pending Backtest")
         };
 
         var backtestEntities = backtestModels.Select(b => b.ToEntity());
@@ -155,9 +176,17 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task CreateAsync_ValidBacktestRun_CallsAddAndSaveChanges()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
-        var backtestModel = BacktestRunModelFixture.CreatePendingBacktestRun(userId, portfolioId, "New Backtest");
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
+
+        await Context.SaveChangesAsync();
+
+        var backtestModel = BacktestRunModelFixture.CreatePendingBacktestRun(userEntity.Id, portfolioEntity.Id, "New Backtest");
 
         // Act
         var result = await _repository.CreateAsync(backtestModel);
@@ -244,9 +273,17 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task UpdateAsync_NonExistentBacktestRun_ThrowsNotFoundException()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
-        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Nonexistent Backtest");
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
+
+        await Context.SaveChangesAsync();
+
+        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Nonexistent Backtest");
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(backtestModel));
@@ -256,13 +293,18 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task DeleteAsync_ExistingBacktestRun_SoftDeletesBacktestRun()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
 
-        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Test Backtest");
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
+
+        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Test Backtest");
         var backtestEntity = backtestModel.ToEntity();
-
         Context.BacktestRuns.Add(backtestEntity);
+
         await Context.SaveChangesAsync();
 
         // Act
@@ -282,15 +324,21 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task CountByUserIdAsync_ExistingUser_ReturnsCorrectCount()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var otherUserId = await SeedTestUserAsync("OtherUser");
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var otherUserModel = UserModelFixture.CreateDefault("OtherUser", "other@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        var otherUserEntity = otherUserModel.ToEntity();
+        Context.Users.AddRange(new[] { userEntity, otherUserEntity });
+
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
 
         var backtestModels = new[]
         {
-            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Backtest 1"),
-            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Backtest 2"),
-            BacktestRunModelFixture.CreatePendingBacktestRun(otherUserId, portfolioId, "Different user backtest")
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userEntity.Id, portfolioEntity.Id, "Backtest 2"),
+            BacktestRunModelFixture.CreatePendingBacktestRun(otherUserEntity.Id, portfolioEntity.Id, "Different user backtest")
         };
 
         var backtestEntities = backtestModels.Select(b => b.ToEntity());
@@ -298,7 +346,7 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.CountByUserIdAsync(userId);
+        var result = await _repository.CountByUserIdAsync(userEntity.Id);
 
         // Assert
         Assert.Equal(2, result);
@@ -308,13 +356,18 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
     public async Task GetAllAsync_WithBacktestRuns_ReturnsAllActiveBacktestRuns()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var userModel = UserModelFixture.CreateDefault("NormTheThird", "norm@quantflow.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+
+        var portfolioModel = PortfolioModelFixture.CreateActivePortfolio(userEntity.Id, "Test Portfolio");
+        var portfolioEntity = portfolioModel.ToEntity();
+        Context.Portfolios.Add(portfolioEntity);
 
         var backtestModels = new[]
         {
-            BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Backtest 1"),
-            BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Backtest 2")
+            BacktestRunModelFixture.CreateCompletedBacktestRun(userEntity.Id, portfolioEntity.Id, "Backtest 1"),
+            BacktestRunModelFixture.CreateRunningBacktestRun(userEntity.Id, portfolioEntity.Id, "Backtest 2")
         };
 
         var backtestEntities = backtestModels.Select(b => b.ToEntity());

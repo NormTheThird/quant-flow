@@ -133,20 +133,21 @@ public static class UserModelFixture
     /// <summary>
     /// Creates a user model for updating tests
     /// </summary>
-    public static UserModel CreateForUpdate(Guid userId, string? newUsername = null, string? newEmail = null)
+    public static UserModel CreateForUpdate(Guid userId, string? newUsername = null, string? newEmail = null,
+        string? newPasswordHash = null, bool? isEmailVerified = null, bool? isSystemAdmin = null)
     {
         return new UserModel
         {
             Id = userId,
             Username = newUsername ?? "updateduser",
             Email = newEmail ?? "updated@example.com",
-            PasswordHash = "updatedpasswordhash",
-            IsEmailVerified = true,
-            IsSystemAdmin = false,
+            PasswordHash = newPasswordHash ?? "updatedpasswordhash",
+            IsEmailVerified = isEmailVerified ?? true,
+            IsSystemAdmin = isSystemAdmin ?? false,
             CreatedAt = DateTime.UtcNow.AddDays(-30),
             CreatedBy = "system",
             UpdatedAt = DateTime.UtcNow,
-            UpdatedBy = "test"
+            UpdatedBy = "NormTheThird"
         };
     }
 }

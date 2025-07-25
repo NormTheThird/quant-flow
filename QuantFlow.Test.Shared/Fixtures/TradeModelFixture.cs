@@ -6,6 +6,41 @@
 public static class TradeModelFixture
 {
     /// <summary>
+    /// Creates a default trade model for testing
+    /// </summary>
+    public static TradeModel CreateDefault(Guid? backtestRunId = null, TradeType type = TradeType.Buy, string symbol = "BTCUSDT")
+    {
+        var quantity = 0.1m;
+        var price = 50000.0m;
+        var value = quantity * price;
+        var commission = value * 0.001m; // 0.1% commission
+        var netValue = type == TradeType.Buy ? value + commission : value - commission;
+
+        return new TradeModel
+        {
+            Id = Guid.NewGuid(),
+            BacktestRunId = backtestRunId ?? Guid.NewGuid(),
+            Symbol = symbol,
+            Type = type,
+            ExecutionTimestamp = DateTime.UtcNow.AddHours(-1),
+            Quantity = quantity,
+            Price = price,
+            Value = value,
+            Commission = commission,
+            NetValue = netValue,
+            PortfolioBalanceBefore = 10000.0m,
+            PortfolioBalanceAfter = type == TradeType.Buy ? 10000.0m - netValue : 10000.0m + netValue,
+            AlgorithmReason = "Default test trade signal",
+            AlgorithmConfidence = 0.85m,
+            RealizedProfitLoss = type == TradeType.Sell ? 199.5m : null,
+            RealizedProfitLossPercent = type == TradeType.Sell ? 4.0m : null,
+            EntryTradeId = type == TradeType.Sell ? Guid.NewGuid() : null,
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
+            CreatedBy = "NormTheThird"
+        };
+    }
+
+    /// <summary>
     /// Creates a default buy trade model for testing
     /// </summary>
     public static TradeModel CreateDefaultBuyTrade(Guid? backtestRunId = null, string symbol = "BTCUSDT")

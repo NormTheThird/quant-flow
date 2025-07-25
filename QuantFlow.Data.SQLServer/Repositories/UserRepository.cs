@@ -51,10 +51,21 @@ public class UserRepository : IUserRepository
     /// <returns>Created user business model</returns>
     public async Task<UserModel> CreateAsync(UserModel user)
     {
-        _logger.LogInformation("Creating user with email: {Email}", user.Email);
+        // Check for duplicate username
+        var existingUsername = await GetByUsernameAsync(user.Username);
+        if (existingUsername != null)
+        {
+            throw new InvalidOperationException($"Username '{user.Username}' already exists");
+        }
+
+        // Check for duplicate email
+        var existingEmail = await GetByEmailAsync(user.Email);
+        if (existingEmail != null)
+        {
+            throw new InvalidOperationException($"Email '{user.Email}' already exists");
+        }
 
         var entity = user.ToEntity();
-        entity.CreatedAt = DateTime.UtcNow;
 
         _context.Users.Add(entity);
         await _context.SaveChangesAsync();

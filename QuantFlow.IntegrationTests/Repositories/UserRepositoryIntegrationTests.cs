@@ -17,14 +17,17 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task GetByIdAsync_ExistingUser_ReturnsUserModel()
     {
         // Arrange
-        var userId = await SeedTestUserAsync("testuser", "test@example.com");
+        var userModel = UserModelFixture.CreateDefault("testuser", "test@example.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(userId);
+        var result = await _repository.GetByIdAsync(userEntity.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(userId, result.Id);
+        Assert.Equal(userEntity.Id, result.Id);
         Assert.Equal("testuser", result.Username);
         Assert.Equal("test@example.com", result.Email);
         Assert.True(result.IsEmailVerified);
@@ -48,15 +51,18 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task GetByIdAsync_DeletedUser_ReturnsNull()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
+        var userModel = UserModelFixture.CreateDefault("testuser", "test@example.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Soft delete the user
-        var user = await Context.Users.FindAsync(userId);
+        var user = await Context.Users.FindAsync(userEntity.Id);
         user!.IsDeleted = true;
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(userId);
+        var result = await _repository.GetByIdAsync(userEntity.Id);
 
         // Assert
         Assert.Null(result);
@@ -67,7 +73,10 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     {
         // Arrange
         var email = "test@example.com";
-        await SeedTestUserAsync("testuser", email);
+        var userModel = UserModelFixture.CreateDefault("testuser", email);
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByEmailAsync(email);
@@ -96,7 +105,10 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     {
         // Arrange
         var username = "testuser";
-        await SeedTestUserAsync(username, "test@example.com");
+        var userModel = UserModelFixture.CreateDefault(username, "test@example.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByUsernameAsync(username);
@@ -124,15 +136,10 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task CreateAsync_ValidUser_ReturnsCreatedUser()
     {
         // Arrange
-        var userModel = new UserModel
-        {
-            Id = Guid.NewGuid(),
-            Username = "newuser",
-            Email = "newuser@example.com",
-            PasswordHash = "hashedpassword",
-            IsEmailVerified = false,
-            IsSystemAdmin = false
-        };
+        var userModel = UserModelFixture.CreateDefault("newuser", "newuser@example.com");
+        // Override some properties for this test
+        userModel.IsEmailVerified = false;
+        userModel.IsSystemAdmin = false;
 
         // Act
         var result = await _repository.CreateAsync(userModel);
@@ -157,17 +164,19 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task UpdateAsync_ExistingUser_ReturnsUpdatedUser()
     {
         // Arrange
-        var userId = await SeedTestUserAsync("originaluser", "original@example.com");
+        var originalUserModel = UserModelFixture.CreateDefault("originaluser", "original@example.com");
+        var userEntity = originalUserModel.ToEntity();
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
-        var updatedModel = new UserModel
-        {
-            Id = userId,
-            Username = "updateduser",
-            Email = "updated@example.com",
-            PasswordHash = "updatedpassword",
-            IsEmailVerified = true,
-            IsSystemAdmin = true
-        };
+        var updatedModel = UserModelFixture.CreateForUpdate(
+            userEntity.Id,
+            "updateduser",
+            "updated@example.com",
+            "updatedpassword",
+            isEmailVerified: true,
+            isSystemAdmin: true
+        );
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -182,7 +191,7 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
         Assert.NotNull(result.UpdatedAt);
 
         // Verify in database
-        var dbUser = await Context.Users.FindAsync(userId);
+        var dbUser = await Context.Users.FindAsync(userEntity.Id);
         Assert.NotNull(dbUser);
         Assert.Equal("updateduser", dbUser.Username);
         Assert.Equal("updated@example.com", dbUser.Email);
@@ -194,13 +203,7 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task UpdateAsync_NonExistentUser_ThrowsNotFoundException()
     {
         // Arrange
-        var userModel = new UserModel
-        {
-            Id = Guid.NewGuid(),
-            Username = "nonexistent",
-            Email = "nonexistent@example.com",
-            PasswordHash = "password"
-        };
+        var userModel = UserModelFixture.CreateDefault("nonexistent", "nonexistent@example.com");
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(userModel));
@@ -210,23 +213,26 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task DeleteAsync_ExistingUser_ReturnsTrueAndSoftDeletes()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
+        var userModel = UserModelFixture.CreateDefault("testuser", "test@example.com");
+        var userEntity = userModel.ToEntity();
+        Context.Users.Add(userEntity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(userId);
+        var result = await _repository.DeleteAsync(userEntity.Id);
 
         // Assert
         Assert.True(result);
 
         // Verify soft delete
-        var dbUser = await Context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId);
+        var dbUser = await Context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userEntity.Id);
         Assert.NotNull(dbUser);
         Assert.True(dbUser.IsDeleted);
         Assert.NotNull(dbUser.UpdatedAt);
 
         // Verify user is not returned by normal queries
-        var userModel = await _repository.GetByIdAsync(userId);
-        Assert.Null(userModel);
+        var userModelResult = await _repository.GetByIdAsync(userEntity.Id);
+        Assert.Null(userModelResult);
     }
 
     [Fact]
@@ -246,11 +252,14 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task GetAllAsync_WithUsers_ReturnsAllActiveUsers()
     {
         // Arrange
-        var userIds = await SeedTestUsersAsync(3);
+        var userModels = UserModelFixture.CreateBatch(3);
+        var userEntities = userModels.Select(u => u.ToEntity()).ToList();
+        Context.Users.AddRange(userEntities);
+        await Context.SaveChangesAsync();
 
         // Soft delete one user
-        var userToDelete = await Context.Users.FindAsync(userIds[1]);
-        userToDelete!.IsDeleted = true;
+        var userToDelete = userEntities[1];
+        userToDelete.IsDeleted = true;
         await Context.SaveChangesAsync();
 
         // Act
@@ -259,9 +268,9 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
         // Assert
         var users = result.ToList();
         Assert.Equal(2, users.Count); // Only non-deleted users
-        Assert.Contains(users, u => u.Username == "testuser0");
-        Assert.Contains(users, u => u.Username == "testuser2");
-        Assert.DoesNotContain(users, u => u.Username == "testuser1");
+        Assert.Contains(users, u => u.Username == userModels[0].Username);
+        Assert.Contains(users, u => u.Username == userModels[2].Username);
+        Assert.DoesNotContain(users, u => u.Username == userModels[1].Username);
     }
 
     [Fact]
@@ -278,35 +287,31 @@ public class UserRepositoryIntegrationTests : BaseRepositoryIntegrationTest
     public async Task CreateAsync_DuplicateUsername_ThrowsException()
     {
         // Arrange
-        await SeedTestUserAsync("duplicateuser", "user1@example.com");
+        var existingUserModel = UserModelFixture.CreateDefault("duplicateuser", "user1@example.com");
+        var existingUserEntity = existingUserModel.ToEntity();
+        Context.Users.Add(existingUserEntity);
+        await Context.SaveChangesAsync();
 
-        var duplicateUser = new UserModel
-        {
-            Id = Guid.NewGuid(),
-            Username = "duplicateuser", // Same username
-            Email = "user2@example.com",
-            PasswordHash = "password"
-        };
+        var duplicateUser = UserModelFixture.CreateDefault("duplicateuser", "user2@example.com");
 
         // Act & Assert
-        await Assert.ThrowsAsync<DbUpdateException>(() => _repository.CreateAsync(duplicateUser));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.CreateAsync(duplicateUser));
+        Assert.Contains("Username 'duplicateuser' already exists", exception.Message);
     }
 
     [Fact]
     public async Task CreateAsync_DuplicateEmail_ThrowsException()
     {
         // Arrange
-        await SeedTestUserAsync("user1", "duplicate@example.com");
+        var existingUserModel = UserModelFixture.CreateDefault("user1", "duplicate@example.com");
+        var existingUserEntity = existingUserModel.ToEntity();
+        Context.Users.Add(existingUserEntity);
+        await Context.SaveChangesAsync();
 
-        var duplicateUser = new UserModel
-        {
-            Id = Guid.NewGuid(),
-            Username = "user2",
-            Email = "duplicate@example.com", // Same email
-            PasswordHash = "password"
-        };
+        var duplicateUser = UserModelFixture.CreateDefault("user2", "duplicate@example.com");
 
         // Act & Assert
-        await Assert.ThrowsAsync<DbUpdateException>(() => _repository.CreateAsync(duplicateUser));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _repository.CreateAsync(duplicateUser));
+        Assert.Contains("Email 'duplicate@example.com' already exists", exception.Message);
     }
 }

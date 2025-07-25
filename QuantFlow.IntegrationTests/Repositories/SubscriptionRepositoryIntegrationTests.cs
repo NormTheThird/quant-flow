@@ -17,21 +17,27 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetByIdAsync_ExistingSubscription_ReturnsSubscriptionModel()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var subscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Premium);
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
+
+        var subscription = SubscriptionModelFixture.CreatePremiumSubscription(user.Id);
+        var entity = subscription.ToEntity();
+        Context.Subscriptions.Add(entity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(subscriptionId);
+        var result = await _repository.GetByIdAsync(subscription.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(subscriptionId, result.Id);
-        Assert.Equal(userId, result.UserId);
+        Assert.Equal(subscription.Id, result.Id);
+        Assert.Equal(user.Id, result.UserId);
         Assert.Equal(SubscriptionType.Premium, result.Type);
         Assert.True(result.IsActive);
-        Assert.Equal(5, result.MaxPortfolios);
-        Assert.Equal(20, result.MaxAlgorithms);
-        Assert.Equal(100, result.MaxBacktestRuns);
+        Assert.Equal(10, result.MaxPortfolios);
+        Assert.Equal(50, result.MaxAlgorithms);
+        Assert.Equal(500, result.MaxBacktestRuns);
     }
 
     [Fact]
@@ -51,16 +57,18 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetByIdAsync_DeletedSubscription_ReturnsNull()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var subscriptionId = await SeedTestSubscriptionAsync(userId);
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
 
-        // Soft delete the subscription
-        var subscription = await Context.Subscriptions.FindAsync(subscriptionId);
-        subscription!.IsDeleted = true;
+        var subscription = SubscriptionModelFixture.CreateFreeSubscription(user.Id);
+        var entity = subscription.ToEntity();
+        entity.IsDeleted = true;
+        Context.Subscriptions.Add(entity);
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(subscriptionId);
+        var result = await _repository.GetByIdAsync(subscription.Id);
 
         // Assert
         Assert.Null(result);
@@ -70,27 +78,34 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetByUserIdAsync_ExistingUser_ReturnsUserSubscriptions()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var otherUserId = await SeedTestUserAsync("otheruser", "other@example.com");
+        var user = UserModelFixture.CreateDefault();
+        var otherUser = UserModelFixture.CreateDefault("otheruser", "other@example.com");
+        Context.Users.AddRange(user.ToEntity(), otherUser.ToEntity());
+        await Context.SaveChangesAsync();
 
-        // Create multiple subscriptions for the user
-        var oldSubscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Free);
-        var currentSubscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Premium);
-        var otherUserSubscriptionId = await SeedTestSubscriptionAsync(otherUserId, SubscriptionType.Basic);
+        var userSubscriptions = new[]
+        {
+            SubscriptionModelFixture.CreateFreeSubscription(user.Id),
+            SubscriptionModelFixture.CreatePremiumSubscription(user.Id)
+        };
+        var otherUserSubscription = SubscriptionModelFixture.CreateBasicSubscription(otherUser.Id);
 
-        // Make the old subscription inactive
-        var oldSubscription = await Context.Subscriptions.FindAsync(oldSubscriptionId);
-        oldSubscription!.IsActive = false;
-        oldSubscription.EndDate = DateTime.UtcNow.AddDays(-1);
+        // Make the first subscription inactive
+        userSubscriptions[0].IsActive = false;
+        userSubscriptions[0].EndDate = DateTime.UtcNow.AddDays(-1);
+
+        var allSubscriptions = userSubscriptions.Concat(new[] { otherUserSubscription });
+        var entities = allSubscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByUserIdAsync(userId);
+        var result = await _repository.GetByUserIdAsync(user.Id);
 
         // Assert
         var subscriptions = result.ToList();
         Assert.Equal(2, subscriptions.Count); // Both user's subscriptions
-        Assert.All(subscriptions, s => Assert.Equal(userId, s.UserId));
+        Assert.All(subscriptions, s => Assert.Equal(user.Id, s.UserId));
         Assert.Contains(subscriptions, s => s.Type == SubscriptionType.Free);
         Assert.Contains(subscriptions, s => s.Type == SubscriptionType.Premium);
         Assert.DoesNotContain(subscriptions, s => s.Type == SubscriptionType.Basic);
@@ -100,24 +115,21 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetActiveByUserIdAsync_ExistingUser_ReturnsActiveSubscription()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
 
-        // Create inactive and active subscriptions
-        var inactiveSubscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Free);
-        var activeSubscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Premium);
-
-        // Make the first subscription inactive
-        var inactiveSubscription = await Context.Subscriptions.FindAsync(inactiveSubscriptionId);
-        inactiveSubscription!.IsActive = false;
+        var subscriptions = SubscriptionModelFixture.CreateSubscriptionHistory(user.Id);
+        var entities = subscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetActiveByUserIdAsync(userId);
+        var result = await _repository.GetActiveByUserIdAsync(user.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(activeSubscriptionId, result.Id);
-        Assert.Equal(userId, result.UserId);
+        Assert.Equal(user.Id, result.UserId);
         Assert.Equal(SubscriptionType.Premium, result.Type);
         Assert.True(result.IsActive);
     }
@@ -126,16 +138,17 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetActiveByUserIdAsync_NoActiveSubscription_ReturnsNull()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var subscriptionId = await SeedTestSubscriptionAsync(userId);
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
 
-        // Make the subscription inactive
-        var subscription = await Context.Subscriptions.FindAsync(subscriptionId);
-        subscription!.IsActive = false;
+        var inactiveSubscription = SubscriptionModelFixture.CreateInactiveSubscription(user.Id);
+        var entity = inactiveSubscription.ToEntity();
+        Context.Subscriptions.Add(entity);
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetActiveByUserIdAsync(userId);
+        var result = await _repository.GetActiveByUserIdAsync(user.Id);
 
         // Assert
         Assert.Null(result);
@@ -145,13 +158,17 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetByTypeAsync_ExistingType_ReturnsSubscriptionsOfType()
     {
         // Arrange
-        var user1Id = await SeedTestUserAsync("user1", "user1@example.com");
-        var user2Id = await SeedTestUserAsync("user2", "user2@example.com");
-        var user3Id = await SeedTestUserAsync("user3", "user3@example.com");
+        var premiumSubscriptions = new[]
+        {
+            SubscriptionModelFixture.CreatePremiumSubscription(),
+            SubscriptionModelFixture.CreatePremiumSubscription()
+        };
+        var basicSubscription = SubscriptionModelFixture.CreateBasicSubscription();
 
-        var premiumSubscription1Id = await SeedTestSubscriptionAsync(user1Id, SubscriptionType.Premium);
-        var premiumSubscription2Id = await SeedTestSubscriptionAsync(user2Id, SubscriptionType.Premium);
-        var basicSubscriptionId = await SeedTestSubscriptionAsync(user3Id, SubscriptionType.Basic);
+        var allSubscriptions = premiumSubscriptions.Concat(new[] { basicSubscription });
+        var entities = allSubscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByTypeAsync(SubscriptionType.Premium);
@@ -167,21 +184,12 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetExpiredAsync_WithExpiredSubscriptions_ReturnsExpiredSubscriptions()
     {
         // Arrange
-        var user1Id = await SeedTestUserAsync("user1", "user1@example.com");
-        var user2Id = await SeedTestUserAsync("user2", "user2@example.com");
-        var user3Id = await SeedTestUserAsync("user3", "user3@example.com");
+        var expiredSubscriptions = SubscriptionModelFixture.CreateExpiredSubscriptionBatch(2);
+        var activeSubscription = SubscriptionModelFixture.CreatePremiumSubscription();
 
-        var expiredSubscription1Id = await SeedTestSubscriptionAsync(user1Id, SubscriptionType.Premium);
-        var expiredSubscription2Id = await SeedTestSubscriptionAsync(user2Id, SubscriptionType.Basic);
-        var activeSubscriptionId = await SeedTestSubscriptionAsync(user3Id, SubscriptionType.Free);
-
-        // Make two subscriptions expired but still active (should be deactivated)
-        var expiredSubscription1 = await Context.Subscriptions.FindAsync(expiredSubscription1Id);
-        expiredSubscription1!.EndDate = DateTime.UtcNow.AddDays(-10);
-
-        var expiredSubscription2 = await Context.Subscriptions.FindAsync(expiredSubscription2Id);
-        expiredSubscription2!.EndDate = DateTime.UtcNow.AddDays(-5);
-
+        var allSubscriptions = expiredSubscriptions.Concat(new[] { activeSubscription });
+        var entities = allSubscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
@@ -191,29 +199,25 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
         var subscriptions = result.ToList();
         Assert.Equal(2, subscriptions.Count);
         Assert.All(subscriptions, s => Assert.True(s.EndDate < DateTime.UtcNow));
-        Assert.All(subscriptions, s => Assert.True(s.IsActive)); // Still marked as active but expired
-        Assert.Contains(subscriptions, s => s.Type == SubscriptionType.Premium);
-        Assert.Contains(subscriptions, s => s.Type == SubscriptionType.Basic);
-        Assert.DoesNotContain(subscriptions, s => s.Type == SubscriptionType.Free);
+        Assert.All(subscriptions, s => Assert.True(s.IsActive));
+        Assert.DoesNotContain(subscriptions, s => s.EndDate >= DateTime.UtcNow);
     }
 
     [Fact]
     public async Task CreateAsync_ValidSubscription_ReturnsCreatedSubscription()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var subscriptionModel = new SubscriptionModel
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Type = SubscriptionType.Professional,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = true,
-            MaxPortfolios = 25,
-            MaxAlgorithms = 100,
-            MaxBacktestRuns = 1000
-        };
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
+
+        var subscriptionModel = SubscriptionModelFixture.CreateCustomSubscription(
+            userId: user.Id,
+            type: SubscriptionType.Professional,
+            maxPortfolios: 25,
+            maxAlgorithms: 100,
+            maxBacktestRuns: 1000
+        );
 
         // Act
         var result = await _repository.CreateAsync(subscriptionModel);
@@ -241,21 +245,23 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task UpdateAsync_ExistingSubscription_ReturnsUpdatedSubscription()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var subscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Free);
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
 
-        var updatedModel = new SubscriptionModel
-        {
-            Id = subscriptionId,
-            UserId = userId,
-            Type = SubscriptionType.Premium, // Upgrade
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = true,
-            MaxPortfolios = 15, // Increased limits
-            MaxAlgorithms = 75,
-            MaxBacktestRuns = 750
-        };
+        var originalSubscription = SubscriptionModelFixture.CreateFreeSubscription(user.Id);
+        var entity = originalSubscription.ToEntity();
+        Context.Subscriptions.Add(entity);
+        await Context.SaveChangesAsync();
+
+        var updatedModel = SubscriptionModelFixture.CreateCustomSubscription(
+            userId: user.Id,
+            type: SubscriptionType.Premium,
+            maxPortfolios: 15,
+            maxAlgorithms: 75,
+            maxBacktestRuns: 750
+        );
+        updatedModel.Id = originalSubscription.Id;
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -270,7 +276,7 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
         Assert.NotNull(result.UpdatedAt);
 
         // Verify in database
-        var dbSubscription = await Context.Subscriptions.FindAsync(subscriptionId);
+        var dbSubscription = await Context.Subscriptions.FindAsync(originalSubscription.Id);
         Assert.NotNull(dbSubscription);
         Assert.Equal((int)SubscriptionType.Premium, dbSubscription.Type);
         Assert.Equal(15, dbSubscription.MaxPortfolios);
@@ -282,18 +288,8 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task UpdateAsync_NonExistentSubscription_ThrowsNotFoundException()
     {
         // Arrange
-        var subscriptionModel = new SubscriptionModel
-        {
-            Id = Guid.NewGuid(),
-            UserId = Guid.NewGuid(),
-            Type = SubscriptionType.Premium,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = true,
-            MaxPortfolios = 10,
-            MaxAlgorithms = 50,
-            MaxBacktestRuns = 500
-        };
+        var user = UserModelFixture.CreateDefault();
+        var subscriptionModel = SubscriptionModelFixture.CreatePremiumSubscription(user.Id);
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => _repository.UpdateAsync(subscriptionModel));
@@ -303,23 +299,29 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task DeleteAsync_ExistingSubscription_ReturnsTrueAndSoftDeletes()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var subscriptionId = await SeedTestSubscriptionAsync(userId);
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
+
+        var subscription = SubscriptionModelFixture.CreateFreeSubscription(user.Id);
+        var entity = subscription.ToEntity();
+        Context.Subscriptions.Add(entity);
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.DeleteAsync(subscriptionId);
+        var result = await _repository.DeleteAsync(subscription.Id);
 
         // Assert
         Assert.True(result);
 
         // Verify soft delete
-        var dbSubscription = await Context.Subscriptions.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Id == subscriptionId);
+        var dbSubscription = await Context.Subscriptions.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Id == subscription.Id);
         Assert.NotNull(dbSubscription);
         Assert.True(dbSubscription.IsDeleted);
         Assert.NotNull(dbSubscription.UpdatedAt);
 
         // Verify subscription is not returned by normal queries
-        var subscriptionModel = await _repository.GetByIdAsync(subscriptionId);
+        var subscriptionModel = await _repository.GetByIdAsync(subscription.Id);
         Assert.Null(subscriptionModel);
     }
 
@@ -340,27 +342,29 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetAllAsync_WithSubscriptions_ReturnsAllActiveSubscriptions()
     {
         // Arrange
-        var user1Id = await SeedTestUserAsync("user1", "user1@example.com");
-        var user2Id = await SeedTestUserAsync("user2", "user2@example.com");
-
-        var subscription1Id = await SeedTestSubscriptionAsync(user1Id, SubscriptionType.Premium);
-        var subscription2Id = await SeedTestSubscriptionAsync(user2Id, SubscriptionType.Basic);
-        var deletedSubscriptionId = await SeedTestSubscriptionAsync(user1Id, SubscriptionType.Professional);
+        var subscriptions = new[]
+        {
+            SubscriptionModelFixture.CreatePremiumSubscription(),
+            SubscriptionModelFixture.CreateBasicSubscription(),
+            SubscriptionModelFixture.CreateEnterpriseSubscription()
+        };
 
         // Soft delete one subscription
-        var deletedSubscription = await Context.Subscriptions.FindAsync(deletedSubscriptionId);
-        deletedSubscription!.IsDeleted = true;
+        subscriptions[2].IsDeleted = true;
+
+        var entities = subscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetAllAsync();
 
         // Assert
-        var subscriptions = result.ToList();
-        Assert.Equal(2, subscriptions.Count); // Only active subscriptions
-        Assert.Contains(subscriptions, s => s.Type == SubscriptionType.Premium);
-        Assert.Contains(subscriptions, s => s.Type == SubscriptionType.Basic);
-        Assert.DoesNotContain(subscriptions, s => s.Type == SubscriptionType.Professional);
+        var subscriptionList = result.ToList();
+        Assert.Equal(2, subscriptionList.Count); // Only active subscriptions
+        Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Premium);
+        Assert.Contains(subscriptionList, s => s.Type == SubscriptionType.Basic);
+        Assert.DoesNotContain(subscriptionList, s => s.Type == SubscriptionType.Enterprise);
     }
 
     [Fact]
@@ -377,32 +381,41 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetByUserIdAsync_UserWithDeletedSubscriptions_ReturnsOnlyActiveSubscriptions()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
 
-        var activeSubscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Premium);
-        var deletedSubscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Basic);
+        var subscriptions = new[]
+        {
+            SubscriptionModelFixture.CreatePremiumSubscription(user.Id),
+            SubscriptionModelFixture.CreateBasicSubscription(user.Id)
+        };
 
         // Soft delete one subscription
-        var deletedSubscription = await Context.Subscriptions.FindAsync(deletedSubscriptionId);
-        deletedSubscription!.IsDeleted = true;
+        subscriptions[1].IsDeleted = true;
+
+        var entities = subscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByUserIdAsync(userId);
+        var result = await _repository.GetByUserIdAsync(user.Id);
 
         // Assert
-        var subscriptions = result.ToList();
-        Assert.Single(subscriptions); // Only active subscription
-        Assert.Equal(SubscriptionType.Premium, subscriptions[0].Type);
-        Assert.False(subscriptions[0].IsDeleted);
+        var subscriptionList = result.ToList();
+        Assert.Single(subscriptionList); // Only active subscription
+        Assert.Equal(SubscriptionType.Premium, subscriptionList[0].Type);
+        Assert.False(subscriptionList[0].IsDeleted);
     }
 
     [Fact]
     public async Task GetExpiredAsync_NoExpiredSubscriptions_ReturnsEmptyCollection()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        await SeedTestSubscriptionAsync(userId, SubscriptionType.Premium); // Active and not expired
+        var subscription = SubscriptionModelFixture.CreatePremiumSubscription(); // Active and not expired
+        var entity = subscription.ToEntity();
+        Context.Subscriptions.Add(entity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetExpiredAsync();
@@ -415,8 +428,10 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetByTypeAsync_NoSubscriptionsOfType_ReturnsEmptyCollection()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        await SeedTestSubscriptionAsync(userId, SubscriptionType.Free);
+        var subscription = SubscriptionModelFixture.CreateFreeSubscription();
+        var entity = subscription.ToEntity();
+        Context.Subscriptions.Add(entity);
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByTypeAsync(SubscriptionType.Enterprise);
@@ -429,48 +444,26 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetActiveByUserIdAsync_MultipleActiveSubscriptions_ReturnsFirstActive()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
 
-        // This scenario shouldn't happen in real business logic, but tests repository behavior
-        var subscription1 = new SubscriptionEntity
+        var subscriptions = new[]
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Type = (int)SubscriptionType.Basic,
-            StartDate = DateTime.UtcNow.AddDays(-60),
-            EndDate = DateTime.UtcNow.AddDays(300),
-            IsActive = true,
-            MaxPortfolios = 3,
-            MaxAlgorithms = 15,
-            MaxBacktestRuns = 100,
-            CreatedAt = DateTime.UtcNow.AddDays(-60),
-            CreatedBy = "test"
+            SubscriptionModelFixture.CreateBasicSubscription(user.Id),
+            SubscriptionModelFixture.CreatePremiumSubscription(user.Id)
         };
 
-        var subscription2 = new SubscriptionEntity
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Type = (int)SubscriptionType.Premium,
-            StartDate = DateTime.UtcNow.AddDays(-30),
-            EndDate = DateTime.UtcNow.AddDays(330),
-            IsActive = true,
-            MaxPortfolios = 10,
-            MaxAlgorithms = 50,
-            MaxBacktestRuns = 500,
-            CreatedAt = DateTime.UtcNow.AddDays(-30),
-            CreatedBy = "test"
-        };
-
-        Context.Subscriptions.AddRange(subscription1, subscription2);
+        var entities = subscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetActiveByUserIdAsync(userId);
+        var result = await _repository.GetActiveByUserIdAsync(user.Id);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(userId, result.UserId);
+        Assert.Equal(user.Id, result.UserId);
         Assert.True(result.IsActive);
         // Should return one of the active subscriptions (implementation dependent)
     }
@@ -479,145 +472,106 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
     public async Task GetExpiredAsync_MixedActiveInactiveExpired_ReturnsOnlyActiveExpired()
     {
         // Arrange
-        var user1Id = await SeedTestUserAsync("user1", "user1@example.com");
-        var user2Id = await SeedTestUserAsync("user2", "user2@example.com");
-        var user3Id = await SeedTestUserAsync("user3", "user3@example.com");
-
-        // Create expired but active subscription (should be returned)
-        var expiredActiveSubscription = new SubscriptionEntity
-        {
-            Id = Guid.NewGuid(),
-            UserId = user1Id,
-            Type = (int)SubscriptionType.Premium,
-            StartDate = DateTime.UtcNow.AddDays(-60),
-            EndDate = DateTime.UtcNow.AddDays(-10), // Expired
-            IsActive = true, // But still marked as active
-            MaxPortfolios = 10,
-            MaxAlgorithms = 50,
-            MaxBacktestRuns = 500,
-            CreatedAt = DateTime.UtcNow.AddDays(-60),
-            CreatedBy = "test"
-        };
-
-        // Create expired and inactive subscription (should NOT be returned)
-        var expiredInactiveSubscription = new SubscriptionEntity
-        {
-            Id = Guid.NewGuid(),
-            UserId = user2Id,
-            Type = (int)SubscriptionType.Basic,
-            StartDate = DateTime.UtcNow.AddDays(-90),
-            EndDate = DateTime.UtcNow.AddDays(-20), // Expired
-            IsActive = false, // Already deactivated
-            MaxPortfolios = 3,
-            MaxAlgorithms = 15,
-            MaxBacktestRuns = 100,
-            CreatedAt = DateTime.UtcNow.AddDays(-90),
-            CreatedBy = "test"
-        };
-
-        // Create active and not expired subscription (should NOT be returned)
-        var activeNotExpiredSubscription = new SubscriptionEntity
-        {
-            Id = Guid.NewGuid(),
-            UserId = user3Id,
-            Type = (int)SubscriptionType.Professional,
-            StartDate = DateTime.UtcNow.AddDays(-30),
-            EndDate = DateTime.UtcNow.AddDays(330), // Not expired
-            IsActive = true,
-            MaxPortfolios = 25,
-            MaxAlgorithms = 100,
-            MaxBacktestRuns = 1000,
-            CreatedAt = DateTime.UtcNow.AddDays(-30),
-            CreatedBy = "test"
-        };
-
-        Context.Subscriptions.AddRange(
-            expiredActiveSubscription,
-            expiredInactiveSubscription,
-            activeNotExpiredSubscription
+        var expiredActiveSubscription = SubscriptionModelFixture.CreateCustomSubscription(
+            type: SubscriptionType.Premium,
+            isActive: true,
+            startDate: DateTime.UtcNow.AddDays(-60),
+            endDate: DateTime.UtcNow.AddDays(-10) // Expired
         );
+
+        var expiredInactiveSubscription = SubscriptionModelFixture.CreateCustomSubscription(
+            type: SubscriptionType.Basic,
+            isActive: false,
+            startDate: DateTime.UtcNow.AddDays(-90),
+            endDate: DateTime.UtcNow.AddDays(-20) // Expired
+        );
+
+        var activeNotExpiredSubscription = SubscriptionModelFixture.CreateCustomSubscription(
+            type: SubscriptionType.Enterprise,
+            isActive: true,
+            startDate: DateTime.UtcNow.AddDays(-30),
+            endDate: DateTime.UtcNow.AddDays(330) // Not expired
+        );
+
+        var subscriptions = new[] { expiredActiveSubscription, expiredInactiveSubscription, activeNotExpiredSubscription };
+        var entities = subscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetExpiredAsync();
 
         // Assert
-        var subscriptions = result.ToList();
-        Assert.Single(subscriptions); // Only the expired but active subscription
-        Assert.Equal(SubscriptionType.Premium, subscriptions[0].Type);
-        Assert.True(subscriptions[0].IsActive);
-        Assert.True(subscriptions[0].EndDate < DateTime.UtcNow);
+        var subscriptionList = result.ToList();
+        Assert.Single(subscriptionList); // Only the expired but active subscription
+        Assert.Equal(SubscriptionType.Premium, subscriptionList[0].Type);
+        Assert.True(subscriptionList[0].IsActive);
+        Assert.True(subscriptionList[0].EndDate < DateTime.UtcNow);
     }
 
-    [Fact]
-    public async Task CreateAsync_SubscriptionForNonExistentUser_ThrowsDbUpdateException()
-    {
-        // Arrange
-        var nonExistentUserId = Guid.NewGuid();
-        var subscriptionModel = new SubscriptionModel
-        {
-            Id = Guid.NewGuid(),
-            UserId = nonExistentUserId, // User doesn't exist
-            Type = SubscriptionType.Premium,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddYears(1),
-            IsActive = true,
-            MaxPortfolios = 10,
-            MaxAlgorithms = 50,
-            MaxBacktestRuns = 500
-        };
+    // TODO: Trey: The test is failing because EF Core's In-Memory database provider doesn't enforce foreign key
+    // constraints. This is the same issue I mentioned earlier - the In-Memory provider is designed for simple
+    // testing and doesn't validate referential integrity.
+    //[Fact]
+    //public async Task CreateAsync_SubscriptionForNonExistentUser_ThrowsDbUpdateException()
+    //{
+    //    // Arrange
+    //    var subscriptionModel = SubscriptionModelFixture.CreatePremiumSubscription(); // Has a non-existent user ID
 
-        // Act & Assert
-        await Assert.ThrowsAsync<DbUpdateException>(() => _repository.CreateAsync(subscriptionModel));
-    }
+    //    // Act & Assert
+    //    await Assert.ThrowsAsync<DbUpdateException>(() => _repository.CreateAsync(subscriptionModel));
+    //}
 
     [Fact]
     public async Task GetByTypeAsync_WithDeletedSubscriptions_ReturnsOnlyNonDeletedSubscriptions()
     {
         // Arrange
-        var user1Id = await SeedTestUserAsync("user1", "user1@example.com");
-        var user2Id = await SeedTestUserAsync("user2", "user2@example.com");
-
-        var activeSubscriptionId = await SeedTestSubscriptionAsync(user1Id, SubscriptionType.Premium);
-        var deletedSubscriptionId = await SeedTestSubscriptionAsync(user2Id, SubscriptionType.Premium);
+        var subscriptions = new[]
+        {
+            SubscriptionModelFixture.CreatePremiumSubscription(),
+            SubscriptionModelFixture.CreatePremiumSubscription()
+        };
 
         // Soft delete one subscription
-        var deletedSubscription = await Context.Subscriptions.FindAsync(deletedSubscriptionId);
-        deletedSubscription!.IsDeleted = true;
+        subscriptions[1].IsDeleted = true;
+
+        var entities = subscriptions.Select(s => s.ToEntity());
+        Context.Subscriptions.AddRange(entities);
         await Context.SaveChangesAsync();
 
         // Act
         var result = await _repository.GetByTypeAsync(SubscriptionType.Premium);
 
         // Assert
-        var subscriptions = result.ToList();
-        Assert.Single(subscriptions); // Only the non-deleted subscription
-        Assert.Equal(activeSubscriptionId, subscriptions[0].Id);
-        Assert.False(subscriptions[0].IsDeleted);
+        var subscriptionList = result.ToList();
+        Assert.Single(subscriptionList); // Only the non-deleted subscription
+        Assert.Equal(subscriptions[0].Id, subscriptionList[0].Id);
+        Assert.False(subscriptionList[0].IsDeleted);
     }
 
     [Fact]
     public async Task UpdateAsync_ChangeSubscriptionDates_UpdatesCorrectly()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var subscriptionId = await SeedTestSubscriptionAsync(userId, SubscriptionType.Basic);
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
+
+        var originalSubscription = SubscriptionModelFixture.CreateBasicSubscription(user.Id);
+        var entity = originalSubscription.ToEntity();
+        Context.Subscriptions.Add(entity);
+        await Context.SaveChangesAsync();
 
         var newStartDate = DateTime.UtcNow.AddDays(-15);
-        var newEndDate = DateTime.UtcNow.AddDays(375); // Extend subscription
+        var newEndDate = DateTime.UtcNow.AddDays(375);
 
-        var updatedModel = new SubscriptionModel
-        {
-            Id = subscriptionId,
-            UserId = userId,
-            Type = SubscriptionType.Basic,
-            StartDate = newStartDate,
-            EndDate = newEndDate,
-            IsActive = true,
-            MaxPortfolios = 3,
-            MaxAlgorithms = 15,
-            MaxBacktestRuns = 100
-        };
+        var updatedModel = SubscriptionModelFixture.CreateCustomSubscription(
+            userId: user.Id,
+            type: SubscriptionType.Basic,
+            startDate: newStartDate,
+            endDate: newEndDate
+        );
+        updatedModel.Id = originalSubscription.Id;
 
         // Act
         var result = await _repository.UpdateAsync(updatedModel);
@@ -628,7 +582,7 @@ public class SubscriptionRepositoryIntegrationTests : BaseRepositoryIntegrationT
         Assert.Equal(newEndDate.Date, result.EndDate.Date);
 
         // Verify in database
-        var dbSubscription = await Context.Subscriptions.FindAsync(subscriptionId);
+        var dbSubscription = await Context.Subscriptions.FindAsync(originalSubscription.Id);
         Assert.NotNull(dbSubscription);
         Assert.Equal(newStartDate.Date, dbSubscription.StartDate.Date);
         Assert.Equal(newEndDate.Date, dbSubscription.EndDate.Date);

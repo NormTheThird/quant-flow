@@ -25,49 +25,6 @@ public abstract class BaseRepositoryUnitTest : IDisposable
     }
 
     /// <summary>
-    /// Seeds a test user and returns the user ID
-    /// </summary>
-    /// <param name="userName">Optional user name</param>
-    /// <returns>User ID</returns>
-    protected static async Task<Guid> SeedTestUserAsync(string userName = "TestUser")
-    {
-        var userId = Guid.NewGuid();
-        await Task.Delay(1); // Simulate async operation
-        // If you have a User entity, add it here
-        // For now, just return the ID as many tests just need the foreign key
-        return userId;
-    }
-
-    /// <summary>
-    /// Seeds a test portfolio and returns the portfolio ID
-    /// </summary>
-    /// <param name="userId">User ID for the portfolio</param>
-    /// <param name="portfolioName">Optional portfolio name</param>
-    /// <returns>Portfolio ID</returns>
-    protected static async Task<Guid> SeedTestPortfolioAsync(Guid userId, string portfolioName = "TestPortfolio")
-    {
-        var portfolioId = Guid.NewGuid();
-        await Task.Delay(1); // Simulate async operation
-        // If you have a Portfolio entity, add it here
-        // For now, just return the ID as many tests just need the foreign key
-        return portfolioId;
-    }
-
-    /// <summary>
-    /// Seeds a test algorithm and returns the algorithm ID
-    /// </summary>
-    /// <param name="algorithmName">Optional algorithm name</param>
-    /// <returns>Algorithm ID</returns>
-    protected static async Task<Guid> SeedTestAlgorithmAsync(string algorithmName = "TestAlgorithm")
-    {
-        var algorithmId = Guid.NewGuid();
-        await Task.Delay(1); // Simulate async operation
-        // If you have an Algorithm entity, add it here
-        // For now, just return the ID as many tests just need the foreign key
-        return algorithmId;
-    }
-
-    /// <summary>
     /// Clears all data from the database context
     /// </summary>
     protected async Task ClearDatabaseAsync()

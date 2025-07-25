@@ -8,14 +8,14 @@ public static class BacktestRunModelFixture
     /// <summary>
     /// Creates a default BacktestRunModel with all properties populated for general testing
     /// </summary>
-    public static BacktestRunModel CreateDefault()
+    public static BacktestRunModel CreateDefault(Guid? id = null, Guid? portfolioId = null, string name = "Test Run")
     {
         return new BacktestRunModel
         {
-            Id = Guid.NewGuid(),
-            Name = "Test Run",
+            Id = id ?? Guid.NewGuid(),
+            Name = name,
             AlgorithmId = Guid.NewGuid(),
-            PortfolioId = Guid.NewGuid(),
+            PortfolioId = portfolioId ?? Guid.NewGuid(),
             UserId = Guid.NewGuid(),
             Symbol = "BTCUSDT",
             Exchange = Exchange.Binance,
@@ -40,8 +40,8 @@ public static class BacktestRunModelFixture
             CompletedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             CreatedBy = "test",
-            //User = UserModelFixture.CreateDefault(),
-            //Portfolio = PortfolioModelFixture.CreateDefault(),
+            User = UserModelFixture.CreateDefault(),
+            Portfolio = PortfolioModelFixture.CreateDefault(),
             //Trades = new List<TradeModel> { TradeModelFixture.CreateDefault() }
         };
     }

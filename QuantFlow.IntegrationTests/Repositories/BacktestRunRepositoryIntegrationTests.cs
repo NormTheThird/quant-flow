@@ -17,9 +17,13 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task GetByIdAsync_ExistingBacktestRun_ReturnsBacktestRunModel()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
-        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Integration Test Backtest");
+        var user = UserModelFixture.CreateDefault();
+        var portfolio = PortfolioModelFixture.CreateDefault(user.Id);
+        Context.Users.Add(user.ToEntity());
+        Context.Portfolios.Add(portfolio.ToEntity());
+        await Context.SaveChangesAsync();
+
+        var backtestModel = BacktestRunModelFixture.CreateCompletedBacktestRun(user.Id, portfolio.Id, "Integration Test Backtest");
 
         // Convert model to entity and add to context
         var backtestEntity = backtestModel.ToEntity();
@@ -33,8 +37,8 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
         Assert.NotNull(result);
         Assert.Equal(backtestModel.Id, result.Id);
         Assert.Equal("Integration Test Backtest", result.Name);
-        Assert.Equal(userId, result.UserId);
-        Assert.Equal(portfolioId, result.PortfolioId);
+        Assert.Equal(user.Id, result.UserId);
+        Assert.Equal(portfolio.Id, result.PortfolioId);
         Assert.Equal("BTCUSDT", result.Symbol);
         Assert.Equal(Exchange.Binance, result.Exchange);
         Assert.Equal(Timeframe.OneHour, result.Timeframe);
@@ -69,11 +73,15 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task GetByIdAsync_DeletedBacktestRun_ReturnsNull()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var user = UserModelFixture.CreateDefault();
+        var portfolio = PortfolioModelFixture.CreateDefault(user.Id);
+        Context.Users.Add(user.ToEntity());
+        Context.Portfolios.Add(portfolio.ToEntity());
+        await Context.SaveChangesAsync();
+
         var backtestModel = BacktestRunModelFixture.CreateDefault();
-        backtestModel.UserId = userId;
-        backtestModel.PortfolioId = portfolioId;
+        backtestModel.UserId = user.Id;
+        backtestModel.PortfolioId = portfolio.Id;
 
         var backtestEntity = backtestModel.ToEntity();
         Context.BacktestRuns.Add(backtestEntity);
@@ -95,27 +103,30 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task GetByUserIdAsync_ExistingUser_ReturnsUserBacktestRuns()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var otherUserId = await SeedTestUserAsync("otheruser", "other@example.com");
+        var user = UserModelFixture.CreateDefault();
+        var otherUser = UserModelFixture.CreateDefault("otheruser", "other@example.com");
+        var portfolio = PortfolioModelFixture.CreateDefault(user.Id);
+        var otherPortfolio = PortfolioModelFixture.CreateDefault(otherUser.Id, "Other Portfolio");
 
-        var portfolioId = await SeedTestPortfolioAsync(userId);
-        var otherPortfolioId = await SeedTestPortfolioAsync(otherUserId);
+        Context.Users.AddRange(user.ToEntity(), otherUser.ToEntity());
+        Context.Portfolios.AddRange(portfolio.ToEntity(), otherPortfolio.ToEntity());
+        await Context.SaveChangesAsync();
 
-        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(userId, portfolioId, "User Backtest 1");
-        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(userId, portfolioId, "User Backtest 2");
-        var otherBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(otherUserId, otherPortfolioId, "Other User Backtest");
+        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(user.Id, portfolio.Id, "User Backtest 1");
+        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(user.Id, portfolio.Id, "User Backtest 2");
+        var otherBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(otherUser.Id, otherPortfolio.Id, "Other User Backtest");
 
         // Add to context using mapping extensions
         Context.BacktestRuns.AddRange(backtest1.ToEntity(), backtest2.ToEntity(), otherBacktest.ToEntity());
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByUserIdAsync(userId);
+        var result = await _repository.GetByUserIdAsync(user.Id);
 
         // Assert
         var backtestRuns = result.ToList();
         Assert.Equal(2, backtestRuns.Count);
-        Assert.All(backtestRuns, b => Assert.Equal(userId, b.UserId));
+        Assert.All(backtestRuns, b => Assert.Equal(user.Id, b.UserId));
         Assert.Contains(backtestRuns, b => b.Name == "User Backtest 1");
         Assert.Contains(backtestRuns, b => b.Name == "User Backtest 2");
         Assert.DoesNotContain(backtestRuns, b => b.Name == "Other User Backtest");
@@ -125,15 +136,18 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task GetByPortfolioIdAsync_ExistingPortfolio_ReturnsPortfolioBacktestRuns()
     {
         // Arrange
-        var user1Id = await SeedTestUserAsync("user1", "user1@example.com");
-        var user2Id = await SeedTestUserAsync("user2", "user2@example.com");
+        var user1 = UserModelFixture.CreateDefault("user1", "user1@example.com");
+        var user2 = UserModelFixture.CreateDefault("user2", "user2@example.com");
+        var portfolio1 = PortfolioModelFixture.CreateDefault(user1.Id, "Portfolio 1");
+        var portfolio2 = PortfolioModelFixture.CreateDefault(user2.Id, "Portfolio 2");
 
-        var portfolio1Id = await SeedTestPortfolioAsync(user1Id, "Portfolio 1");
-        var portfolio2Id = await SeedTestPortfolioAsync(user2Id, "Portfolio 2");
+        Context.Users.AddRange(user1.ToEntity(), user2.ToEntity());
+        Context.Portfolios.AddRange(portfolio1.ToEntity(), portfolio2.ToEntity());
+        await Context.SaveChangesAsync();
 
-        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(user1Id, portfolio1Id, "Portfolio 1 Backtest 1");
-        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(user1Id, portfolio1Id, "Portfolio 1 Backtest 2");
-        var backtest3 = BacktestRunModelFixture.CreateCustomBacktestRun(user2Id, portfolio2Id, "Portfolio 2 Backtest");
+        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(user1.Id, portfolio1.Id, "Portfolio 1 Backtest 1");
+        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(user1.Id, portfolio1.Id, "Portfolio 1 Backtest 2");
+        var backtest3 = BacktestRunModelFixture.CreateCustomBacktestRun(user2.Id, portfolio2.Id, "Portfolio 2 Backtest");
 
         // Add to context using mapping extensions
         Context.BacktestRuns.AddRange(
@@ -143,12 +157,12 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByPortfolioIdAsync(portfolio1Id);
+        var result = await _repository.GetByPortfolioIdAsync(portfolio1.Id);
 
         // Assert
         var backtestRuns = result.ToList();
         Assert.Equal(2, backtestRuns.Count);
-        Assert.All(backtestRuns, b => Assert.Equal(portfolio1Id, b.PortfolioId));
+        Assert.All(backtestRuns, b => Assert.Equal(portfolio1.Id, b.PortfolioId));
         Assert.Contains(backtestRuns, b => b.Name == "Portfolio 1 Backtest 1");
         Assert.Contains(backtestRuns, b => b.Name == "Portfolio 1 Backtest 2");
         Assert.DoesNotContain(backtestRuns, b => b.Name == "Portfolio 2 Backtest");
@@ -158,13 +172,16 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task GetByStatusAsync_ExistingStatus_ReturnsBacktestRunsWithStatus()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var user = UserModelFixture.CreateDefault();
+        var portfolio = PortfolioModelFixture.CreateDefault(user.Id);
+        Context.Users.Add(user.ToEntity());
+        Context.Portfolios.Add(portfolio.ToEntity());
+        await Context.SaveChangesAsync();
 
         // Create backtest runs with different statuses
-        var completedBacktest1 = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Completed 1");
-        var completedBacktest2 = BacktestRunModelFixture.CreateCompletedBacktestRun(userId, portfolioId, "Completed 2");
-        var runningBacktest = BacktestRunModelFixture.CreateRunningBacktestRun(userId, portfolioId, "Running Backtest");
+        var completedBacktest1 = BacktestRunModelFixture.CreateCompletedBacktestRun(user.Id, portfolio.Id, "Completed 1");
+        var completedBacktest2 = BacktestRunModelFixture.CreateCompletedBacktestRun(user.Id, portfolio.Id, "Completed 2");
+        var runningBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(user.Id, portfolio.Id, "Running Backtest", status: BacktestStatus.Running);
 
         // Add to context using mapping extensions
         Context.BacktestRuns.AddRange(
@@ -189,10 +206,13 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task CreateAsync_ValidBacktestRun_ReturnsCreatedBacktestRun()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var user = UserModelFixture.CreateDefault();
+        var portfolio = PortfolioModelFixture.CreateDefault(user.Id);
+        Context.Users.Add(user.ToEntity());
+        Context.Portfolios.Add(portfolio.ToEntity());
+        await Context.SaveChangesAsync();
 
-        var backtestModel = BacktestRunModelFixture.CreatePendingBacktestRun(userId, portfolioId, "New Integration Backtest");
+        var backtestModel = BacktestRunModelFixture.CreatePendingBacktestRun(user.Id, portfolio.Id, "New Integration Backtest");
 
         // Act
         var result = await _repository.CreateAsync(backtestModel);
@@ -219,62 +239,6 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
         Assert.Equal(backtestModel.Symbol, dbBacktest.Symbol);
     }
 
-    //[Fact]
-    //public async Task UpdateAsync_ExistingBacktestRun_ReturnsUpdatedBacktestRun()
-    //{
-    //    // Arrange
-    //    var userId = await SeedTestUserAsync();
-    //    var portfolioId = await SeedTestPortfolioAsync(userId);
-    //    var backtestId = await SeedTestBacktestRunAsync(userId, portfolioId, "Original Backtest");
-
-    //    var updatedModel = new BacktestRunModel
-    //    {
-    //        Id = backtestId,
-    //        Name = "Updated Integration Backtest",
-    //        Status = BacktestStatus.Failed,
-    //        FinalBalance = 8000.0m,
-    //        TotalReturnPercent = -20.0m,
-    //        MaxDrawdownPercent = -15.0m,
-    //        SharpeRatio = -0.5m,
-    //        TotalTrades = 5,
-    //        WinningTrades = 1,
-    //        LosingTrades = 4,
-    //        WinRatePercent = 20.0m,
-    //        AverageTradeReturnPercent = -4.0m,
-    //        ExecutionDuration = TimeSpan.FromMinutes(3),
-    //        ErrorMessage = "Algorithm execution failed",
-    //        CompletedAt = DateTime.UtcNow
-    //    };
-
-    //    // Act
-    //    var result = await _repository.UpdateAsync(updatedModel);
-
-    //    // Assert
-    //    Assert.NotNull(result);
-    //    Assert.Equal("Updated Integration Backtest", result.Name);
-    //    Assert.Equal(BacktestStatus.Failed, result.Status);
-    //    Assert.Equal(8000.0m, result.FinalBalance);
-    //    Assert.Equal(-20.0m, result.TotalReturnPercent);
-    //    Assert.Equal(-15.0m, result.MaxDrawdownPercent);
-    //    Assert.Equal(-0.5m, result.SharpeRatio);
-    //    Assert.Equal(5, result.TotalTrades);
-    //    Assert.Equal(1, result.WinningTrades);
-    //    Assert.Equal(4, result.LosingTrades);
-    //    Assert.Equal(20.0m, result.WinRatePercent);
-    //    Assert.Equal(-4.0m, result.AverageTradeReturnPercent);
-    //    Assert.Equal(TimeSpan.FromMinutes(3), result.ExecutionDuration);
-    //    Assert.Equal("Algorithm execution failed", result.ErrorMessage);
-    //    Assert.NotNull(result.UpdatedAt);
-
-    //    // Verify in database
-    //    var dbBacktest = await Context.BacktestRuns.FindAsync(backtestId);
-    //    Assert.NotNull(dbBacktest);
-    //    Assert.Equal("Updated Integration Backtest", dbBacktest.Name);
-    //    Assert.Equal((int)BacktestStatus.Failed, dbBacktest.Status);
-    //    Assert.Equal(8000.0m, dbBacktest.FinalBalance);
-    //    Assert.Equal("Algorithm execution failed", dbBacktest.ErrorMessage);
-    //}
-
     [Fact]
     public async Task UpdateAsync_NonExistentBacktestRun_ThrowsNotFoundException()
     {
@@ -289,11 +253,15 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task DeleteAsync_ExistingBacktestRun_ReturnsTrueAndSoftDeletes()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var portfolioId = await SeedTestPortfolioAsync(userId);
+        var user = UserModelFixture.CreateDefault();
+        var portfolio = PortfolioModelFixture.CreateDefault(user.Id);
+        Context.Users.Add(user.ToEntity());
+        Context.Portfolios.Add(portfolio.ToEntity());
+        await Context.SaveChangesAsync();
+
         var backtestModel = BacktestRunModelFixture.CreateDefault();
-        backtestModel.UserId = userId;
-        backtestModel.PortfolioId = portfolioId;
+        backtestModel.UserId = user.Id;
+        backtestModel.PortfolioId = portfolio.Id;
 
         var backtestEntity = backtestModel.ToEntity();
         Context.BacktestRuns.Add(backtestEntity);
@@ -333,17 +301,20 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task CountByUserIdAsync_ExistingUser_ReturnsCorrectCount()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
-        var otherUserId = await SeedTestUserAsync("otheruser", "other@example.com");
+        var user = UserModelFixture.CreateDefault();
+        var otherUser = UserModelFixture.CreateDefault("otheruser", "other@example.com");
+        var portfolio = PortfolioModelFixture.CreateDefault(user.Id);
+        var otherPortfolio = PortfolioModelFixture.CreateDefault(otherUser.Id, "Other Portfolio");
 
-        var portfolioId = await SeedTestPortfolioAsync(userId);
-        var otherPortfolioId = await SeedTestPortfolioAsync(otherUserId);
+        Context.Users.AddRange(user.ToEntity(), otherUser.ToEntity());
+        Context.Portfolios.AddRange(portfolio.ToEntity(), otherPortfolio.ToEntity());
+        await Context.SaveChangesAsync();
 
         // Create backtest runs for the user
-        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(userId, portfolioId, "Backtest 1");
-        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(userId, portfolioId, "Backtest 2");
-        var deletedBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(userId, portfolioId, "Deleted Backtest");
-        var otherBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(otherUserId, otherPortfolioId, "Other User Backtest");
+        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(user.Id, portfolio.Id, "Backtest 1");
+        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(user.Id, portfolio.Id, "Backtest 2");
+        var deletedBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(user.Id, portfolio.Id, "Deleted Backtest");
+        var otherBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(otherUser.Id, otherPortfolio.Id, "Other User Backtest");
 
         // Add to context using mapping extensions
         Context.BacktestRuns.AddRange(
@@ -359,7 +330,7 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.CountByUserIdAsync(userId);
+        var result = await _repository.CountByUserIdAsync(user.Id);
 
         // Assert
         Assert.Equal(2, result); // Only active backtest runs for the user
@@ -369,10 +340,12 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task CountByUserIdAsync_UserWithNoBacktestRuns_ReturnsZero()
     {
         // Arrange
-        var userId = await SeedTestUserAsync();
+        var user = UserModelFixture.CreateDefault();
+        Context.Users.Add(user.ToEntity());
+        await Context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.CountByUserIdAsync(userId);
+        var result = await _repository.CountByUserIdAsync(user.Id);
 
         // Assert
         Assert.Equal(0, result);
@@ -382,15 +355,18 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
     public async Task GetAllAsync_WithBacktestRuns_ReturnsAllActiveBacktestRuns()
     {
         // Arrange
-        var user1Id = await SeedTestUserAsync("user1", "user1@example.com");
-        var user2Id = await SeedTestUserAsync("user2", "user2@example.com");
+        var user1 = UserModelFixture.CreateDefault("user1", "user1@example.com");
+        var user2 = UserModelFixture.CreateDefault("user2", "user2@example.com");
+        var portfolio1 = PortfolioModelFixture.CreateDefault(user1.Id, "Portfolio 1");
+        var portfolio2 = PortfolioModelFixture.CreateDefault(user2.Id, "Portfolio 2");
 
-        var portfolio1Id = await SeedTestPortfolioAsync(user1Id);
-        var portfolio2Id = await SeedTestPortfolioAsync(user2Id);
+        Context.Users.AddRange(user1.ToEntity(), user2.ToEntity());
+        Context.Portfolios.AddRange(portfolio1.ToEntity(), portfolio2.ToEntity());
+        await Context.SaveChangesAsync();
 
-        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(user1Id, portfolio1Id, "Backtest 1");
-        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(user2Id, portfolio2Id, "Backtest 2");
-        var deletedBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(user1Id, portfolio1Id, "Deleted Backtest");
+        var backtest1 = BacktestRunModelFixture.CreateCustomBacktestRun(user1.Id, portfolio1.Id, "Backtest 1");
+        var backtest2 = BacktestRunModelFixture.CreateCustomBacktestRun(user2.Id, portfolio2.Id, "Backtest 2");
+        var deletedBacktest = BacktestRunModelFixture.CreateCustomBacktestRun(user1.Id, portfolio1.Id, "Deleted Backtest");
 
         // Add to context using mapping extensions
         Context.BacktestRuns.AddRange(
