@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36301.6
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Data.MongDB", "QuantFlow.Data.MongDB\QuantFlow.Data.MongDB.csproj", "{ABE2C09D-2FDB-1F24-E8CB-2AE065C71387}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Data.MongoDB", "QuantFlow.Data.MongDB\QuantFlow.Data.MongoDB.csproj", "{ABE2C09D-2FDB-1F24-E8CB-2AE065C71387}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.Test.Integration", "QuantFlow.IntegrationTests\QuantFlow.Test.Integration.csproj", "{F9F78618-161C-D5B6-F3A2-D02B45BE3C7C}"
 EndProject
