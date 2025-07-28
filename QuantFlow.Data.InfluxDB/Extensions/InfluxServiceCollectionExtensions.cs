@@ -37,10 +37,10 @@ public static class InfluxServiceCollectionExtensions2
 
     public static IServiceCollection AddInfluxDbRepositories(this IServiceCollection services)
     {
-        services.AddScoped<IMarketDataRepository, InfluxMarketDataRepository>();
-        services.AddScoped<IAlgorithmPerformanceRepository, InfluxAlgorithmPerformanceRepository>();
-        services.AddScoped<ISystemMetricsRepository, InfluxSystemMetricsRepository>();
-        services.AddScoped<IDataQualityRepository, InfluxDataQualityRepository>();
+        services.AddScoped<IMarketDataRepository, MarketDataRepository>();
+        services.AddScoped<IAlgorithmPerformanceRepository, AlgorithmPerformanceRepository>();
+        services.AddScoped<ISystemMetricsRepository, SystemMetricsRepository>();
+        services.AddScoped<IDataQualityRepository, DataQualityRepository>();
 
         return services;
     }
@@ -52,12 +52,7 @@ public static class InfluxServiceCollectionExtensions2
             .AddInfluxDbRepositories();
     }
 
-    public static IServiceCollection AddInfluxDb(
-        this IServiceCollection services,
-        string url,
-        string token,
-        string bucket,
-        string organization)
+    public static IServiceCollection AddInfluxDb(this IServiceCollection services, string url, string token, string bucket, string organization)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
         ArgumentException.ThrowIfNullOrWhiteSpace(token);

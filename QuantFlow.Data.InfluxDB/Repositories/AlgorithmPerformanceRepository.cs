@@ -3,14 +3,14 @@
 /// <summary>
 /// InfluxDB implementation of algorithm performance repository
 /// </summary>
-public class InfluxAlgorithmPerformanceRepository : IAlgorithmPerformanceRepository
+public class AlgorithmPerformanceRepository : IAlgorithmPerformanceRepository
 {
     private readonly InfluxDbContext _context;
-    private readonly ILogger<InfluxAlgorithmPerformanceRepository> _logger;
+    private readonly ILogger<AlgorithmPerformanceRepository> _logger;
 
-    public InfluxAlgorithmPerformanceRepository(
+    public AlgorithmPerformanceRepository(
         InfluxDbContext context,
-        ILogger<InfluxAlgorithmPerformanceRepository> logger)
+        ILogger<AlgorithmPerformanceRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

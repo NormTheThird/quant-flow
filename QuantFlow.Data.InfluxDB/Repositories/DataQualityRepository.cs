@@ -10,14 +10,14 @@ namespace QuantFlow.Data.InfluxDB.Repositories;
 /// <summary>
 /// InfluxDB implementation of data quality repository
 /// </summary>
-public class InfluxDataQualityRepository : IDataQualityRepository
+public class DataQualityRepository : IDataQualityRepository
 {
     private readonly InfluxDbContext _context;
-    private readonly ILogger<InfluxDataQualityRepository> _logger;
+    private readonly ILogger<DataQualityRepository> _logger;
 
-    public InfluxDataQualityRepository(
+    public DataQualityRepository(
         InfluxDbContext context,
-        ILogger<InfluxDataQualityRepository> logger)
+        ILogger<DataQualityRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

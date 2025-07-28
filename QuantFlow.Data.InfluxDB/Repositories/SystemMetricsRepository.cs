@@ -3,14 +3,14 @@
 /// <summary>
 /// InfluxDB implementation of system metrics repository
 /// </summary>
-public class InfluxSystemMetricsRepository : ISystemMetricsRepository
+public class SystemMetricsRepository : ISystemMetricsRepository
 {
     private readonly InfluxDbContext _context;
-    private readonly ILogger<InfluxSystemMetricsRepository> _logger;
+    private readonly ILogger<SystemMetricsRepository> _logger;
 
-    public InfluxSystemMetricsRepository(
+    public SystemMetricsRepository(
         InfluxDbContext context,
-        ILogger<InfluxSystemMetricsRepository> logger)
+        ILogger<SystemMetricsRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

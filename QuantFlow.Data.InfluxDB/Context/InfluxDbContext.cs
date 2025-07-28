@@ -73,9 +73,40 @@ public class InfluxDbContext : IDisposable
         }
     }
 
-    /// <summary>
-    /// Writes multiple points to InfluxDB
-    /// </summary>
+    ///// <summary>
+    ///// Writes multiple points to InfluxDB
+    ///// </summary>
+    //public async Task WritePointsAsync<T>(IEnumerable<T> points) where T : BaseTimeSeriesPoint
+    //{
+    //    ThrowIfDisposed();
+    //    ArgumentNullException.ThrowIfNull(points);
+
+    //    var pointsList = points.ToList();
+    //    if (!pointsList.Any())
+    //    {
+    //        _logger.LogDebug("No points to write");
+    //        return;
+    //    }
+
+    //    try
+    //    {
+    //        using var writeApi = GetWriteApi();
+    //        writeApi.WriteMeasurements(pointsList, WritePrecision.Ns, _bucket, _organization);
+    //        // WriteApi is disposed here, which flushes the data
+
+    //        _logger.LogDebug("Written {Count} points of type {Type} to bucket {Bucket}",
+    //            pointsList.Count, typeof(T).Name, _bucket);
+
+    //        // Yield control to allow other async operations to proceed
+    //        await Task.Yield();
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Failed to write {Count} points of type {Type} to InfluxDB",
+    //            pointsList.Count, typeof(T).Name);
+    //        throw;
+    //    }
+    //}
     public async Task WritePointsAsync<T>(IEnumerable<T> points) where T : BaseTimeSeriesPoint
     {
         ThrowIfDisposed();
@@ -90,23 +121,20 @@ public class InfluxDbContext : IDisposable
 
         try
         {
-            using var writeApi = GetWriteApi();
-            writeApi.WriteMeasurements(pointsList, WritePrecision.Ns, _bucket, _organization);
-            // WriteApi is disposed here, which flushes the data
+            var writeApiAsync = _client.GetWriteApiAsync();
+            await writeApiAsync.WriteMeasurementsAsync(pointsList, WritePrecision.Ns, _bucket, _organization);
 
-            _logger.LogDebug("Written {Count} points of type {Type} to bucket {Bucket}",
+            _logger.LogDebug("✅ Written {Count} points of type {Type} to bucket {Bucket}",
                 pointsList.Count, typeof(T).Name, _bucket);
-
-            // Yield control to allow other async operations to proceed
-            await Task.Yield();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to write {Count} points of type {Type} to InfluxDB",
+            _logger.LogError(ex, "❌ Failed to write {Count} points of type {Type} to InfluxDB",
                 pointsList.Count, typeof(T).Name);
             throw;
         }
     }
+
 
     /// <summary>
     /// Executes a Flux query and returns results

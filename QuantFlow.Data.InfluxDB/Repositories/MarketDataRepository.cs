@@ -3,12 +3,12 @@
 /// <summary>
 /// InfluxDB implementation of market data repository
 /// </summary>
-public class InfluxMarketDataRepository : IMarketDataRepository
+public class MarketDataRepository : IMarketDataRepository
 {
     private readonly InfluxDbContext _context;
-    private readonly ILogger<InfluxMarketDataRepository> _logger;
+    private readonly ILogger<MarketDataRepository> _logger;
 
-    public InfluxMarketDataRepository(InfluxDbContext context, ILogger<InfluxMarketDataRepository> logger)
+    public MarketDataRepository(InfluxDbContext context, ILogger<MarketDataRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -92,12 +92,7 @@ public class InfluxMarketDataRepository : IMarketDataRepository
         }
     }
 
-    public async Task<IEnumerable<MarketDataModel>> GetPriceDataAsync(
-        string symbol,
-        string timeframe,
-        DateTime start,
-        DateTime end,
-        string? exchange = null)
+    public async Task<IEnumerable<MarketDataModel>> GetPriceDataAsync(string symbol, string timeframe, DateTime start, DateTime end, string? exchange = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
         ArgumentException.ThrowIfNullOrWhiteSpace(timeframe);
@@ -235,11 +230,7 @@ public class InfluxMarketDataRepository : IMarketDataRepository
         }
     }
 
-    public async Task<IEnumerable<TradeModel>> GetTradeDataAsync(
-        string symbol,
-        DateTime start,
-        DateTime end,
-        string? exchange = null)
+    public async Task<IEnumerable<TradeModel>> GetTradeDataAsync(string symbol, DateTime start, DateTime end, string? exchange = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
