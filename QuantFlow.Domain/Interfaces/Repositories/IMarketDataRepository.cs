@@ -60,4 +60,24 @@ public interface IMarketDataRepository
         DateTime start,
         DateTime end,
         string? exchange = null);
+
+    /// <summary>
+    /// Deletes market data for a symbol within a time range
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="timeframe">Timeframe interval</param>
+    /// <param name="startDate">Start date for deletion</param>
+    /// <param name="endDate">End date for deletion</param>
+    /// <param name="dataSource">Optional data source filter</param>
+    /// <returns>Task representing the deletion operation</returns>
+    Task DeleteMarketDataAsync(string symbol, string timeframe, DateTime startDate, DateTime endDate, string? dataSource = null);
+
+
+    /// <summary>
+    /// Deletes all market data for a symbol (use with caution)
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="dataSource">Optional data source filter</param>
+    /// <returns>Task representing the deletion operation</returns>
+    Task DeleteAllMarketDataAsync(string symbol, string? dataSource = null);
 }

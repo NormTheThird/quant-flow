@@ -23,7 +23,6 @@ public class MarketDataRepository : IMarketDataRepository
             var pricePoint = new PricePoint
             {
                 Symbol = marketData.Symbol,
-                Exchange = marketData.Exchange,
                 Timeframe = marketData.Timeframe,
                 DataSource = marketData.DataSource ?? "unknown",
                 Open = marketData.Open,
@@ -66,7 +65,6 @@ public class MarketDataRepository : IMarketDataRepository
             var pricePoints = dataList.Select(md => new PricePoint
             {
                 Symbol = md.Symbol,
-                Exchange = md.Exchange,
                 Timeframe = md.Timeframe,
                 DataSource = md.DataSource ?? "unknown",
                 Open = md.Open,
@@ -117,7 +115,6 @@ public class MarketDataRepository : IMarketDataRepository
             var marketData = results.Select(p => new MarketDataModel
             {
                 Symbol = p.Symbol,
-                Exchange = p.Exchange,
                 Timeframe = p.Timeframe,
                 DataSource = p.DataSource,
                 Open = p.Open,
@@ -132,7 +129,7 @@ public class MarketDataRepository : IMarketDataRepository
                 Timestamp = p.Timestamp
             });
 
-            _logger.LogDebug("Retrieved {Count} price data points for {Symbol}", results.Count, symbol);
+            _logger.LogDebug("Retrieved {Count} price data points for {Symbol}", results.Count(), symbol);
             return marketData;
         }
         catch (Exception ex)
@@ -173,7 +170,6 @@ public class MarketDataRepository : IMarketDataRepository
             var marketData = new MarketDataModel
             {
                 Symbol = latestPrice.Symbol,
-                Exchange = latestPrice.Exchange,
                 Timeframe = latestPrice.Timeframe,
                 DataSource = latestPrice.DataSource,
                 Open = latestPrice.Open,
@@ -270,7 +266,7 @@ public class MarketDataRepository : IMarketDataRepository
                 CreatedBy = "influxdb"
             });
 
-            _logger.LogDebug("Retrieved {Count} trade data points for {Symbol}", results.Count, symbol);
+            _logger.LogDebug("Retrieved {Count} trade data points for {Symbol}", results.Count(), symbol);
             return trades;
         }
         catch (Exception ex)
@@ -279,4 +275,101 @@ public class MarketDataRepository : IMarketDataRepository
             throw;
         }
     }
+
+    /// <summary>
+    /// Deletes market data for a symbol within a time range
+    /// </summary>
+    public async Task DeleteMarketDataAsync(string symbol, string timeframe, DateTime startDate, DateTime endDate, string? dataSource = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        ArgumentException.ThrowIfNullOrWhiteSpace(timeframe);
+
+        try
+        {
+            _logger.LogInformation("Deleting market data for {Symbol} ({Timeframe}) from {Start} to {End} for {DataSource}",
+                symbol, timeframe, startDate, endDate, dataSource ?? "all sources");
+
+            // Build predicate for deletion with proper escaping
+            var predicateParts = new List<string>
+        {
+            "_measurement=\"prices\"",
+            $"symbol=\"{symbol}\"",
+            $"timeframe=\"{timeframe}\""
+        };
+
+            if (!string.IsNullOrEmpty(dataSource))
+            {
+                predicateParts.Add($"data_source=\"{dataSource}\"");
+            }
+
+            var predicate = string.Join(" AND ", predicateParts);
+
+            // Add small delay to ensure any previous operations are complete
+            await Task.Delay(100);
+
+            await _context.DeleteDataAsync(startDate, endDate, predicate);
+
+            _logger.LogInformation("✅ Successfully deleted market data for {Symbol}", symbol);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogError(ex, "❌ Database connection disposed during delete for {Symbol}", symbol);
+            throw new InvalidOperationException($"Database connection was closed while deleting data for {symbol}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to delete market data for {Symbol}", symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all market data for a symbol (use with caution)
+    /// </summary>
+    public async Task DeleteAllMarketDataAsync(string symbol, string? dataSource = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        try
+        {
+            _logger.LogWarning("⚠️  Deleting ALL market data for {Symbol} from {DataSource}",
+                symbol, dataSource ?? "all sources");
+
+            // Build predicate for deletion
+            var predicateParts = new List<string>
+        {
+            "_measurement=\"prices\"",
+            $"symbol=\"{symbol}\""
+        };
+
+            if (!string.IsNullOrEmpty(dataSource))
+            {
+                predicateParts.Add($"data_source=\"{dataSource}\"");
+            }
+
+            var predicate = string.Join(" AND ", predicateParts);
+
+            // Use a wider time range for "delete all"
+            var start = new DateTime(2025, 7, 1, 0, 0, 0, DateTimeKind.Utc);
+            var end = DateTime.UtcNow.AddDays(1);
+
+            // Add small delay to ensure any previous operations are complete
+            await Task.Delay(100);
+
+            await _context.DeleteDataAsync(start, end, predicate);
+
+            _logger.LogWarning("✅ Successfully deleted ALL market data for {Symbol}", symbol);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _logger.LogError(ex, "❌ Database connection disposed during delete all for {Symbol}", symbol);
+            throw new InvalidOperationException($"Database connection was closed while deleting all data for {symbol}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to delete all market data for {Symbol}", symbol);
+            throw;
+        }
+    }
+
 }

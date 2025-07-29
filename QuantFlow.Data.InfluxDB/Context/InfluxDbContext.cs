@@ -1,7 +1,7 @@
 ﻿namespace QuantFlow.Data.InfluxDB.Context;
 
 /// <summary>
-/// InfluxDB context for time-series operations
+/// InfluxDB context for time-series operations with proper async patterns
 /// </summary>
 public class InfluxDbContext : IDisposable
 {
@@ -9,6 +9,7 @@ public class InfluxDbContext : IDisposable
     private readonly ILogger<InfluxDbContext> _logger;
     private readonly string _bucket;
     private readonly string _organization;
+    private readonly bool _ownsClient;
     private bool _disposed = false;
 
     public InfluxDbContext(InfluxDBClient client, string bucket, string organization, ILogger<InfluxDbContext> logger)
@@ -17,10 +18,14 @@ public class InfluxDbContext : IDisposable
         _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
         _organization = organization ?? throw new ArgumentNullException(nameof(organization));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _ownsClient = false; // DI container manages the client lifetime
     }
 
+    public string Bucket => _bucket;
+    public string Organization => _organization;
+
     /// <summary>
-    /// Gets the write API for writing data to InfluxDB
+    /// Gets the synchronous write API (deprecated - use WritePointAsync instead)
     /// </summary>
     public WriteApi GetWriteApi()
     {
@@ -29,7 +34,7 @@ public class InfluxDbContext : IDisposable
     }
 
     /// <summary>
-    /// Gets the query API for reading data from InfluxDB
+    /// Gets the query API for reading data
     /// </summary>
     public QueryApi GetQueryApi()
     {
@@ -38,7 +43,7 @@ public class InfluxDbContext : IDisposable
     }
 
     /// <summary>
-    /// Gets the delete API for deleting data from InfluxDB
+    /// Gets the delete API for deleting data
     /// </summary>
     public DeleteApi GetDeleteApi()
     {
@@ -47,7 +52,7 @@ public class InfluxDbContext : IDisposable
     }
 
     /// <summary>
-    /// Writes a single point to InfluxDB
+    /// Writes a single point to InfluxDB using proper async pattern
     /// </summary>
     public async Task WritePointAsync<T>(T point) where T : BaseTimeSeriesPoint
     {
@@ -56,57 +61,22 @@ public class InfluxDbContext : IDisposable
 
         try
         {
-            using var writeApi = GetWriteApi();
-            writeApi.WriteMeasurement(point, WritePrecision.Ns, _bucket, _organization);
-            // WriteApi is disposed here, which flushes the data
+            var writeApiAsync = _client.GetWriteApiAsync();
+            await writeApiAsync.WriteMeasurementAsync(point, WritePrecision.Ns, _bucket, _organization);
 
-            _logger.LogDebug("Written single point of type {Type} to bucket {Bucket}",
+            _logger.LogDebug("✅ Written single point of type {Type} to bucket {Bucket}",
                 typeof(T).Name, _bucket);
-
-            // Yield control to allow other async operations to proceed
-            await Task.Yield();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to write point of type {Type} to InfluxDB", typeof(T).Name);
+            _logger.LogError(ex, "❌ Failed to write point of type {Type} to InfluxDB", typeof(T).Name);
             throw;
         }
     }
 
-    ///// <summary>
-    ///// Writes multiple points to InfluxDB
-    ///// </summary>
-    //public async Task WritePointsAsync<T>(IEnumerable<T> points) where T : BaseTimeSeriesPoint
-    //{
-    //    ThrowIfDisposed();
-    //    ArgumentNullException.ThrowIfNull(points);
-
-    //    var pointsList = points.ToList();
-    //    if (!pointsList.Any())
-    //    {
-    //        _logger.LogDebug("No points to write");
-    //        return;
-    //    }
-
-    //    try
-    //    {
-    //        using var writeApi = GetWriteApi();
-    //        writeApi.WriteMeasurements(pointsList, WritePrecision.Ns, _bucket, _organization);
-    //        // WriteApi is disposed here, which flushes the data
-
-    //        _logger.LogDebug("Written {Count} points of type {Type} to bucket {Bucket}",
-    //            pointsList.Count, typeof(T).Name, _bucket);
-
-    //        // Yield control to allow other async operations to proceed
-    //        await Task.Yield();
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Failed to write {Count} points of type {Type} to InfluxDB",
-    //            pointsList.Count, typeof(T).Name);
-    //        throw;
-    //    }
-    //}
+    /// <summary>
+    /// Writes multiple points to InfluxDB using proper async pattern
+    /// </summary>
     public async Task WritePointsAsync<T>(IEnumerable<T> points) where T : BaseTimeSeriesPoint
     {
         ThrowIfDisposed();
@@ -135,28 +105,30 @@ public class InfluxDbContext : IDisposable
         }
     }
 
-
     /// <summary>
-    /// Executes a Flux query and returns results
+    /// Executes a Flux query and returns strongly-typed results
     /// </summary>
-    public async Task<List<T>> QueryAsync<T>(string fluxQuery) where T : BaseTimeSeriesPoint
+    public async Task<IEnumerable<T>> QueryAsync<T>(string fluxQuery) where T : class
     {
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(fluxQuery);
 
         try
         {
+            _logger.LogDebug("Executing Flux query for type {Type}", typeof(T).Name);
+
             var queryApi = GetQueryApi();
             var results = await queryApi.QueryAsync<T>(fluxQuery, _organization);
 
-            _logger.LogDebug("Executed query returning {Count} results of type {Type}",
-                results.Count, typeof(T).Name);
+            _logger.LogDebug("✅ Query returned {Count} results for type {Type}",
+                results?.Count() ?? 0, typeof(T).Name);
 
-            return results;
+            return results ?? Enumerable.Empty<T>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to execute query: {Query}", fluxQuery);
+            _logger.LogError(ex, "❌ Failed to execute query for type {Type}: {Query}",
+                typeof(T).Name, fluxQuery);
             throw;
         }
     }
@@ -171,73 +143,88 @@ public class InfluxDbContext : IDisposable
 
         try
         {
+            _logger.LogDebug("Executing raw Flux query");
+
             var queryApi = GetQueryApi();
             var results = await queryApi.QueryAsync(fluxQuery, _organization);
 
-            _logger.LogDebug("Executed raw query returning {Count} tables", results.Count);
-            return results;
+            _logger.LogDebug("✅ Raw query returned {Count} tables", results?.Count ?? 0);
+
+            return results ?? new List<FluxTable>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to execute raw query: {Query}", fluxQuery);
+            _logger.LogError(ex, "❌ Failed to execute raw query: {Query}", fluxQuery);
             throw;
         }
     }
 
     /// <summary>
-    /// Deletes data from InfluxDB within a time range
+    /// Deletes data from InfluxDB based on predicate with retry logic
     /// </summary>
-    public async Task DeleteDataAsync(string measurement, DateTime start, DateTime stop, string? predicate = null)
+    public async Task DeleteDataAsync(DateTime start, DateTime stop, string predicate = "")
     {
         ThrowIfDisposed();
-        ArgumentException.ThrowIfNullOrWhiteSpace(measurement);
 
-        _logger.LogWarning("Deleting data from measurement {Measurement} from {Start} to {Stop}",
-            measurement, start, stop);
+        const int maxRetries = 3;
+        var retryCount = 0;
 
-        try
+        while (retryCount < maxRetries)
         {
-            var deleteApi = GetDeleteApi();
-            var predicateStr = string.IsNullOrEmpty(predicate) ?
-                $"_measurement=\"{measurement}\"" :
-                $"_measurement=\"{measurement}\" AND {predicate}";
+            try
+            {
+                _logger.LogDebug("Attempt {Attempt}: Deleting data from {Start} to {Stop} with predicate: {Predicate}",
+                    retryCount + 1, start, stop, predicate);
 
-            await deleteApi.Delete(start, stop, predicateStr, _bucket, _organization);
+                var deleteApi = _client.GetDeleteApi();
+                await deleteApi.Delete(start, stop, predicate, _bucket, _organization);
 
-            _logger.LogInformation("Successfully deleted data from measurement {Measurement}", measurement);
+                _logger.LogDebug("✅ Successfully deleted data on attempt {Attempt}", retryCount + 1);
+                return; // Success!
+            }
+            catch (ObjectDisposedException ex) when (retryCount < maxRetries - 1)
+            {
+                retryCount++;
+                _logger.LogWarning(ex, "⚠️  Client disposed on attempt {Attempt}, retrying...", retryCount);
+                await Task.Delay(TimeSpan.FromMilliseconds(500 * retryCount)); // Exponential backoff
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to delete data from {Start} to {Stop} on attempt {Attempt}",
+                    start, stop, retryCount + 1);
+                throw;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete data from measurement {Measurement}", measurement);
-            throw;
-        }
+
+        // If we get here, all retries failed
+        throw new InvalidOperationException($"Failed to delete data after {maxRetries} attempts due to client disposal");
     }
+
+
 
     /// <summary>
     /// Checks if the InfluxDB connection is healthy
     /// </summary>
-    /// <returns>True if connection is healthy</returns>
     public async Task<bool> IsHealthyAsync()
     {
+        ThrowIfDisposed();
+
         try
         {
-            ThrowIfDisposed();
+            var pingResult = await _client.PingAsync();
+            var isHealthy = pingResult;
 
-            // Ping the InfluxDB server to check connectivity
-            var isHealthy = await _client.PingAsync();
+            _logger.LogDebug("InfluxDB health check: {Status}",
+                isHealthy ? "Healthy" : "Unhealthy");
 
-            _logger.LogDebug("InfluxDB ping check: {Status}", isHealthy ? "Success" : "Failed");
             return isHealthy;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "InfluxDB ping check failed");
+            _logger.LogError(ex, "❌ Health check failed");
             return false;
         }
     }
-
-    public string Bucket => _bucket;
-    public string Organization => _organization;
 
     private void ThrowIfDisposed()
     {
@@ -249,9 +236,14 @@ public class InfluxDbContext : IDisposable
     {
         if (!_disposed)
         {
-            _client?.Dispose();
+            // Only dispose the client if we own it
+            if (_ownsClient)
+            {
+                _client?.Dispose();
+            }
+
             _disposed = true;
-            _logger.LogDebug("InfluxDbContext disposed");
+            _logger.LogDebug("InfluxDbContext disposed (client owned: {ClientOwned})", _ownsClient);
         }
     }
 }

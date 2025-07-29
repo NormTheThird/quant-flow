@@ -18,7 +18,7 @@ public static class ConfigurationService
             services.AddSqlDataStoreIfAvailable(hostContext.Configuration);
 
             // InfluxDB configuration
-            services.AddInfluxDataStoreIfAvailable(hostContext.Configuration);
+           // services.AddInfluxDataStoreIfAvailable(hostContext.Configuration);
 
             // Core domain services
             services.AddScoped<IMarketDataService, MarketDataService>();
@@ -64,17 +64,17 @@ public static class ConfigurationService
         return services;
     }
 
-    /// <summary>
-    /// Adds InfluxDB data store if configuration is present
-    /// </summary>
-    private static IServiceCollection AddInfluxDataStoreIfAvailable(this IServiceCollection services, IConfiguration configuration)
-    {
-        var influxUrl = configuration.GetSection("InfluxDb:Url").Value;
+    ///// <summary>
+    ///// Adds InfluxDB data store if configuration is present
+    ///// </summary>
+    //private static IServiceCollection AddInfluxDataStoreIfAvailable(this IServiceCollection services, IConfiguration configuration)
+    //{
+    //    var influxUrl = configuration.GetSection("InfluxDb:Url").Value;
 
-        services = !string.IsNullOrEmpty(influxUrl)
-            ? services.AddCompleteInfluxDb(configuration)
-            : services.AddScoped<IMarketDataRepository, MockMarketDataRepository>();
+    //    services = !string.IsNullOrEmpty(influxUrl)
+    //        ? services.AddInfluxDataStore(configuration)
+    //        : services.AddScoped<IMarketDataRepository, MockMarketDataRepository>();
 
-        return services;
-    }
+    //    return services;
+    //}
 }

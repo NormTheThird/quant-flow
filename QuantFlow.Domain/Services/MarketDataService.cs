@@ -59,12 +59,13 @@ public class MarketDataService : IMarketDataService
     /// Gets market data for a symbol within a specified time range
     /// </summary>
     /// <param name="symbol">Trading symbol (e.g., BTCUSDT)</param>
+    /// <param name="dataSource">Optional data source filter (e.g., kraken, kucoin)</param>
     /// <param name="timeframe">Timeframe interval (e.g., 1m, 5m, 1h, 1d)</param>
     /// <param name="startDate">Start date for data retrieval</param>
     /// <param name="endDate">End date for data retrieval</param>
-    /// <param name="exchange">Optional exchange filter</param>
+    /// <param name="limit">Optional limit on number of records</param>
     /// <returns>Collection of market data models ordered by timestamp</returns>
-    public async Task<IEnumerable<MarketDataModel>> GetMarketDataAsync(string symbol, string timeframe, DateTime startDate, DateTime endDate, string? exchange = null)
+    public async Task<IEnumerable<MarketDataModel>> GetMarketDataAsync(string symbol, string? dataSource, string timeframe, DateTime startDate, DateTime endDate, int? limit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
         ArgumentException.ThrowIfNullOrWhiteSpace(timeframe);
@@ -72,14 +73,20 @@ public class MarketDataService : IMarketDataService
         if (startDate >= endDate)
             throw new ArgumentException("Start date must be before end date");
 
-        _logger.LogInformation("Retrieving market data for {Symbol} ({Timeframe}) from {Start} to {End} on {Exchange}",
-            symbol, timeframe, startDate, endDate, exchange ?? "any");
+        _logger.LogInformation("Retrieving market data for {Symbol} ({Timeframe}) from {Start} to {End} from {DataSource}",
+            symbol, timeframe, startDate, endDate, dataSource ?? "any");
 
         try
         {
-            var marketData = await _marketDataRepository.GetPriceDataAsync(symbol, timeframe, startDate, endDate, exchange);
+            var marketData = await _marketDataRepository.GetPriceDataAsync(symbol, timeframe, startDate, endDate, dataSource);
 
             var dataList = marketData.OrderBy(x => x.Timestamp).ToList();
+
+            // Apply limit if specified
+            if (limit.HasValue && limit.Value > 0)
+            {
+                dataList = dataList.Take(limit.Value).ToList();
+            }
 
             _logger.LogInformation("Retrieved {Count} data points for {Symbol}", dataList.Count, symbol);
 
@@ -96,17 +103,18 @@ public class MarketDataService : IMarketDataService
     /// Gets the latest market data point for a symbol
     /// </summary>
     /// <param name="symbol">Trading symbol</param>
-    /// <param name="exchange">Optional exchange filter</param>
+    /// <param name="dataSource">Optional data source filter</param>
+    /// <param name="timeframe">Timeframe interval</param>
     /// <returns>Latest market data model or null if not found</returns>
-    public async Task<MarketDataModel?> GetLatestMarketDataAsync(string symbol, string? exchange = null)
+    public async Task<MarketDataModel?> GetLatestMarketDataAsync(string symbol, string? dataSource = null, string timeframe = "1h")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
-        _logger.LogDebug("Retrieving latest market data for {Symbol} on {Exchange}", symbol, exchange ?? "any");
+        _logger.LogDebug("Retrieving latest market data for {Symbol} from {DataSource}", symbol, dataSource ?? "any");
 
         try
         {
-            return await _marketDataRepository.GetLatestPriceAsync(symbol, exchange);
+            return await _marketDataRepository.GetLatestPriceAsync(symbol, dataSource);
         }
         catch (Exception ex)
         {
@@ -121,9 +129,7 @@ public class MarketDataService : IMarketDataService
     /// <param name="marketData">Collection of market data to validate</param>
     /// <param name="expectedTimeframe">Expected timeframe interval</param>
     /// <returns>Data quality report with validation results</returns>
-    public async Task<MarketDataQualityReport> ValidateDataQualityAsync(
-        IEnumerable<MarketDataModel> marketData,
-        string expectedTimeframe)
+    public async Task<MarketDataQualityReport> ValidateDataQualityAsync(IEnumerable<MarketDataModel> marketData, string expectedTimeframe)
     {
         ArgumentNullException.ThrowIfNull(marketData);
         ArgumentException.ThrowIfNullOrWhiteSpace(expectedTimeframe);
@@ -146,7 +152,6 @@ public class MarketDataService : IMarketDataService
         // Set basic info from first data point
         var firstPoint = dataList.First();
         report.Symbol = firstPoint.Symbol;
-        report.Exchange = firstPoint.Exchange;
         report.StartDate = firstPoint.Timestamp;
         report.EndDate = dataList.Last().Timestamp;
 
@@ -170,19 +175,14 @@ public class MarketDataService : IMarketDataService
     /// Detects gaps in market data for a given time range
     /// </summary>
     /// <param name="symbol">Trading symbol</param>
+    /// <param name="dataSource">Optional data source filter</param>
     /// <param name="timeframe">Timeframe interval</param>
     /// <param name="startDate">Start date for gap detection</param>
     /// <param name="endDate">End date for gap detection</param>
-    /// <param name="exchange">Optional exchange filter</param>
     /// <returns>Collection of detected data gaps</returns>
-    public async Task<IEnumerable<DataGap>> DetectDataGapsAsync(
-        string symbol,
-        string timeframe,
-        DateTime startDate,
-        DateTime endDate,
-        string? exchange = null)
+    public async Task<IEnumerable<DataGap>> GetDataGapsAsync(string symbol, string? dataSource, string timeframe, DateTime startDate, DateTime endDate)
     {
-        var marketData = await GetMarketDataAsync(symbol, timeframe, startDate, endDate, exchange);
+        var marketData = await GetMarketDataAsync(symbol, dataSource, timeframe, startDate, endDate);
         var dataList = marketData.OrderBy(x => x.Timestamp).ToList();
 
         if (dataList.Count == 0)
@@ -225,19 +225,19 @@ public class MarketDataService : IMarketDataService
     /// Gets data availability summary for a symbol
     /// </summary>
     /// <param name="symbol">Trading symbol</param>
-    /// <param name="exchange">Optional exchange filter</param>
+    /// <param name="dataSource">Optional data source filter</param>
     /// <returns>Data availability information</returns>
-    public async Task<DataAvailabilityInfo> GetDataAvailabilityAsync(string symbol, string? exchange = null)
+    public async Task<DataAvailabilityInfo> GetDataAvailabilityAsync(string symbol, string? dataSource = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
-        _logger.LogDebug("Checking data availability for {Symbol} on {Exchange}",
-            symbol, exchange ?? "any");
+        _logger.LogDebug("Checking data availability for {Symbol} from {DataSource}",
+            symbol, dataSource ?? "any");
 
         var availability = new DataAvailabilityInfo
         {
             Symbol = symbol,
-            Exchange = exchange,
+            DataSource = dataSource,
             CheckedAt = DateTime.UtcNow
         };
 
@@ -250,7 +250,7 @@ public class MarketDataService : IMarketDataService
                 var endDate = DateTime.UtcNow;
                 var startDate = endDate.AddDays(-30); // Check last 30 days
 
-                var sampleData = await GetMarketDataAsync(symbol, timeframe, startDate, endDate, exchange);
+                var sampleData = await GetMarketDataAsync(symbol, dataSource, timeframe, startDate, endDate);
                 var dataList = sampleData.OrderBy(x => x.Timestamp).ToList();
 
                 if (dataList.Count > 0)
@@ -271,7 +271,7 @@ public class MarketDataService : IMarketDataService
                         : 0;
 
                     // Count gaps
-                    var gaps = await DetectDataGapsAsync(symbol, timeframe, startDate, endDate, exchange);
+                    var gaps = await GetDataGapsAsync(symbol, dataSource, timeframe, startDate, endDate);
                     timeframeInfo.GapCount = gaps.Count();
 
                     availability.TimeframeAvailability[timeframe] = timeframeInfo;
@@ -335,9 +335,7 @@ public class MarketDataService : IMarketDataService
     /// <param name="marketData">Market data to normalize</param>
     /// <param name="timeframe">Target timeframe</param>
     /// <returns>Normalized market data collection</returns>
-    public async Task<IEnumerable<MarketDataModel>> NormalizeTimestampsAsync(
-        IEnumerable<MarketDataModel> marketData,
-        string timeframe)
+    public async Task<IEnumerable<MarketDataModel>> NormalizeTimestampsAsync(IEnumerable<MarketDataModel> marketData, string timeframe)
     {
         ArgumentNullException.ThrowIfNull(marketData);
         ArgumentException.ThrowIfNullOrWhiteSpace(timeframe);
@@ -368,7 +366,6 @@ public class MarketDataService : IMarketDataService
                 var normalizedData = new MarketDataModel
                 {
                     Symbol = data.Symbol,
-                    Exchange = data.Exchange,
                     Timeframe = data.Timeframe,
                     DataSource = data.DataSource,
                     Open = data.Open,
@@ -395,6 +392,67 @@ public class MarketDataService : IMarketDataService
 
         return normalizedData;
     }
+
+    /// <summary>
+    /// Deletes market data for testing purposes
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="timeframe">Timeframe interval</param>
+    /// <param name="startDate">Start date for deletion</param>
+    /// <param name="endDate">End date for deletion</param>
+    /// <param name="dataSource">Optional data source filter</param>
+    /// <returns>Task representing the deletion operation</returns>
+    public async Task DeleteMarketDataAsync(string symbol, string timeframe, DateTime startDate, DateTime endDate, string? dataSource = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        ArgumentException.ThrowIfNullOrWhiteSpace(timeframe);
+
+        if (startDate >= endDate)
+            throw new ArgumentException("Start date must be before end date");
+
+        _logger.LogWarning("Deleting market data for {Symbol} ({Timeframe}) from {Start} to {End} for {DataSource}",
+            symbol, timeframe, startDate, endDate, dataSource ?? "all sources");
+
+        try
+        {
+            await _marketDataRepository.DeleteMarketDataAsync(symbol, timeframe, startDate, endDate, dataSource);
+
+            _logger.LogInformation("Successfully deleted market data for {Symbol}", symbol);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete market data for {Symbol}", symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all market data for a symbol (use with extreme caution - for testing only)
+    /// </summary>
+    /// <param name="symbol">Trading symbol</param>
+    /// <param name="dataSource">Optional data source filter</param>
+    /// <returns>Task representing the deletion operation</returns>
+    public async Task DeleteAllMarketDataAsync(string symbol, string? dataSource = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        _logger.LogWarning("⚠️  DELETING ALL market data for {Symbol} from {DataSource} - THIS IS IRREVERSIBLE",
+            symbol, dataSource ?? "all sources");
+
+        try
+        {
+            await _marketDataRepository.DeleteAllMarketDataAsync(symbol, dataSource);
+
+            _logger.LogWarning("✅ Successfully deleted ALL market data for {Symbol}", symbol);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to delete all market data for {Symbol}", symbol);
+            throw;
+        }
+    }
+
+
 
     #region Private Validation Methods
 

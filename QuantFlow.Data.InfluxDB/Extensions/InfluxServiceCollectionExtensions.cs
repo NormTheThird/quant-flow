@@ -3,7 +3,7 @@
 /// <summary>
 /// Extension methods for configuring InfluxDB services
 /// </summary>
-public static class InfluxServiceCollectionExtensions2
+public static class InfluxServiceCollectionExtensions
 {
     public static IServiceCollection AddInfluxDb(this IServiceCollection services, IConfiguration configuration)
     {
@@ -45,11 +45,42 @@ public static class InfluxServiceCollectionExtensions2
         return services;
     }
 
-    public static IServiceCollection AddCompleteInfluxDb(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfluxDataStore(this IServiceCollection services, IConfiguration configuration)
     {
-        return services
-            .AddInfluxDb(configuration)
-            .AddInfluxDbRepositories();
+        // Validate configuration first
+        var influxUrl = configuration.GetSection("InfluxDb:Url").Value;
+        var influxToken = configuration.GetSection("InfluxDb:Token").Value;
+        var influxBucket = configuration.GetSection("InfluxDb:Bucket").Value;
+        var influxOrg = configuration.GetSection("InfluxDb:Organization").Value;
+
+        if (string.IsNullOrEmpty(influxUrl) || string.IsNullOrEmpty(influxToken) ||
+            string.IsNullOrEmpty(influxBucket) || string.IsNullOrEmpty(influxOrg))
+        {
+            throw new InvalidOperationException("InfluxDB configuration is incomplete");
+        }
+
+        // Register InfluxDB client as singleton with proper disposal
+        services.AddSingleton<InfluxDBClient>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<InfluxDBClient>>();
+            logger.LogInformation("Creating InfluxDB client for {Url}", influxUrl);
+
+            return new InfluxDBClient(influxUrl, influxToken);
+        });
+
+        // Register InfluxDB context as scoped to match request lifetime
+        services.AddScoped<InfluxDbContext>(provider =>
+        {
+            var client = provider.GetRequiredService<InfluxDBClient>();
+            var logger = provider.GetRequiredService<ILogger<InfluxDbContext>>();
+
+            return new InfluxDbContext(client, influxBucket, influxOrg, logger);
+        });
+
+        // Register repositories as scoped
+        services.AddScoped<IMarketDataRepository, MarketDataRepository>();
+
+        return services;
     }
 
     public static IServiceCollection AddInfluxDb(this IServiceCollection services, string url, string token, string bucket, string organization)

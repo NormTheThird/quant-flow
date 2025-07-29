@@ -179,8 +179,7 @@ public class AlgorithmPerformanceRepository : IAlgorithmPerformanceRepository
                 Timestamp = p.Timestamp
             });
 
-            _logger.LogDebug("Retrieved {Count} performance metrics for algorithm {AlgorithmId}",
-                results.Count, algorithmId);
+            _logger.LogDebug("Retrieved {Count} performance metrics for algorithm {AlgorithmId}", results.Count(), algorithmId);
             return performanceMetrics;
         }
         catch (Exception ex)

@@ -1,25 +1,25 @@
-﻿namespace QuantFlow.Data.InfluxDB.Models;
+﻿// QuantFlow.Data.InfluxDB/Models/PricePoint.cs
+namespace QuantFlow.Data.InfluxDB.Models;
 
 /// <summary>
-/// InfluxDB measurement for price data
+/// InfluxDB measurement for cryptocurrency price data (OHLCV)
+/// Optimized for high-frequency market data storage
 /// </summary>
 [Measurement("prices")]
 public class PricePoint : BaseTimeSeriesPoint
 {
-    // Tags (indexed fields)
+    // Tags (indexed fields for fast filtering and grouping)
     [Column("symbol", IsTag = true)]
     public string Symbol { get; set; } = string.Empty;
 
-    [Column("exchange", IsTag = true)]
-    public string Exchange { get; set; } = string.Empty;
-
+    // 1m, 5m, 1h, 1d
     [Column("timeframe", IsTag = true)]
-    public string Timeframe { get; set; } = string.Empty; // 1m, 5m, 1h, 1d
+    public string Timeframe { get; set; } = string.Empty;
 
     [Column("data_source", IsTag = true)]
     public string DataSource { get; set; } = string.Empty;
 
-    // Fields (actual data)
+    // Core OHLCV Fields
     [Column("open")]
     public decimal Open { get; set; } = 0.0m;
 
@@ -35,12 +35,14 @@ public class PricePoint : BaseTimeSeriesPoint
     [Column("volume")]
     public decimal Volume { get; set; } = 0.0m;
 
+    // Extended Market Data Fields
     [Column("vwap")]
     public decimal? VWAP { get; set; } = null;
 
     [Column("trade_count")]
     public int? TradeCount { get; set; } = null;
 
+    // Order Book Data
     [Column("bid")]
     public decimal? Bid { get; set; } = null;
 
@@ -49,4 +51,11 @@ public class PricePoint : BaseTimeSeriesPoint
 
     [Column("spread")]
     public decimal? Spread { get; set; } = null;
+
+    // Data Quality Indicators
+    [Column("data_quality")]
+    public string DataQuality { get; set; } = "good"; // good, warning, interpolated
+
+    [Column("gap_filled")]
+    public bool GapFilled { get; set; } = false;
 }

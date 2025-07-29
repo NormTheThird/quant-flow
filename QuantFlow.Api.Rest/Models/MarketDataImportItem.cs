@@ -1,22 +1,41 @@
-﻿namespace QuantFlow.Common.Models;
+﻿namespace QuantFlow.Api.Rest.Models;
 
 /// <summary>
-/// Business model representing market data for trading
+/// Individual market data item for bulk import
 /// </summary>
-public class MarketDataModel
+public class MarketDataImportItem
 {
+    [Required]
     public string Symbol { get; set; } = string.Empty;
+
+    [Required]
+    public string Exchange { get; set; } = string.Empty;
+
+    [Required]
     public string Timeframe { get; set; } = string.Empty;
-    public string? DataSource { get; set; } = null;
+
+    [Required]
+    public string DataSource { get; set; } = string.Empty;
+
+    [Required]
     public decimal Open { get; set; } = 0.0m;
+
+    [Required]
     public decimal High { get; set; } = 0.0m;
+
+    [Required]
     public decimal Low { get; set; } = 0.0m;
+
+    [Required]
     public decimal Close { get; set; } = 0.0m;
+
+    [Required]
     public decimal Volume { get; set; } = 0.0m;
+
     public decimal? VWAP { get; set; } = null;
+
     public int? TradeCount { get; set; } = null;
-    public decimal? Bid { get; set; } = null;
-    public decimal? Ask { get; set; } = null;
-    public decimal? QuoteVolume { get; set; } = null;
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    [Required]
+    public DateTime Timestamp { get; set; } = new();
 }

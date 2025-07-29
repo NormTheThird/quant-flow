@@ -159,8 +159,7 @@ public class SystemMetricsRepository : ISystemMetricsRepository
                 Timestamp = m.Timestamp
             });
 
-            _logger.LogDebug("Retrieved {Count} system metrics for {Host}/{Service}",
-                results.Count, host, service);
+            _logger.LogDebug("Retrieved {Count} system metrics for {Host}/{Service}",                results.Count(), host, service);
             return systemMetrics;
         }
         catch (Exception ex)

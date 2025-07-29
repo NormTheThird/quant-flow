@@ -170,8 +170,7 @@ public class DataQualityRepository : IDataQualityRepository
                 Timestamp = q.Timestamp
             });
 
-            _logger.LogDebug("Retrieved {Count} data quality metrics for {Symbol}",
-                results.Count, symbol);
+            _logger.LogDebug("Retrieved {Count} data quality metrics for {Symbol}", results.Count(), symbol);
             return qualityMetrics;
         }
         catch (Exception ex)
@@ -241,8 +240,7 @@ public class DataQualityRepository : IDataQualityRepository
                 Timestamp = latestQuality.Timestamp
             };
 
-            _logger.LogDebug("Retrieved latest data quality for {Symbol} at {Timestamp}",
-                symbol, latestQuality.Timestamp);
+            _logger.LogDebug("Retrieved latest data quality for {Symbol} at {Timestamp}",                symbol, latestQuality.Timestamp);
             return qualityModel;
         }
         catch (Exception ex)

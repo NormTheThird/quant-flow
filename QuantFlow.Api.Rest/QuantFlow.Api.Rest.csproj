@@ -1,13 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.7" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Asp.Versioning.Mvc" Version="8.1.0" />
+		<PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.7" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.7" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\QuantFlow.Common\QuantFlow.Common.csproj" />
+	  <ProjectReference Include="..\QuantFlow.Data.InfluxDB\QuantFlow.Data.InfluxDB.csproj" />
+	  <ProjectReference Include="..\QuantFlow.Data.MongDB\QuantFlow.Data.MongoDB.csproj" />
+	  <ProjectReference Include="..\QuantFlow.Data.SQLServer\QuantFlow.Data.SQLServer.csproj" />
+	  <ProjectReference Include="..\QuantFlow.Domain\QuantFlow.Domain.csproj" />
+	</ItemGroup>
 
 </Project>
