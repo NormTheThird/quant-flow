@@ -1,4 +1,6 @@
-﻿try
+﻿using QuantFlow.Console.Services;
+
+try
 {
     var host = Host.CreateDefaultBuilder(args)
         .ConfigureServices()
@@ -6,6 +8,41 @@
         .Build();
 
     var commandHandler = host.Services.GetRequiredService<ICommandHandler>();
+
+
+
+    // In your console app Program.cs or command handler
+    var getMarketDataService = host.Services.GetRequiredService<GetMarketDataService>();
+
+    //// Collect recent data for BTCUSDT hourly
+    //await getMarketDataService.CollectRecentDataAsync("BTCUSDT", Timeframe.OneHour);
+
+    //// Collect 100 intervals of 1-minute data
+    //await getMarketDataService.CollectDataAsync("BTCUSDT", Timeframe.OneMinute, 100);
+
+    //// Collect 30 days of historical data for multiple timeframes
+    //await getMarketDataService.CollectHistoricalDataAsync("ETHUSDT",
+    //    [Timeframe.OneHour, Timeframe.OneDay], 30);
+
+    //// Check data status
+    //var status = await getMarketDataService.GetDataStatusAsync("BTCUSDT", Timeframe.OneHour);
+    //Console.WriteLine(status);
+
+    //// Check and fill any gaps
+    //await getMarketDataService.CheckAndFillGapsAsync("BTCUSDT", Timeframe.OneHour);
+
+    //// Run full collection routine
+    //await getMarketDataService.RunFullCollectionAsync();
+
+
+
+    // Replace your current collection code with this single line:
+    await getMarketDataService.CollectOptimizedParallelDataAsync();
+
+
+
+
+
 
     //var marketDataTestCases = new List<string[]>
     //{
@@ -80,8 +117,8 @@
     //    else
     //        System.Console.WriteLine("✅ Command succeeded");
     //}
-    
-    await commandHandler.ExecuteCustomAsync();
+
+     await commandHandler.ExecuteCustomAsync();
 
     return 0; // Add this return statement
 }

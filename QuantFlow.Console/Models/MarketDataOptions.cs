@@ -5,11 +5,11 @@
 /// </summary>
 public class MarketDataOptions
 {
-    public string? Action { get; set; } = null;
-    public string? Symbol { get; set; } = null;
-    public string? Timeframe { get; set; } = null;
+    public string Action { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public Timeframe Timeframe { get; set; } = Timeframe.Unknown;
     public DateTime? StartDate { get; set; } = null;
     public DateTime? EndDate { get; set; } = null;
-    public string? DataSource { get; set; } = null; // Changed from Exchange
+    public Exchange Exchange { get; set; } = Exchange.Unknown;
     public int? Limit { get; set; } = null;
 }

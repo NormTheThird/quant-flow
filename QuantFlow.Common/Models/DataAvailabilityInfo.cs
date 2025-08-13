@@ -6,7 +6,7 @@
 public class DataAvailabilityInfo
 {
     public string Symbol { get; set; } = string.Empty;
-    public string? DataSource { get; set; } = null;
+    public Exchange Exchange { get; set; } = Exchange.Unknown;
     public DateTime? EarliestDataPoint { get; set; } = null;
     public DateTime? LatestDataPoint { get; set; } = null;
     public TimeSpan? TotalDataSpan { get; set; } = null;

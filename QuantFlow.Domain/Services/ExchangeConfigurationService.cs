@@ -1,4 +1,5 @@
-﻿namespace QuantFlow.Domain.Services;
+﻿
+namespace QuantFlow.Domain.Services;
 
 /// <summary>
 /// Service for managing exchange configurations and fee calculations

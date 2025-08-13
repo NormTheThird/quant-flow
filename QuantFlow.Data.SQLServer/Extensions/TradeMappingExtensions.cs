@@ -16,6 +16,7 @@ public static class TradeMappingExtensions
         {
             Id = entity.Id,
             BacktestRunId = entity.BacktestRunId,
+            Exchange = Exchange.Kraken,
             Symbol = entity.Symbol,
             Type = (TradeType)entity.Type,
             ExecutionTimestamp = entity.ExecutionTimestamp,

@@ -1,0 +1,28 @@
+{
+  "InfluxDb": {
+    "Url": "http://45.33.29.231:8086",
+    "Token": "l_dejl1n2p_Q-2HKbislxHF36FILXk3A3zNnpWkeO3vX6EPgggciima-4Gk17iTSsy7CZgS122x5dmLP9fUI8A==",
+    "Bucket": "market-data",
+    "Organization": "Uniek Software",
+    "TimeoutSeconds": 300,
+    "EnableDebugLogging": false,
+    "BatchSize": 1000,
+    "FlushIntervalMs": 1000,
+    "MaxRetries": 3
+  },
+  "Kraken": {
+    "ApiKey": "Yt6/cO1nOWh1AEeC5xI/reH/ROYpYACusWw9vBMNSrt4ZiwKCZylWw3l",
+    "ApiSecret": "ns3orI8eizWyHia+BgCMsr3kdMJf5gIUmdy1NcLj+M68vtKl+kOZKwISSNCwso2uvJzYayxdrxHJqtnccysJrw=="
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "QuantFlow": "Debug"
+    },
+    "Loki": {
+      "Url": "http://localhost:3100"
+    }
+  }
+}

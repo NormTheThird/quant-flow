@@ -20,6 +20,7 @@ public static class TradeModelFixture
         {
             Id = Guid.NewGuid(),
             BacktestRunId = backtestRunId ?? Guid.NewGuid(),
+            Exchange = Exchange.Kraken,
             Symbol = symbol,
             Type = type,
             ExecutionTimestamp = DateTime.UtcNow.AddHours(-1),
@@ -49,6 +50,7 @@ public static class TradeModelFixture
         {
             Id = Guid.NewGuid(),
             BacktestRunId = backtestRunId ?? Guid.NewGuid(),
+            Exchange = Exchange.Kraken,
             Symbol = symbol,
             Type = TradeType.Buy,
             ExecutionTimestamp = DateTime.UtcNow.AddDays(-1),
@@ -78,6 +80,7 @@ public static class TradeModelFixture
         {
             Id = Guid.NewGuid(),
             BacktestRunId = backtestRunId ?? Guid.NewGuid(),
+            Exchange = Exchange.Kraken,
             Symbol = symbol,
             Type = TradeType.Sell,
             ExecutionTimestamp = DateTime.UtcNow,
@@ -158,6 +161,7 @@ public static class TradeModelFixture
         {
             Id = Guid.NewGuid(),
             BacktestRunId = backtestRunId ?? Guid.NewGuid(),
+            Exchange = Exchange.Kraken,
             Symbol = symbol,
             Type = type,
             ExecutionTimestamp = executionTime ?? DateTime.UtcNow,
@@ -237,6 +241,7 @@ public static class TradeModelFixture
         {
             Id = tradeId,
             BacktestRunId = backtestRunId,
+            Exchange = Exchange.Kraken,
             Symbol = "BTCUSDT",
             Type = newType,
             ExecutionTimestamp = DateTime.UtcNow,

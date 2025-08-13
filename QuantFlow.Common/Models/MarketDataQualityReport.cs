@@ -6,8 +6,8 @@
 public class MarketDataQualityReport
 {
     public string Symbol { get; set; } = string.Empty;
-    public string Timeframe { get; set; } = string.Empty;
-    public string? Exchange { get; set; } = null;
+    public Timeframe Timeframe { get; set; } = Timeframe.Unknown;
+    public Exchange Exchange { get; set; } = Exchange.Unknown;
     public DateTime StartDate { get; set; } = new();
     public DateTime EndDate { get; set; } = new();
     public int TotalDataPoints { get; set; } = 0;

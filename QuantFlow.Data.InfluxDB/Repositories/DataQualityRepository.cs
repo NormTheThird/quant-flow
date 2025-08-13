@@ -1,6 +1,6 @@
 ﻿// QuantFlow.Data.InfluxDB/Repositories/InfluxDataQualityRepository.cs
 using Microsoft.Extensions.Logging;
-using QuantFlow.Domain.Interfaces.Repositories;
+using QuantFlow.Common.Interfaces.Repositories;
 using QuantFlow.Common.Models;
 using QuantFlow.Data.InfluxDB.Context;
 using QuantFlow.Data.InfluxDB.Models;

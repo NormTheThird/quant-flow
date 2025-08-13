@@ -1,7 +1,7 @@
 ﻿using InfluxDB.Client;
 using QuantFlow.Data.InfluxDB.Context;
 using QuantFlow.Data.InfluxDB.Repositories;
-using QuantFlow.Domain.Interfaces.Repositories;
+using QuantFlow.Common.Interfaces.Repositories;
 
 namespace QuantFlow.Api.Rest.Services;
 

@@ -1,4 +1,5 @@
-﻿namespace QuantFlow.Console.Commands;
+﻿
+namespace QuantFlow.Console.Commands;
 
 /// <summary>
 /// Interface for handling console commands
@@ -113,13 +114,8 @@ public class CommandHandler : ICommandHandler
     {
         System.Console.WriteLine($"Retrieving market data for {options.Symbol} ({options.Timeframe})...");
 
-        var marketData = await _marketDataService.GetMarketDataAsync(
-            options.Symbol!,
-            options.DataSource,
-            options.Timeframe!,
-            options.StartDate!.Value,
-            options.EndDate!.Value,
-            options.Limit);
+        var marketData = await _marketDataService.GetMarketDataAsync(options.Exchange, options.Symbol!,
+            options.Timeframe!, options.StartDate!.Value, options.EndDate!.Value, options.Limit);
 
         var dataList = marketData.ToList();
 
@@ -155,7 +151,7 @@ public class CommandHandler : ICommandHandler
     {
         System.Console.WriteLine($"Retrieving latest market data for {options.Symbol}...");
 
-        var latestData = await _marketDataService.GetLatestMarketDataAsync(options.Symbol!, options.DataSource, options.Timeframe ?? "1h");
+        var latestData = await _marketDataService.GetLatestMarketDataAsync(options.Exchange, options.Symbol!, options.Timeframe);
 
         if (latestData == null)
         {
@@ -165,7 +161,7 @@ public class CommandHandler : ICommandHandler
 
         System.Console.WriteLine($"\nLatest data for {latestData.Symbol}:");
         System.Console.WriteLine($"Timeframe: {latestData.Timeframe}");
-        System.Console.WriteLine($"DataSource: {latestData.DataSource}");
+        System.Console.WriteLine($"Exchange: {latestData.Exchange}");
         System.Console.WriteLine($"Timestamp: {latestData.Timestamp:yyyy-MM-dd HH:mm:ss}");
         System.Console.WriteLine($"Open:      {latestData.Open:F4}");
         System.Console.WriteLine($"High:      {latestData.High:F4}");
@@ -183,17 +179,13 @@ public class CommandHandler : ICommandHandler
     {
         System.Console.WriteLine($"Validating market data for {options.Symbol} ({options.Timeframe})...");
 
-        var marketData = await _marketDataService.GetMarketDataAsync(
-            options.Symbol!,
-            options.DataSource,
-            options.Timeframe!,
-            options.StartDate!.Value,
-            options.EndDate!.Value);
+        var marketData = await _marketDataService.GetMarketDataAsync(options.Exchange, options.Symbol!, options.Timeframe!,
+            options.StartDate!.Value, options.EndDate!.Value);
 
         var report = await _marketDataService.ValidateDataQualityAsync(marketData, options.Timeframe!);
 
         System.Console.WriteLine($"\nData Quality Report for {report.Symbol}:");
-        System.Console.WriteLine($"DataSource:             {options.DataSource ?? "All"}");
+        System.Console.WriteLine($"Exchange:             {options.Exchange}");
         System.Console.WriteLine($"Timeframe:              {report.Timeframe}");
         System.Console.WriteLine($"Period:                 {report.StartDate:yyyy-MM-dd} to {report.EndDate:yyyy-MM-dd}");
         System.Console.WriteLine($"Total Data Points:      {report.TotalDataPoints:N0}");
@@ -228,12 +220,7 @@ public class CommandHandler : ICommandHandler
     {
         System.Console.WriteLine($"Detecting data gaps for {options.Symbol} ({options.Timeframe})...");
 
-        var gaps = await _marketDataService.GetDataGapsAsync(
-            options.Symbol!,
-            options.DataSource,
-            options.Timeframe!,
-            options.StartDate!.Value,
-            options.EndDate!.Value);
+        var gaps = await _marketDataService.GetDataGapsAsync(options.Exchange, options.Symbol!, options.Timeframe!, options.StartDate!.Value, options.EndDate!.Value);
 
         var gapList = gaps.ToList();
 
@@ -267,10 +254,10 @@ public class CommandHandler : ICommandHandler
     {
         System.Console.WriteLine($"Checking data availability for {options.Symbol}...");
 
-        var availability = await _marketDataService.GetDataAvailabilityAsync(options.Symbol!, options.DataSource);
+        var availability = await _marketDataService.GetDataAvailabilityAsync(options.Exchange, options.Symbol!);
 
         System.Console.WriteLine($"\nData Availability for {availability.Symbol}:");
-        System.Console.WriteLine($"DataSource:       {availability.DataSource ?? "All"}"); // Note: should be availability.DataSource when model is updated
+        System.Console.WriteLine($"Exchange:       {availability.Exchange}"); // Note: should be availability.DataSource when model is updated
         System.Console.WriteLine($"Earliest Data:    {availability.EarliestDataPoint?.ToString("yyyy-MM-dd HH:mm:ss") ?? "None"}");
         System.Console.WriteLine($"Latest Data:      {availability.LatestDataPoint?.ToString("yyyy-MM-dd HH:mm:ss") ?? "None"}");
         System.Console.WriteLine($"Total Data Span:  {availability.TotalDataSpan?.ToString(@"dd\.hh\:mm\:ss") ?? "None"}");
@@ -298,7 +285,6 @@ public class CommandHandler : ICommandHandler
     private MarketDataOptions? ParseMarketDataOptions(string[] args)
     {
         var options = new MarketDataOptions();
-
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i].ToLowerInvariant())
@@ -318,7 +304,13 @@ public class CommandHandler : ICommandHandler
                 case "--timeframe":
                 case "-t":
                     if (i + 1 < args.Length)
-                        options.Timeframe = args[++i];
+                    {
+                        var timeframeString = args[++i];
+                        if (TryParseTimeframe(timeframeString, out var timeframe))
+                            options.Timeframe = timeframe;
+                        else
+                            System.Console.WriteLine($"Warning: Invalid timeframe '{timeframeString}'. Using default.");
+                    }
                     break;
                 case "--start":
                     if (i + 1 < args.Length && DateTime.TryParse(args[++i], out var start))
@@ -328,11 +320,19 @@ public class CommandHandler : ICommandHandler
                     if (i + 1 < args.Length && DateTime.TryParse(args[++i], out var end))
                         options.EndDate = end;
                     break;
+                case "--exchange":
                 case "--datasource":
                 case "--data-source":
+                case "-e":
                 case "-d":
                     if (i + 1 < args.Length)
-                        options.DataSource = args[++i];
+                    {
+                        var exchangeString = args[++i];
+                        if (TryParseExchange(exchangeString, out var exchange))
+                            options.Exchange = exchange;
+                        else
+                            System.Console.WriteLine($"Warning: Invalid exchange '{exchangeString}'. Using default.");
+                    }
                     break;
                 case "--limit":
                 case "-l":
@@ -350,44 +350,37 @@ public class CommandHandler : ICommandHandler
             }
         }
 
-        // Validate required parameters based on action
-        if (string.IsNullOrEmpty(options.Action))
-        {
-            System.Console.WriteLine("Error: Action is required (get, latest, validate, gaps, availability)");
-            ShowMarketDataHelp();
-            return null;
-        }
-
-        if (string.IsNullOrEmpty(options.Symbol))
-        {
-            System.Console.WriteLine("Error: Symbol is required (--symbol BTCUSDT)");
-            ShowMarketDataHelp();
-            return null;
-        }
-
-        if (options.Action is "get" or "validate" or "gaps")
-        {
-            if (string.IsNullOrEmpty(options.Timeframe))
-            {
-                System.Console.WriteLine("Error: Timeframe is required for this action (--timeframe 1h)");
-                ShowMarketDataHelp();
-                return null;
-            }
-
-            if (!options.StartDate.HasValue)
-            {
-                System.Console.WriteLine("Error: Start date is required for this action (--start 2024-01-01)");
-                ShowMarketDataHelp();
-                return null;
-            }
-
-            if (!options.EndDate.HasValue)
-            {
-                options.EndDate = DateTime.UtcNow;
-            }
-        }
-
         return options;
+    }
+
+    /// <summary>
+    /// Tries to parse a timeframe string to Timeframe enum
+    /// </summary>
+    private static bool TryParseTimeframe(string timeframeString, out Timeframe timeframe)
+    {
+        timeframe = timeframeString.ToLowerInvariant() switch
+        {
+            "1m" => Timeframe.OneMinute,
+            "5m" => Timeframe.FiveMinutes,
+            "15m" => Timeframe.FifteenMinutes,
+            "30m" => Timeframe.ThirtyMinutes,
+            "1h" => Timeframe.OneHour,
+            "4h" => Timeframe.FourHours,
+            "1d" => Timeframe.OneDay,
+            "1w" => Timeframe.OneWeek,
+            _ => Timeframe.Unknown
+        };
+
+        return timeframe != Timeframe.Unknown;
+    }
+
+    /// <summary>
+    /// Tries to parse an exchange string to Exchange enum
+    /// </summary>
+    private static bool TryParseExchange(string exchangeString, out Exchange exchange)
+    {
+        return Enum.TryParse<Exchange>(exchangeString, true, out exchange) &&
+               exchange != Exchange.Unknown;
     }
 
     /// <summary>
@@ -466,25 +459,15 @@ public class CommandHandler : ICommandHandler
         await Task.Delay(1);
     }
 
-    private static IEnumerable<MarketDataModel> GenerateMockData(string symbol, string timeframe, DateTime start, DateTime end, string? dataSource)
+    private static IEnumerable<MarketDataModel> GenerateMockData(Exchange exchange, string symbol, Timeframe timeframe, DateTime start, DateTime end)
     {
         var random = new Random();
         var current = start;
         var price = 45000m; // Starting price
         var data = new List<MarketDataModel>();
 
-        // Determine interval based on timeframe
-        var interval = timeframe.ToLowerInvariant() switch
-        {
-            "1m" => TimeSpan.FromMinutes(1),
-            "5m" => TimeSpan.FromMinutes(5),
-            "15m" => TimeSpan.FromMinutes(15),
-            "30m" => TimeSpan.FromMinutes(30),
-            "1h" => TimeSpan.FromHours(1),
-            "4h" => TimeSpan.FromHours(4),
-            "1d" => TimeSpan.FromDays(1),
-            _ => TimeSpan.FromHours(1)
-        };
+        // Determine interval based on timeframe enum
+        var interval = TimeSpan.FromMinutes((int)timeframe);
 
         while (current <= end && data.Count < 1000) // Limit to 1000 points for demo
         {
@@ -500,7 +483,7 @@ public class CommandHandler : ICommandHandler
             {
                 Symbol = symbol,
                 Timeframe = timeframe,
-                DataSource = dataSource ?? "mock",
+                Exchange = Exchange.Kraken,
                 Open = open,
                 High = high,
                 Low = Math.Max(1m, low),
@@ -520,4 +503,7 @@ public class CommandHandler : ICommandHandler
 
         return data;
     }
+
+
+
 }

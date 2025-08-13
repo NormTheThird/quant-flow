@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "QuantFlow.DataCollection.Serivce": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

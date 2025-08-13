@@ -13,6 +13,4 @@ public class DeleteCriteria
 
     [Required]
     public DateTime EndDate { get; set; } = new();
-
-    public string? DataSource { get; set; } = null;
 }

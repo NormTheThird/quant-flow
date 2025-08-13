@@ -16,5 +16,5 @@ global using QuantFlow.Data.MongoDB.Context;
 global using QuantFlow.Data.MongoDB.Extensions;
 global using QuantFlow.Data.MongoDB.Models;
 global using QuantFlow.Data.MongoDB.Repositories;
-global using QuantFlow.Domain.Interfaces.Repositories;
+global using QuantFlow.Common.Interfaces.Repositories;
 global using System.Reflection;

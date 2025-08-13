@@ -16,8 +16,8 @@ public class PricePoint : BaseTimeSeriesPoint
     [Column("timeframe", IsTag = true)]
     public string Timeframe { get; set; } = string.Empty;
 
-    [Column("data_source", IsTag = true)]
-    public string DataSource { get; set; } = string.Empty;
+    [Column("exchange", IsTag = true)]
+    public string Exchange { get; set; } = string.Empty;
 
     // Core OHLCV Fields
     [Column("open")]

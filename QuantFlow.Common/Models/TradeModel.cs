@@ -6,6 +6,7 @@
 public class TradeModel : BaseModel
 {
     public required Guid BacktestRunId { get; set; } = Guid.Empty;
+    public required Exchange Exchange { get; set; } = Exchange.Unknown;
     public required string Symbol { get; set; } = string.Empty;
     public required TradeType Type { get; set; } = TradeType.Buy;
     public DateTime ExecutionTimestamp { get; set; } = new();

@@ -6,6 +6,11 @@
 public enum Timeframe
 {
     /// <summary>
+    /// Unknown or unspecified timeframe
+    /// </summary>
+    Unknown = 0,
+
+    /// <summary>
     /// 1 minute timeframe
     /// </summary>
     OneMinute = 1,

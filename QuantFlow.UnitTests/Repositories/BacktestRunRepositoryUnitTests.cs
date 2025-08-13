@@ -42,7 +42,7 @@ public class BacktestRunRepositoryUnitTests : BaseRepositoryUnitTest, IDisposabl
         Assert.Equal(userEntity.Id, result.UserId);
         Assert.Equal(portfolioEntity.Id, result.PortfolioId);
         Assert.Equal("BTCUSDT", result.Symbol);
-        Assert.Equal(Exchange.Binance, result.Exchange);
+        Assert.Equal(Exchange.Kraken, result.Exchange);
         Assert.Equal(Timeframe.OneHour, result.Timeframe);
         Assert.Equal(BacktestStatus.Completed, result.Status);
         Assert.Equal(10000.0m, result.InitialBalance);

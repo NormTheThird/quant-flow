@@ -6,8 +6,8 @@
 public class MarketDataResponse
 {
     public string Symbol { get; set; } = string.Empty;
-    public string Timeframe { get; set; } = string.Empty;
-    public string DataSource { get; set; } = string.Empty;
+    public Timeframe Timeframe { get; set; } = Timeframe.Unknown;
+    public Exchange Exchange { get; set; } = Exchange.Unknown;
     public decimal Open { get; set; } = 0.0m;
     public decimal High { get; set; } = 0.0m;
     public decimal Low { get; set; } = 0.0m;

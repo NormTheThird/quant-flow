@@ -10,7 +10,7 @@ global using QuantFlow.Data.SQLServer.Context;
 global using QuantFlow.Data.SQLServer.Extensions;
 global using QuantFlow.Data.SQLServer.Models;
 global using QuantFlow.Data.SQLServer.Repositories;
-global using QuantFlow.Domain.Interfaces.Repositories;
+global using QuantFlow.Common.Interfaces.Repositories;
 global using System;
 global using System.Collections.Generic;
 global using System.ComponentModel.DataAnnotations;

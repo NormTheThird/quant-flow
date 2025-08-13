@@ -40,7 +40,7 @@ public class BacktestRunRepositoryIntegrationTests : BaseRepositoryIntegrationTe
         Assert.Equal(user.Id, result.UserId);
         Assert.Equal(portfolio.Id, result.PortfolioId);
         Assert.Equal("BTCUSDT", result.Symbol);
-        Assert.Equal(Exchange.Binance, result.Exchange);
+        Assert.Equal(Exchange.Kraken, result.Exchange);
         Assert.Equal(Timeframe.OneHour, result.Timeframe);
         Assert.Equal(BacktestStatus.Completed, result.Status);
         Assert.Equal(10000.0m, result.InitialBalance);

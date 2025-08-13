@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.Data.InfluxDB.Repositories;
+﻿using QuantFlow.Common.Interfaces.Repositories;
+
+namespace QuantFlow.Data.InfluxDB.Repositories;
 
 /// <summary>
 /// InfluxDB implementation of algorithm performance repository
