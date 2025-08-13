@@ -8,6 +8,7 @@
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<WarningsAsErrors />
 		<WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+		<UserSecretsId>3b754203-3240-455d-a469-43ae0f41ea6f</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
