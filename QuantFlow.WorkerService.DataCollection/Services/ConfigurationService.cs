@@ -26,6 +26,12 @@ public static class ConfigurationService
                 .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables()
                 .AddCommandLine(args);
+
+            // Add User Secrets in Development or when not in Production
+            if (context.HostingEnvironment.IsDevelopment())
+            {
+                config.AddUserSecrets<Program>();
+            }
         });
     }
 
@@ -43,11 +49,30 @@ public static class ConfigurationService
             services.AddSqlServerDataStore(context.Configuration);
             services.AddInfluxDataStore(context.Configuration);
 
-            // Register configuration sections
-            services.Configure<DataCollectionConfiguration>(
-                context.Configuration.GetSection(DataCollectionConfiguration.SectionName));
-            services.Configure<CollectionScheduleConfiguration>(
-                context.Configuration.GetSection(CollectionScheduleConfiguration.SectionName));
+            // Register hardcoded configuration classes as singletons
+            // These will eventually be loaded from SQL database
+            services.AddSingleton<DataCollectionConfiguration>();
+            services.AddSingleton<CollectionScheduleConfiguration>();
+            services.AddSingleton<ExchangeConfiguration>();
+
+            // Register configurations for IOptions pattern compatibility
+            services.AddSingleton<IOptionsMonitor<DataCollectionConfiguration>>(serviceProvider =>
+            {
+                var config = serviceProvider.GetRequiredService<DataCollectionConfiguration>();
+                return new HardcodedOptionsMonitor<DataCollectionConfiguration>(config);
+            });
+
+            services.AddSingleton<IOptionsMonitor<CollectionScheduleConfiguration>>(serviceProvider =>
+            {
+                var config = serviceProvider.GetRequiredService<CollectionScheduleConfiguration>();
+                return new HardcodedOptionsMonitor<CollectionScheduleConfiguration>(config);
+            });
+
+            services.AddSingleton<IOptionsMonitor<ExchangeConfiguration>>(serviceProvider =>
+            {
+                var config = serviceProvider.GetRequiredService<ExchangeConfiguration>();
+                return new HardcodedOptionsMonitor<ExchangeConfiguration>(config);
+            });
 
             // Domain services (includes IKrakenApiService and IKrakenMarketDataCollectionService)
             services.AddDomainServices();

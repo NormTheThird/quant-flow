@@ -7,11 +7,8 @@ public class DataCollectionOrchestrator : IDataCollectionOrchestrator
     private readonly IKrakenMarketDataCollectionService _krakenMarketDataCollectionService;
     private readonly IOptionsMonitor<DataCollectionConfiguration> _config;
 
-    public DataCollectionOrchestrator(
-        ILogger<DataCollectionOrchestrator> logger,
-        IMarketDataService marketDataService,
-        IKrakenMarketDataCollectionService krakenMarketDataCollectionService,
-        IOptionsMonitor<DataCollectionConfiguration> config)
+    public DataCollectionOrchestrator(ILogger<DataCollectionOrchestrator> logger, IMarketDataService marketDataService,
+        IKrakenMarketDataCollectionService krakenMarketDataCollectionService, IOptionsMonitor<DataCollectionConfiguration> config)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _marketDataService = marketDataService ?? throw new ArgumentNullException(nameof(marketDataService));

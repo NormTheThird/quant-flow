@@ -1,0 +1,17 @@
+{
+  "profiles": {
+    "QuantFlow.WorkerService.DataCollection": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Production"
+      }
+    }
+  }
+}
