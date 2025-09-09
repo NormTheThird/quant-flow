@@ -9,7 +9,7 @@ on:
 
 env:
   HARBOR_REGISTRY: "10.47.1.106"
-  HARBOR_PROJECT: "quantflow"
+  HARBOR_PROJECT: "library"
 
 jobs:
   detect-changes:
