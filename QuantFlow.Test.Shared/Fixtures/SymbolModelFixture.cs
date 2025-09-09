@@ -132,7 +132,7 @@ public static class SymbolModelFixture
     /// <summary>
     /// Creates a batch of symbols with the same quote asset for testing
     /// </summary>
-    public static List<SymbolModel> CreateSymbolBatchByQuoteAsset(string quoteAsset = "USDT", string[] baseAssets = null, bool allActive = true)
+    public static List<SymbolModel> CreateSymbolBatchByQuoteAsset(string quoteAsset = "USDT", string[]? baseAssets = null, bool allActive = true)
     {
         baseAssets ??= new[] { "BTC", "ETH", "ADA", "DOT", "LINK" };
         var symbols = new List<SymbolModel>();
@@ -155,7 +155,7 @@ public static class SymbolModelFixture
     /// <summary>
     /// Creates a batch of symbols with the same base asset for testing
     /// </summary>
-    public static List<SymbolModel> CreateSymbolBatchByBaseAsset(string baseAsset = "BTC", string[] quoteAssets = null, bool allActive = true)
+    public static List<SymbolModel> CreateSymbolBatchByBaseAsset(string baseAsset = "BTC", string[]? quoteAssets = null, bool allActive = true)
     {
         quoteAssets ??= new[] { "USDT", "EUR", "BNB", "ETH" };
         var symbols = new List<SymbolModel>();

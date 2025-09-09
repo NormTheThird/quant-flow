@@ -87,12 +87,8 @@ public class CommandHandler : ICommandHandler
                     return await GetMarketData(options);
                 case "latest":
                     return await GetLatestMarketData(options);
-                case "validate":
-                    return await ValidateMarketData(options);
                 case "gaps":
                     return await DetectDataGaps(options);
-                case "availability":
-                    return await CheckDataAvailability(options);
                 default:
                     System.Console.WriteLine($"Unknown market-data action: {options.Action}");
                     ShowMarketDataHelp();
@@ -173,47 +169,6 @@ public class CommandHandler : ICommandHandler
     }
 
     /// <summary>
-    /// Validates market data quality
-    /// </summary>
-    private async Task<int> ValidateMarketData(MarketDataOptions options)
-    {
-        System.Console.WriteLine($"Validating market data for {options.Symbol} ({options.Timeframe})...");
-
-        var marketData = await _marketDataService.GetMarketDataAsync(options.Exchange, options.Symbol!, options.Timeframe!,
-            options.StartDate!.Value, options.EndDate!.Value);
-
-        var report = await _marketDataService.ValidateDataQualityAsync(marketData, options.Timeframe!);
-
-        System.Console.WriteLine($"\nData Quality Report for {report.Symbol}:");
-        System.Console.WriteLine($"Exchange:             {options.Exchange}");
-        System.Console.WriteLine($"Timeframe:              {report.Timeframe}");
-        System.Console.WriteLine($"Period:                 {report.StartDate:yyyy-MM-dd} to {report.EndDate:yyyy-MM-dd}");
-        System.Console.WriteLine($"Total Data Points:      {report.TotalDataPoints:N0}");
-        System.Console.WriteLine($"Expected Data Points:   {report.ExpectedDataPoints:N0}");
-        System.Console.WriteLine($"Data Completeness:      {report.DataCompleteness:P2}");
-        System.Console.WriteLine($"Is Valid:               {(report.IsValid ? "Yes" : "No")}");
-        System.Console.WriteLine($"Invalid Price Relations: {report.InvalidPriceRelationships}");
-        System.Console.WriteLine($"Zero Volume Candles:    {report.ZeroVolumeCandles}");
-        System.Console.WriteLine($"Duplicate Timestamps:   {report.DuplicateTimestamps}");
-        System.Console.WriteLine($"Data Gaps:              {report.Gaps.Count}");
-
-        if (report.ValidationErrors.Count > 0)
-        {
-            System.Console.WriteLine($"\nValidation Errors:");
-            foreach (var error in report.ValidationErrors.Take(10))
-            {
-                System.Console.WriteLine($"  - {error}");
-            }
-            if (report.ValidationErrors.Count > 10)
-            {
-                System.Console.WriteLine($"  ... and {report.ValidationErrors.Count - 10} more errors");
-            }
-        }
-
-        return report.IsValid ? 0 : 1;
-    }
-
-    /// <summary>
     /// Detects gaps in market data
     /// </summary>
     private async Task<int> DetectDataGaps(MarketDataOptions options)
@@ -242,38 +197,6 @@ public class CommandHandler : ICommandHandler
         if (gapList.Count > 20)
         {
             System.Console.WriteLine($"... and {gapList.Count - 20} more gaps");
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Checks data availability for a symbol
-    /// </summary>
-    private async Task<int> CheckDataAvailability(MarketDataOptions options)
-    {
-        System.Console.WriteLine($"Checking data availability for {options.Symbol}...");
-
-        var availability = await _marketDataService.GetDataAvailabilityAsync(options.Exchange, options.Symbol!);
-
-        System.Console.WriteLine($"\nData Availability for {availability.Symbol}:");
-        System.Console.WriteLine($"Exchange:       {availability.Exchange}"); // Note: should be availability.DataSource when model is updated
-        System.Console.WriteLine($"Earliest Data:    {availability.EarliestDataPoint?.ToString("yyyy-MM-dd HH:mm:ss") ?? "None"}");
-        System.Console.WriteLine($"Latest Data:      {availability.LatestDataPoint?.ToString("yyyy-MM-dd HH:mm:ss") ?? "None"}");
-        System.Console.WriteLine($"Total Data Span:  {availability.TotalDataSpan?.ToString(@"dd\.hh\:mm\:ss") ?? "None"}");
-        System.Console.WriteLine($"Total Data Points: {availability.TotalDataPoints:N0}");
-
-        if (availability.TimeframeAvailability.Count > 0)
-        {
-            System.Console.WriteLine($"\nTimeframe Availability:");
-            System.Console.WriteLine("Timeframe\tFirst Available\t\t\tLast Available\t\t\tData Points\tCompleteness\tGaps");
-            System.Console.WriteLine(new string('-', 120));
-
-            foreach (var tf in availability.TimeframeAvailability.OrderBy(x => x.Key))
-            {
-                var info = tf.Value;
-                System.Console.WriteLine($"{tf.Key}\t\t{info.FirstAvailable?.ToString("yyyy-MM-dd HH:mm:ss") ?? "None"}\t{info.LastAvailable?.ToString("yyyy-MM-dd HH:mm:ss") ?? "None"}\t{info.DataPointCount:N0}\t\t{info.CompletenessPercentage:P1}\t\t{info.GapCount}");
-            }
         }
 
         return 0;

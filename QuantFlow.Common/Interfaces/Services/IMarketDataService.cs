@@ -1,7 +1,8 @@
 ﻿namespace QuantFlow.Common.Interfaces.Services;
 
 /// <summary>
-/// Service interface for market data operations and validation
+/// Service interface for market data operations and gap detection
+/// This service focuses on data retrieval and gap analysis - gap population should be handled by exchange-specific services
 /// </summary>
 public interface IMarketDataService
 {
@@ -13,29 +14,24 @@ public interface IMarketDataService
     /// <param name="timeframe">Timeframe interval (e.g., Timeframe.OneMinute, Timeframe.OneHour, Timeframe.OneDay)</param>
     /// <param name="startDate">Start date for data retrieval</param>
     /// <param name="endDate">End date for data retrieval</param>
-    /// <param name="limit">Optional limit on number of records</param>
+    /// <param name="limit">Optional limit on number of records to return</param>
     /// <returns>Collection of market data models ordered by timestamp</returns>
-    Task<IEnumerable<MarketDataModel>> GetMarketDataAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime startDate, DateTime endDate, int? limit = null);
+    /// <exception cref="ArgumentException">Thrown when symbol is null/empty or start date is after end date</exception>
+    Task<IEnumerable<MarketDataModel>> GetMarketDataAsync(Exchange exchange, string symbol, Timeframe timeframe,        DateTime startDate, DateTime endDate, int? limit = null);
 
     /// <summary>
-    /// Gets the latest market data point for a symbol
+    /// Gets the most recent market data point for a symbol and timeframe
     /// </summary>
-    /// <param name="exchange">Exchange to retrieve data from (e.g., Exchange.Kraken, Exchange.KuCoin)</param>
+    /// <param name="exchange">Exchange to check (e.g., Exchange.Kraken, Exchange.KuCoin)</param>
     /// <param name="symbol">Trading symbol (e.g., "BTCUSDT", "ETHUSDT")</param>
     /// <param name="timeframe">Timeframe interval (e.g., Timeframe.OneMinute, Timeframe.OneHour, Timeframe.OneDay)</param>
-    /// <returns>Latest market data model or null if not found</returns>
+    /// <returns>Most recent market data point, or null if no data exists</returns>
+    /// <exception cref="ArgumentException">Thrown when symbol is null or empty</exception>
     Task<MarketDataModel?> GetLatestMarketDataAsync(Exchange exchange, string symbol, Timeframe timeframe);
 
     /// <summary>
-    /// Validates market data quality and detects gaps
-    /// </summary>
-    /// <param name="marketData">Collection of market data to validate</param>
-    /// <param name="expectedTimeframe">Expected timeframe interval</param>
-    /// <returns>Data quality report with validation results</returns>
-    Task<MarketDataQualityReport> ValidateDataQualityAsync(IEnumerable<MarketDataModel> marketData, Timeframe expectedTimeframe);
-
-    /// <summary>
-    /// Gets data gaps for a given time range
+    /// Detects gaps in market data for a given time range (legacy method)
+    /// This method finds gaps between existing data points
     /// </summary>
     /// <param name="exchange">Exchange to check for gaps (e.g., Exchange.Kraken, Exchange.KuCoin)</param>
     /// <param name="symbol">Trading symbol (e.g., "BTCUSDT", "ETHUSDT")</param>
@@ -43,47 +39,29 @@ public interface IMarketDataService
     /// <param name="startDate">Start date for gap detection</param>
     /// <param name="endDate">End date for gap detection</param>
     /// <returns>Collection of detected data gaps</returns>
+    /// <exception cref="ArgumentException">Thrown when symbol is null/empty or start date is after end date</exception>
     Task<IEnumerable<DataGap>> GetDataGapsAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime startDate, DateTime endDate);
 
     /// <summary>
-    /// Gets data availability summary for a symbol
+    /// Gets ALL missing intervals for a symbol and timeframe from start date to end date
+    /// This method generates expected timestamps and identifies complete missing ranges,
+    /// regardless of whether any data exists (enhanced gap detection)
+    /// NOTE: This method only DETECTS gaps, it does NOT populate them
     /// </summary>
-    /// <param name="exchange">Exchange to check availability for (e.g., Exchange.Kraken, Exchange.KuCoin)</param>
+    /// <param name="exchange">Exchange to check (e.g., Exchange.Kraken, Exchange.KuCoin)</param>
     /// <param name="symbol">Trading symbol (e.g., "BTCUSDT", "ETHUSDT")</param>
-    /// <returns>Data availability information</returns>
-    Task<DataAvailabilityInfo> GetDataAvailabilityAsync(Exchange exchange, string symbol);
+    /// <param name="timeframe">Timeframe interval (e.g., Timeframe.OneMinute, Timeframe.OneHour, Timeframe.OneDay)</param>
+    /// <param name="startDate">Start date to check from</param>
+    /// <param name="endDate">End date to check to (defaults to now if null)</param>
+    /// <returns>Collection of missing interval ranges that need to be populated by exchange services</returns>
+    /// <exception cref="ArgumentException">Thrown when symbol is null/empty or start date is after end date</exception>
+    Task<IEnumerable<MissingDataRange>> GetMissingIntervalsAsync(Exchange exchange, string symbol, Timeframe timeframe,        DateTime startDate, DateTime? endDate = null);
 
     /// <summary>
     /// Stores market data points to the database
     /// </summary>
     /// <param name="marketData">Market data to store</param>
     /// <returns>Number of records successfully stored</returns>
+    /// <exception cref="ArgumentNullException">Thrown when marketData is null</exception>
     Task<int> StoreMarketDataAsync(IEnumerable<MarketDataModel> marketData);
-
-    /// <summary>
-    /// Normalizes market data timestamps to ensure consistent intervals
-    /// </summary>
-    /// <param name="marketData">Market data to normalize</param>
-    /// <param name="timeframe">Target timeframe for normalization</param>
-    /// <returns>Normalized market data collection</returns>
-    Task<IEnumerable<MarketDataModel>> NormalizeTimestampsAsync(IEnumerable<MarketDataModel> marketData, Timeframe timeframe);
-
-    /// <summary>
-    /// Deletes market data for testing purposes
-    /// </summary>
-    /// <param name="exchange">Exchange to delete data from (e.g., Exchange.Kraken, Exchange.KuCoin)</param>
-    /// <param name="symbol">Trading symbol (e.g., "BTCUSDT", "ETHUSDT")</param>
-    /// <param name="timeframe">Timeframe interval (e.g., Timeframe.OneMinute, Timeframe.OneHour, Timeframe.OneDay)</param>
-    /// <param name="startDate">Start date for deletion</param>
-    /// <param name="endDate">End date for deletion</param>
-    /// <returns>Task representing the deletion operation</returns>
-    Task DeleteMarketDataAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime startDate, DateTime endDate);
-
-    /// <summary>
-    /// Deletes all market data for a symbol (use with extreme caution - for testing only)
-    /// </summary>
-    /// <param name="exchange">Exchange to delete data from (e.g., Exchange.Kraken, Exchange.KuCoin)</param>
-    /// <param name="symbol">Trading symbol (e.g., "BTCUSDT", "ETHUSDT")</param>
-    /// <returns>Task representing the deletion operation</returns>
-    Task DeleteAllMarketDataAsync(Exchange exchange, string symbol);
 }

@@ -1,7 +1,9 @@
 ﻿namespace QuantFlow.Domain.Services;
 
 /// <summary>
-/// Service for market data operations, validation, and quality analysis
+/// Service for market data operations and gap detection
+/// This service focuses on data retrieval and gap detection - it does NOT populate gaps from APIs
+/// Gap population should be handled by exchange-specific services like KrakenMarketDataCollectionService
 /// </summary>
 public class MarketDataService : IMarketDataService
 {
@@ -30,7 +32,6 @@ public class MarketDataService : IMarketDataService
         try
         {
             var marketData = await _marketDataRepository.GetPriceDataAsync(exchange, symbol, timeframe, startDate, endDate);
-
             var dataList = marketData.OrderBy(x => x.Timestamp).ToList();
 
             // Apply limit if specified
@@ -40,7 +41,6 @@ public class MarketDataService : IMarketDataService
             }
 
             _logger.LogInformation("Retrieved {Count} data points for {Symbol}", dataList.Count, symbol);
-
             return dataList;
         }
         catch (Exception ex)
@@ -71,51 +71,7 @@ public class MarketDataService : IMarketDataService
     }
 
     /// <summary>
-    /// Validates market data quality and detects gaps
-    /// </summary>
-    public async Task<MarketDataQualityReport> ValidateDataQualityAsync(IEnumerable<MarketDataModel> marketData, Timeframe expectedTimeframe)
-    {
-        ArgumentNullException.ThrowIfNull(marketData);
-
-        var dataList = marketData.OrderBy(x => x.Timestamp).ToList();
-        var report = new MarketDataQualityReport
-        {
-            Timeframe = expectedTimeframe,
-            TotalDataPoints = dataList.Count,
-            GeneratedAt = DateTime.UtcNow
-        };
-
-        if (dataList.Count == 0)
-        {
-            report.IsValid = false;
-            report.ValidationErrors.Add("No data points provided for validation");
-            return report;
-        }
-
-        // Set basic info from first data point
-        var firstPoint = dataList.First();
-        report.Symbol = firstPoint.Symbol;
-        report.StartDate = firstPoint.Timestamp;
-        report.EndDate = dataList.Last().Timestamp;
-
-        await Task.Run(() =>
-        {
-            ValidatePriceRelationships(dataList, report);
-            DetectDuplicateTimestamps(dataList, report);
-            CountZeroVolumeCandles(dataList, report);
-            CalculateDataCompleteness(dataList, expectedTimeframe, report);
-        });
-
-        report.IsValid = report.ValidationErrors.Count == 0;
-
-        _logger.LogInformation("Data quality validation completed for {Symbol}: {Valid}, {Completeness:P2} complete",
-            report.Symbol, report.IsValid ? "Valid" : "Invalid", report.DataCompleteness);
-
-        return report;
-    }
-
-    /// <summary>
-    /// Detects gaps in market data for a given time range
+    /// Detects gaps in market data for a given time range (legacy method - finds gaps between existing data)
     /// </summary>
     public async Task<IEnumerable<DataGap>> GetDataGapsAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime startDate, DateTime endDate)
     {
@@ -154,83 +110,74 @@ public class MarketDataService : IMarketDataService
     }
 
     /// <summary>
-    /// Gets data availability summary for a symbol
+    /// Enhanced gap detection that finds ALL missing intervals from start date to end date
+    /// This method identifies complete missing ranges regardless of existing data
+    /// NOTE: This method only DETECTS gaps, it does NOT populate them
     /// </summary>
-    public async Task<DataAvailabilityInfo> GetDataAvailabilityAsync(Exchange exchange, string symbol)
+    public async Task<IEnumerable<MissingDataRange>> GetMissingIntervalsAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime startDate, DateTime? endDate = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
-        _logger.LogDebug("Checking data availability for {Symbol} from {Exchange}", symbol, exchange);
+        var end = endDate ?? DateTime.UtcNow;
+        if (startDate >= end)
+            throw new ArgumentException("Start date must be before end date");
 
-        var availability = new DataAvailabilityInfo
-        {
-            Symbol = symbol,
-            Exchange = exchange,
-            CheckedAt = DateTime.UtcNow
-        };
+        _logger.LogInformation("Detecting missing intervals for {Symbol} ({Timeframe}) from {Start} to {End} on {Exchange}",
+            symbol, timeframe, startDate, end, exchange);
 
-        // Check each timeframe
-        foreach (var timeframeString in SupportedTimeframes)
+        try
         {
-            try
+            // Generate all expected timestamps for the date range
+            var expectedTimestamps = GenerateExpectedTimestamps(startDate, end, timeframe);
+
+            // Get existing data from database (using existing method)
+            var existingData = await GetMarketDataAsync(exchange, symbol, timeframe, startDate, end);
+            var existingTimestamps = new HashSet<DateTime>(existingData.Select(d => d.Timestamp));
+
+            var missingRanges = new List<MissingDataRange>();
+            var currentRangeStart = (DateTime?)null;
+
+            foreach (var expectedTimestamp in expectedTimestamps)
             {
-                // Convert string to enum for the call
-                if (Enum.TryParse<Timeframe>(ConvertStringToTimeframeEnum(timeframeString), out var timeframe))
+                bool isDataMissing = !existingTimestamps.Contains(expectedTimestamp);
+
+                if (isDataMissing)
                 {
-                    // Get a sample of recent data to determine availability
-                    var endDate = DateTime.UtcNow;
-                    var startDate = endDate.AddDays(-30); // Check last 30 days
-
-                    var sampleData = await GetMarketDataAsync(exchange, symbol, timeframe, startDate, endDate);
-                    var dataList = sampleData.OrderBy(x => x.Timestamp).ToList();
-
-                    if (dataList.Count > 0)
+                    // Start a new missing range if not already in one
+                    if (currentRangeStart == null)
                     {
-                        var timeframeInfo = new TimeframeAvailability
-                        {
-                            Timeframe = timeframeString,
-                            FirstAvailable = dataList.First().Timestamp,
-                            LastAvailable = dataList.Last().Timestamp,
-                            DataPointCount = dataList.Count
-                        };
-
-                        // Calculate expected data points for the sample period
-                        var intervalMinutes = GetTimeframeMinutes(timeframeString);
-                        var expectedPoints = (int)((endDate - startDate).TotalMinutes / intervalMinutes);
-                        timeframeInfo.CompletenessPercentage = expectedPoints > 0
-                            ? (decimal)dataList.Count / expectedPoints
-                            : 0;
-
-                        // Count gaps
-                        var gaps = await GetDataGapsAsync(exchange, symbol, timeframe, startDate, endDate);
-                        timeframeInfo.GapCount = gaps.Count();
-
-                        availability.TimeframeAvailability[timeframeString] = timeframeInfo;
-
-                        // Update overall availability info
-                        if (availability.EarliestDataPoint == null || timeframeInfo.FirstAvailable < availability.EarliestDataPoint)
-                            availability.EarliestDataPoint = timeframeInfo.FirstAvailable;
-
-                        if (availability.LatestDataPoint == null || timeframeInfo.LastAvailable > availability.LatestDataPoint)
-                            availability.LatestDataPoint = timeframeInfo.LastAvailable;
-
-                        availability.TotalDataPoints += timeframeInfo.DataPointCount;
+                        currentRangeStart = expectedTimestamp;
+                    }
+                }
+                else
+                {
+                    // Data exists - close any current missing range
+                    if (currentRangeStart.HasValue)
+                    {
+                        var missingRange = CreateMissingDataRange(currentRangeStart.Value, expectedTimestamp, timeframe);
+                        missingRanges.Add(missingRange);
+                        currentRangeStart = null;
                     }
                 }
             }
-            catch (Exception ex)
+
+            // Handle case where missing range extends to the end
+            if (currentRangeStart.HasValue)
             {
-                _logger.LogWarning(ex, "Failed to check availability for {Symbol} timeframe {Timeframe}",
-                    symbol, timeframeString);
+                var missingRange = CreateMissingDataRange(currentRangeStart.Value, end, timeframe);
+                missingRanges.Add(missingRange);
             }
-        }
 
-        if (availability.EarliestDataPoint.HasValue && availability.LatestDataPoint.HasValue)
+            _logger.LogInformation("Found {Count} missing data ranges for {Symbol} ({Timeframe}) - ready for population by exchange service",
+                missingRanges.Count, symbol, timeframe);
+
+            return missingRanges;
+        }
+        catch (Exception ex)
         {
-            availability.TotalDataSpan = availability.LatestDataPoint.Value - availability.EarliestDataPoint.Value;
+            _logger.LogError(ex, "Failed to detect missing intervals for {Symbol} on {Exchange}", symbol, exchange);
+            throw;
         }
-
-        return availability;
     }
 
     /// <summary>
@@ -259,226 +206,67 @@ public class MarketDataService : IMarketDataService
         }
     }
 
+
+    #region Private Helper Methods
+
     /// <summary>
-    /// Normalizes market data timestamps to ensure consistent intervals
+    /// Generates expected timestamps for gap detection
     /// </summary>
-    public async Task<IEnumerable<MarketDataModel>> NormalizeTimestampsAsync(IEnumerable<MarketDataModel> marketData, Timeframe timeframe)
+    private List<DateTime> GenerateExpectedTimestamps(DateTime start, DateTime end, Timeframe timeframe)
     {
-        ArgumentNullException.ThrowIfNull(marketData);
-
-        var dataList = marketData.OrderBy(x => x.Timestamp).ToList();
-        if (dataList.Count == 0)
-            return dataList;
-
+        var timestamps = new List<DateTime>();
         var intervalMinutes = GetTimeframeMinutes(timeframe);
+        var current = start;
 
-        var normalizedData = await Task.Run(() =>
+        while (current <= end)
         {
-            var interval = TimeSpan.FromMinutes(intervalMinutes);
-            var result = new List<MarketDataModel>();
+            timestamps.Add(current);
+            current = current.AddMinutes(intervalMinutes);
+        }
 
-            foreach (var data in dataList)
-            {
-                // Round timestamp to nearest interval
-                var ticks = data.Timestamp.Ticks;
-                var intervalTicks = interval.Ticks;
-                var normalizedTicks = (ticks / intervalTicks) * intervalTicks;
-                var normalizedTimestamp = new DateTime(normalizedTicks);
+        _logger.LogDebug("Generated {Count} expected timestamps for {Timeframe} from {Start} to {End}",
+            timestamps.Count, timeframe, start, end);
 
-                var normalizedDataPoint = new MarketDataModel
-                {
-                    Symbol = data.Symbol,
-                    Timeframe = data.Timeframe,
-                    Exchange = data.Exchange,
-                    Open = data.Open,
-                    High = data.High,
-                    Low = data.Low,
-                    Close = data.Close,
-                    Volume = data.Volume,
-                    VWAP = data.VWAP,
-                    TradeCount = data.TradeCount,
-                    Bid = data.Bid,
-                    Ask = data.Ask,
-                    QuoteVolume = data.QuoteVolume,
-                    Timestamp = normalizedTimestamp
-                };
-
-                result.Add(normalizedDataPoint);
-            }
-
-            return result;
-        });
-
-        _logger.LogDebug("Normalized {Count} timestamps for timeframe {Timeframe}",
-            normalizedData.Count(), timeframe);
-
-        return normalizedData;
+        return timestamps;
     }
 
     /// <summary>
-    /// Deletes market data for testing purposes
+    /// Creates a missing data range object for gap reporting
     /// </summary>
-    public async Task DeleteMarketDataAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime startDate, DateTime endDate)
+    private MissingDataRange CreateMissingDataRange(DateTime startTime, DateTime endTime, Timeframe timeframe)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        var intervalMinutes = GetTimeframeMinutes(timeframe);
+        var duration = endTime - startTime;
+        var expectedPoints = (int)(duration.TotalMinutes / intervalMinutes);
 
-        if (startDate >= endDate)
-            throw new ArgumentException("Start date must be before end date");
-
-        _logger.LogWarning("Deleting market data for {Symbol} ({Timeframe}) from {Start} to {End} for {Exchange}",
-            symbol, timeframe, startDate, endDate, exchange);
-
-        try
+        return new MissingDataRange
         {
-            await _marketDataRepository.DeleteMarketDataAsync(exchange, symbol, timeframe, startDate, endDate);
-
-            _logger.LogInformation("Successfully deleted market data for {Symbol}", symbol);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete market data for {Symbol}", symbol);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Deletes all market data for a symbol (use with extreme caution - for testing only)
-    /// </summary>
-    public async Task DeleteAllMarketDataAsync(Exchange exchange, string symbol)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-
-        _logger.LogWarning("⚠️  DELETING ALL market data for {Symbol} from {Exchange} - THIS IS IRREVERSIBLE",
-            symbol, exchange);
-
-        try
-        {
-            await _marketDataRepository.DeleteAllMarketDataAsync(exchange, symbol);
-
-            _logger.LogWarning("✅ Successfully deleted ALL market data for {Symbol}", symbol);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "❌ Failed to delete all market data for {Symbol}", symbol);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Converts string timeframe to enum name for parsing
-    /// </summary>
-    private static string ConvertStringToTimeframeEnum(string timeframe)
-    {
-        return timeframe.ToLowerInvariant() switch
-        {
-            "1m" => nameof(Timeframe.OneMinute),
-            "5m" => nameof(Timeframe.FiveMinutes),
-            "15m" => nameof(Timeframe.FifteenMinutes),
-            "30m" => nameof(Timeframe.ThirtyMinutes),
-            "1h" => nameof(Timeframe.OneHour),
-            "4h" => nameof(Timeframe.FourHours),
-            "1d" => nameof(Timeframe.OneDay),
-            "1w" => nameof(Timeframe.OneWeek),
-            _ => nameof(Timeframe.OneHour)
+            StartTime = startTime,
+            EndTime = endTime,
+            Duration = duration,
+            ExpectedDataPoints = expectedPoints,
+            Timeframe = timeframe.ToString(),
+            Description = $"Missing data for {duration.TotalHours:F1} hours ({expectedPoints} points)"
         };
     }
-
-
-    #region Private Methods
 
     /// <summary>
     /// Gets timeframe minutes from enum
     /// </summary>
     private static int GetTimeframeMinutes(Timeframe timeframe)
     {
-        return (int)timeframe;
-    }
-
-    /// <summary>
-    /// Gets timeframe minutes from string representation (for backward compatibility)
-    /// </summary>
-    private static int GetTimeframeMinutes(string timeframe)
-    {
-        return timeframe.ToLowerInvariant() switch
+        return timeframe switch
         {
-            "1m" => (int)Timeframe.OneMinute,
-            "5m" => (int)Timeframe.FiveMinutes,
-            "15m" => (int)Timeframe.FifteenMinutes,
-            "30m" => (int)Timeframe.ThirtyMinutes,
-            "1h" => (int)Timeframe.OneHour,
-            "4h" => (int)Timeframe.FourHours,
-            "1d" => (int)Timeframe.OneDay,
-            "1w" => (int)Timeframe.OneWeek,
-            _ => throw new ArgumentException($"Unknown timeframe: {timeframe}")
+            Timeframe.OneMinute => 1,
+            Timeframe.FiveMinutes => 5,
+            Timeframe.FifteenMinutes => 15,
+            Timeframe.ThirtyMinutes => 30,
+            Timeframe.OneHour => 60,
+            Timeframe.FourHours => 240,
+            Timeframe.OneDay => 1440,
+            Timeframe.OneWeek => 10080,
+            _ => throw new ArgumentException($"Unsupported timeframe: {timeframe}")
         };
-    }
-
-    /// <summary>
-    /// Gets all supported timeframes
-    /// </summary>
-    private static readonly string[] SupportedTimeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"];
-
-    /// <summary>
-    /// Validates price relationships (High >= Open, Close >= Low, etc.)
-    /// </summary>
-    private static void ValidatePriceRelationships(List<MarketDataModel> dataList, MarketDataQualityReport report)
-    {
-        foreach (var data in dataList)
-        {
-            if (data.High < data.Open || data.High < data.Close || data.High < data.Low ||
-                data.Low > data.Open || data.Low > data.Close || data.Low > data.High)
-            {
-                report.InvalidPriceRelationships++;
-                report.ValidationErrors.Add($"Invalid price relationship at {data.Timestamp}: O:{data.Open} H:{data.High} L:{data.Low} C:{data.Close}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Detects duplicate timestamps in the data
-    /// </summary>
-    private static void DetectDuplicateTimestamps(List<MarketDataModel> dataList, MarketDataQualityReport report)
-    {
-        var duplicates = dataList.GroupBy(x => x.Timestamp)
-                                .Where(g => g.Count() > 1)
-                                .ToList();
-
-        report.DuplicateTimestamps = duplicates.Count;
-        foreach (var duplicate in duplicates)
-        {
-            report.ValidationErrors.Add($"Duplicate timestamp: {duplicate.Key}");
-        }
-    }
-
-    /// <summary>
-    /// Counts candles with zero volume
-    /// </summary>
-    private static void CountZeroVolumeCandles(List<MarketDataModel> dataList, MarketDataQualityReport report)
-    {
-        report.ZeroVolumeCandles = dataList.Count(x => x.Volume == 0);
-        if (report.ZeroVolumeCandles > 0)
-        {
-            report.ValidationErrors.Add($"Found {report.ZeroVolumeCandles} candles with zero volume");
-        }
-    }
-
-    /// <summary>
-    /// Calculates data completeness based on expected timeframe intervals
-    /// </summary>
-    private static void CalculateDataCompleteness(List<MarketDataModel> dataList, Timeframe timeframe, MarketDataQualityReport report)
-    {
-        if (dataList.Count < 2)
-        {
-            report.DataCompleteness = dataList.Count > 0 ? 1.0m : 0.0m;
-            return;
-        }   
-
-        var intervalMinutes = GetTimeframeMinutes(timeframe);
-        var totalSpan = dataList.Last().Timestamp - dataList.First().Timestamp;
-        var expectedPoints = (int)(totalSpan.TotalMinutes / intervalMinutes) + 1;
-
-        report.ExpectedDataPoints = expectedPoints;
-        report.DataCompleteness = expectedPoints > 0 ? (decimal)dataList.Count / expectedPoints : 0.0m;
     }
 
     #endregion

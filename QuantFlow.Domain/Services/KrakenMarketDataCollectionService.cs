@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.Domain.Services;
+﻿using QuantFlow.Common.Interfaces.Infrastructure;
+
+namespace QuantFlow.Domain.Services;
 
 public class KrakenMarketDataCollectionService : IKrakenMarketDataCollectionService
 {
@@ -6,14 +8,16 @@ public class KrakenMarketDataCollectionService : IKrakenMarketDataCollectionServ
     private readonly IKrakenApiService _krakenApiService;
     private readonly KrakenCredentials _credentials;
     private readonly IMarketDataRepository _marketDataRepository;
+    private readonly IApiRateLimitHandler _apiRateLimitHandler;
 
     public KrakenMarketDataCollectionService(ILogger<KrakenMarketDataCollectionService> logger, IKrakenApiService krakenApiService, KrakenCredentials credentials,
-                                             IMarketDataRepository marketDataRepository)
+                                             IMarketDataRepository marketDataRepository, IApiRateLimitHandler apiRateLimitHandler)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _krakenApiService = krakenApiService ?? throw new ArgumentNullException(nameof(krakenApiService));
         _marketDataRepository = marketDataRepository ?? throw new ArgumentNullException(nameof(marketDataRepository));
         _credentials = credentials ?? throw new ArgumentNullException(nameof(credentials));
+        _apiRateLimitHandler = apiRateLimitHandler ?? throw new ArgumentNullException(nameof(apiRateLimitHandler));
     }
 
     /// <summary>
@@ -137,6 +141,97 @@ public class KrakenMarketDataCollectionService : IKrakenMarketDataCollectionServ
         }
     }
 
+    /// <summary>
+    /// Populates missing data ranges specifically from Kraken API
+    /// This belongs in the Kraken service because it's Kraken-specific logic
+    /// </summary>
+    public async Task<DataPopulationResult> PopulateMissingDataAsync(string symbol, Timeframe timeframe, IEnumerable<MissingDataRange> missingRanges)
+    {
+        var result = new DataPopulationResult
+        {
+            ProcessingStartTime = DateTime.UtcNow,
+            TotalRangesProcessed = missingRanges.Count()
+        };
+
+        _logger.LogInformation("🔄 Starting Kraken data population for {Symbol} ({Timeframe}) - {Count} ranges",
+            symbol, timeframe, result.TotalRangesProcessed);
+
+        try
+        {
+            foreach (var range in missingRanges)
+            {
+                try
+                {
+                    _logger.LogDebug("🔍 Populating Kraken data for range {Start} to {End}",
+                        range.StartTime, range.EndTime);
+
+                    // Use rate limit handler for Kraken API calls
+                    var newData = await _apiRateLimitHandler.ExecuteWithRateLimitHandlingAsync(async () =>
+                    {
+                        var klineData = await _krakenApiService.GetKlinesAsync(symbol, timeframe, range.StartTime, range.EndTime);
+                        return TransformKlineDataToMarketData(klineData, symbol, timeframe);
+                    }, $"PopulateGap_{symbol}_{timeframe}_{range.StartTime:yyyyMMdd}");
+
+                    if (newData?.Any() == true)
+                    {
+                        // Store the new data
+                        await _marketDataRepository.WritePriceDataBatchAsync(newData);
+                        result.NewDataPointsAdded += newData.Count(); // Use the count of data we tried to store
+                        result.SuccessfulRanges++;
+
+                        _logger.LogDebug("✅ Successfully populated {Count} Kraken data points for range {Start} to {End}",
+                            newData.Count(), range.StartTime, range.EndTime);
+                    }
+                    else
+                    {
+                        result.FailedRanges++;
+                        result.RemainingGaps.Add(range);
+
+                        _logger.LogWarning("⚠️ No data returned from Kraken for {Symbol} range {Start} to {End}",
+                            symbol, range.StartTime, range.EndTime);
+                    }
+                }
+                catch (RateLimitExceededException ex)
+                {
+                    result.FailedRanges++;
+                    result.RemainingGaps.Add(range);
+                    result.Errors.Add($"Kraken rate limit exceeded for range {range.StartTime} to {range.EndTime}: {ex.Message}");
+
+                    _logger.LogError(ex, "🚫 Kraken rate limit exceeded for range {Start} to {End}",
+                        range.StartTime, range.EndTime);
+
+                    // Stop processing on persistent rate limits
+                    _logger.LogWarning("🛑 Stopping Kraken data population due to rate limiting");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    result.FailedRanges++;
+                    result.RemainingGaps.Add(range);
+                    result.Errors.Add($"Failed to populate Kraken data for range {range.StartTime} to {range.EndTime}: {ex.Message}");
+
+                    _logger.LogError(ex, "❌ Failed to populate Kraken data for range {Start} to {End}",
+                        range.StartTime, range.EndTime);
+                }
+            }
+
+            result.ProcessingEndTime = DateTime.UtcNow;
+            result.TotalProcessingTime = result.ProcessingEndTime - result.ProcessingStartTime;
+
+            _logger.LogInformation("📊 Kraken data population completed: {Success}/{Total} ranges successful, {NewPoints} new points",
+                result.SuccessfulRanges, result.TotalRangesProcessed, result.NewDataPointsAdded);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "💥 Critical error during Kraken data population for {Symbol}", symbol);
+            result.ProcessingEndTime = DateTime.UtcNow;
+            result.TotalProcessingTime = result.ProcessingEndTime - result.ProcessingStartTime;
+            result.Errors.Add($"Critical error: {ex.Message}");
+            throw;
+        }
+    }
 
     #region Private Helper Methods
 

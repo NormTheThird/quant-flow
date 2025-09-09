@@ -29,4 +29,9 @@ public interface IKrakenMarketDataCollectionService
     /// Collects recent data to fill gaps
     /// </summary>
     Task CollectRecentDataAsync(string symbol, Timeframe timeframe);
+
+    /// <summary>
+    /// Populates missing data ranges specifically from Kraken API
+    /// </summary>
+    Task<DataPopulationResult> PopulateMissingDataAsync(string symbol, Timeframe timeframe, IEnumerable<MissingDataRange> missingRanges);
 }
