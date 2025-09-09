@@ -17,7 +17,6 @@ jobs:
     outputs:
       datacollection: ${{ steps.changes.outputs.datacollection }}
       api: ${{ steps.changes.outputs.api }}
-      # Add more projects here as needed
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -27,23 +26,17 @@ jobs:
     - name: Detect changed projects
       id: changes
       run: |
-        # Check if DataCollection project changed
         if git diff --name-only HEAD~1 HEAD | grep -E "^QuantFlow\.WorkerService\.DataCollection/|^\.github/workflows/" > /dev/null; then
           echo "datacollection=true" >> $GITHUB_OUTPUT
         else
           echo "datacollection=false" >> $GITHUB_OUTPUT
         fi
         
-        # Check if API project changed (when you add it)
         if git diff --name-only HEAD~1 HEAD | grep -E "^QuantFlow\.Api/|^\.github/workflows/" > /dev/null; then
           echo "api=true" >> $GITHUB_OUTPUT
         else
           echo "api=false" >> $GITHUB_OUTPUT
         fi
-        
-        echo "Changes detected:"
-        echo "DataCollection: $(git diff --name-only HEAD~1 HEAD | grep -E "^QuantFlow\.WorkerService\.DataCollection/" || echo "none")"
-        echo "API: $(git diff --name-only HEAD~1 HEAD | grep -E "^QuantFlow\.Api/" || echo "none")"
 
   build-datacollection:
     needs: detect-changes
@@ -55,9 +48,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Verify .NET Installation
-      run: |
-        dotnet --version
-        dotnet --list-sdks
+      run: dotnet --version
     
     - name: Build and Test DataCollection
       run: |
@@ -72,24 +63,10 @@ jobs:
           --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
     
     - name: Build and Push DataCollection Image
-      run: |        
-        # Debug: Check what files are in the solution root
-        echo "Solution root directory: $(pwd)"
-        echo "Files in solution root:"
-        ls -la
-        
-        # Check if Dockerfile exists in the project directory
-        if [ ! -f "QuantFlow.WorkerService.DataCollection/Dockerfile" ]; then
-          echo "ERROR: Dockerfile not found in QuantFlow.WorkerService.DataCollection/"
-          echo "Available files in QuantFlow.WorkerService.DataCollection/:"
-          ls -la QuantFlow.WorkerService.DataCollection/ || echo "Directory not found"
-          exit 1
-        fi
-        
+      run: |
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:${{ github.sha }}
         IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:latest
         
-        # Build from solution root with Dockerfile in subdirectory
         docker build -f QuantFlow.WorkerService.DataCollection/Dockerfile -t $IMAGE_TAG -t $IMAGE_LATEST .
         docker push $IMAGE_TAG
         docker push $IMAGE_LATEST
@@ -102,15 +79,17 @@ jobs:
         echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
         export KUBECONFIG=kubeconfig
         
-        # Deploy to development namespace
+        kubectl cluster-info
+        
+        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:${{ github.sha }}
+        
         kubectl set image deployment/quantflow-datacollection \
-          quantflow-datacollection=${{ env.IMAGE_TAG }} \
+          quantflow-datacollection=$IMAGE_TAG \
           -n development || \
         kubectl create deployment quantflow-datacollection \
-          --image=${{ env.IMAGE_TAG }} \
+          --image=$IMAGE_TAG \
           -n development
         
-        # Wait for rollout
         kubectl rollout status deployment/quantflow-datacollection -n development --timeout=300s
 
   build-api:
@@ -122,37 +101,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Verify .NET Installation
-      run: |
-        dotnet --version
-        dotnet --list-sdks
-    
     - name: Build and Test API
       run: |
-        # This will be uncommented when you add the API project
+        echo "API project not yet implemented"
         # cd QuantFlow.Api
         # dotnet restore
         # dotnet build --no-restore
         # dotnet test --no-build --verbosity normal
-        echo "API project not yet implemented"
-    
-    - name: Login to Harbor
-      if: false  # Enable this when API project exists
-      run: |
-        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
-          --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
-    
-    - name: Build and Push API Image
-      if: false  # Enable this when API project exists
-      run: |
-        # cd QuantFlow.Api
-        # IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-api:${{ github.sha }}
-        # IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-api:latest
-        # 
-        # docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
-        # docker push $IMAGE_TAG
-        # docker push $IMAGE_LATEST
-        echo "API build not yet implemented"
 
   deploy-production:
     needs: [build-datacollection]
@@ -166,10 +121,8 @@ jobs:
         echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
         export KUBECONFIG=kubeconfig
         
-        # Get the latest image from development
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:${{ github.sha }}
         
-        # Deploy to production namespace (runs on cloud node)
         kubectl set image deployment/quantflow-datacollection \
           quantflow-datacollection=$IMAGE_TAG \
           -n production || \
@@ -177,5 +130,4 @@ jobs:
           --image=$IMAGE_TAG \
           -n production
         
-        # Wait for rollout
         kubectl rollout status deployment/quantflow-datacollection -n production --timeout=300s
