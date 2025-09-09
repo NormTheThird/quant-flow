@@ -74,6 +74,22 @@ jobs:
     - name: Build and Push DataCollection Image
       run: |
         cd QuantFlow.WorkerService.DataCollection
+        
+        # Debug: Check what files are in this directory
+        echo "Current directory: $(pwd)"
+        echo "Files in current directory:"
+        ls -la
+        echo "Looking for Dockerfile..."
+        find . -name "*ockerfile*" -o -name "*dockerfile*" 2>/dev/null || echo "No Dockerfile found"
+        
+        # Check if Dockerfile exists, if not exit with helpful message
+        if [ ! -f "Dockerfile" ]; then
+          echo "ERROR: Dockerfile not found in $(pwd)"
+          echo "Available files:"
+          ls -la
+          exit 1
+        fi
+        
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:${{ github.sha }}
         IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:latest
         
