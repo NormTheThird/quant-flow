@@ -72,28 +72,25 @@ jobs:
           --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
     
     - name: Build and Push DataCollection Image
-      run: |
-        cd QuantFlow.WorkerService.DataCollection
-        
-        # Debug: Check what files are in this directory
-        echo "Current directory: $(pwd)"
-        echo "Files in current directory:"
+      run: |        
+        # Debug: Check what files are in the solution root
+        echo "Solution root directory: $(pwd)"
+        echo "Files in solution root:"
         ls -la
-        echo "Looking for Dockerfile..."
-        find . -name "*ockerfile*" -o -name "*dockerfile*" 2>/dev/null || echo "No Dockerfile found"
         
-        # Check if Dockerfile exists, if not exit with helpful message
-        if [ ! -f "Dockerfile" ]; then
-          echo "ERROR: Dockerfile not found in $(pwd)"
-          echo "Available files:"
-          ls -la
+        # Check if Dockerfile exists in the project directory
+        if [ ! -f "QuantFlow.WorkerService.DataCollection/Dockerfile" ]; then
+          echo "ERROR: Dockerfile not found in QuantFlow.WorkerService.DataCollection/"
+          echo "Available files in QuantFlow.WorkerService.DataCollection/:"
+          ls -la QuantFlow.WorkerService.DataCollection/ || echo "Directory not found"
           exit 1
         fi
         
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:${{ github.sha }}
         IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:latest
         
-        docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
+        # Build from solution root with Dockerfile in subdirectory
+        docker build -f QuantFlow.WorkerService.DataCollection/Dockerfile -t $IMAGE_TAG -t $IMAGE_LATEST .
         docker push $IMAGE_TAG
         docker push $IMAGE_LATEST
         
