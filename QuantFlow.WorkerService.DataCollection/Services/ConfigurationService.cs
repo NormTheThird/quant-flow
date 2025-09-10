@@ -1,4 +1,8 @@
-﻿namespace QuantFlow.WorkerService.DataCollection.Services;
+﻿using QuantFlow.Common.Infrastructure;
+using QuantFlow.Common.Infrastructure.Vault;
+using QuantFlow.Common.Interfaces.Infrastructure;
+
+namespace QuantFlow.WorkerService.DataCollection.Services;
 
 /// <summary>
 /// Configuration service for setting up dependency injection and configuration
@@ -27,10 +31,18 @@ public static class ConfigurationService
                 .AddEnvironmentVariables()
                 .AddCommandLine(args);
 
-            // Add User Secrets in Development or when not in Production
+            // Add User Secrets in Development
             if (context.HostingEnvironment.IsDevelopment())
             {
                 config.AddUserSecrets<Program>();
+
+                // Add Vault for local development
+                config.AddVault("http://vault.local:30420", "quant-flow", "root");
+            }
+            else
+            {
+                // Add Vault for production
+                config.AddVault("http://vault.local:30420", "quant-flow", "root");
             }
         });
     }
@@ -44,6 +56,9 @@ public static class ConfigurationService
         {
             // Register configuration as singleton
             services.AddSingleton(context.Configuration);
+
+            // Add the missing service registration
+            services.AddScoped<IApiRateLimitHandler, ApiRateLimitHandler>();
 
             // Data stores
             services.AddSqlServerDataStore(context.Configuration);

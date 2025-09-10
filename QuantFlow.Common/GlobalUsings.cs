@@ -17,3 +17,6 @@ global using Microsoft.Extensions.Configuration;
 global using QuantFlow.Common.Exceptions;
 global using QuantFlow.Common.Interfaces.Infrastructure;
 global using QuantFlow.Domain.Services.ApiServices;
+
+global using VaultSharp;
+global using VaultSharp.V1.AuthMethods.Token;
