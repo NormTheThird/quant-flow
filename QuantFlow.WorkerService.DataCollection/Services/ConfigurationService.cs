@@ -42,7 +42,7 @@ public static class ConfigurationService
             else
             {
                 // Add Vault for production
-                config.AddVault("http://vault.local:30420", "quant-flow", "root");
+                config.AddVault("http://vault.vault.svc.cluster.local:8200", "quant-flow", "root");
             }
         });
     }
