@@ -1,9 +1,4 @@
-﻿using InfluxDB.Client;
-using QuantFlow.Data.InfluxDB.Context;
-using QuantFlow.Data.InfluxDB.Repositories;
-using QuantFlow.Common.Interfaces.Repositories;
-
-namespace QuantFlow.Api.Rest.Services;
+﻿namespace QuantFlow.Api.Rest.Services;
 
 /// <summary>
 /// Configuration services for setting up the API application
@@ -15,12 +10,73 @@ public static class ConfigurationServices
     /// </summary>
     public static void ConfigureServices(this WebApplicationBuilder builder)
     {
+        builder.Host.ConfigureServices((context, services) =>
+        {
+            services.AddSerilog(context, "Api");
+        });
+
         builder.AddApiVersioning();
         builder.AddDataStores();
         builder.AddDomainServices();
         builder.AddAuthentication();
         builder.AddApiServices();
         builder.AddSwagger();
+    }
+
+    /// <summary>
+    /// Configures application configuration sources for WebApplicationBuilder
+    /// </summary>
+    public static void ConfigureAppConfiguration(this WebApplicationBuilder builder, string[] args)
+    {
+        // Clear existing sources to have full control
+        builder.Configuration.Sources.Clear();
+
+        // Add configuration sources in order
+        builder.Configuration
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+            .AddEnvironmentVariables()
+            .AddCommandLine(args);
+
+        // Add User Secrets in Development
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Configuration.AddUserSecrets<Program>();
+            // Add Vault for local development
+            builder.Configuration.AddVault("http://vault.local:30420", "quant-flow", "root");
+        }
+        else
+        {
+            // Add Vault for production
+            builder.Configuration.AddVault("http://vault.vault.svc.cluster.local:8200", "quant-flow", "root");
+        }
+    }
+
+    /// <summary>
+    /// Legacy method for IHostBuilder (if needed for other services)
+    /// </summary>
+    public static IHostBuilder ConfigureAppConfiguration(this IHostBuilder hostBuilder, string[] args)
+    {
+        return hostBuilder.ConfigureAppConfiguration((context, config) =>
+        {
+            config.AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables()
+                .AddCommandLine(args);
+
+            // Add User Secrets in Development
+            if (context.HostingEnvironment.IsDevelopment())
+            {
+                config.AddUserSecrets<Program>();
+                // Add Vault for local development
+                config.AddVault("http://vault.local:30420", "quant-flow", "root");
+            }
+            else
+            {
+                // Add Vault for production
+                config.AddVault("http://vault.vault.svc.cluster.local:8200", "quant-flow", "root");
+            }
+        });
     }
 
     /// <summary>
