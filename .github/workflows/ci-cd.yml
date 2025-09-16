@@ -16,6 +16,7 @@ jobs:
     runs-on: self-hosted
     outputs:
       datacollection: ${{ steps.changes.outputs.datacollection }}
+      discord: ${{ steps.changes.outputs.discord }}
       api: ${{ steps.changes.outputs.api }}
     steps:
     - name: Checkout code
@@ -30,6 +31,12 @@ jobs:
           echo "datacollection=true" >> $GITHUB_OUTPUT
         else
           echo "datacollection=false" >> $GITHUB_OUTPUT
+        fi
+        
+        if git diff --name-only HEAD~1 HEAD | grep -E "^QuantFlow\.WorkerService\.Discord/|^\.github/workflows/" > /dev/null; then
+          echo "discord=true" >> $GITHUB_OUTPUT
+        else
+          echo "discord=false" >> $GITHUB_OUTPUT
         fi
         
         if git diff --name-only HEAD~1 HEAD | grep -E "^QuantFlow\.Api/|^\.github/workflows/" > /dev/null; then
@@ -92,6 +99,95 @@ jobs:
         
         kubectl rollout status deployment/quantflow-datacollection -n development --timeout=300s
 
+  build-discord:
+    needs: detect-changes
+    runs-on: self-hosted
+    if: needs.detect-changes.outputs.discord == 'true' || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Verify .NET Installation
+      run: dotnet --version
+    
+    - name: Build and Test Discord Bot
+      run: |
+        cd QuantFlow.WorkerService.Discord
+        dotnet restore
+        dotnet build --no-restore
+        # Skip tests if no test project exists yet
+        # dotnet test --no-build --verbosity normal
+    
+    - name: Login to Harbor
+      run: |
+        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
+          --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
+    
+    - name: Build and Push Discord Bot Image
+      run: |
+        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:${{ github.sha }}
+        IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:latest
+        
+        docker build -f QuantFlow.WorkerService.Discord/Dockerfile -t $IMAGE_TAG -t $IMAGE_LATEST .
+        docker push $IMAGE_TAG
+        docker push $IMAGE_LATEST
+        
+        echo "DISCORD_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+    
+    - name: Deploy Discord Bot to Development
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+        kubectl cluster-info
+        
+        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:${{ github.sha }}
+        
+        # Create Harbor registry secret if it doesn't exist
+        kubectl create secret docker-registry harbor-registry \
+          --docker-server=${{ env.HARBOR_REGISTRY }} \
+          --docker-username="${{ secrets.HARBOR_USERNAME }}" \
+          --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
+          -n development --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Create deployment with proper configuration (no Discord token env var needed - using Vault)
+        cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: quantflow-discord
+          namespace: development
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: quantflow-discord
+          template:
+            metadata:
+              labels:
+                app: quantflow-discord
+            spec:
+              imagePullSecrets:
+              - name: harbor-registry
+              containers:
+              - name: quantflow-discord
+                image: $IMAGE_TAG
+                env:
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: "Production"
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "200m"
+        EOF
+        
+        kubectl rollout status deployment/quantflow-discord -n development --timeout=300s
+
   build-api:
     needs: detect-changes
     runs-on: self-hosted
@@ -110,13 +206,14 @@ jobs:
         # dotnet test --no-build --verbosity normal
 
   deploy-production:
-    needs: [build-datacollection]
+    needs: [build-datacollection, build-discord]
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/main' && needs.build-datacollection.result == 'success'
+    if: github.ref == 'refs/heads/main' && (needs.build-datacollection.result == 'success' || needs.build-discord.result == 'success')
     environment: production
     
     steps:
-    - name: Deploy to Production
+    - name: Deploy DataCollection to Production
+      if: needs.build-datacollection.result == 'success'
       run: |
         echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
         export KUBECONFIG=kubeconfig
@@ -131,3 +228,54 @@ jobs:
           -n production
         
         kubectl rollout status deployment/quantflow-datacollection -n production --timeout=300s
+    
+    - name: Deploy Discord Bot to Production
+      if: needs.build-discord.result == 'success'
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:${{ github.sha }}
+        
+        # Create Harbor registry secret if it doesn't exist
+        kubectl create secret docker-registry harbor-registry \
+          --docker-server=${{ env.HARBOR_REGISTRY }} \
+          --docker-username="${{ secrets.HARBOR_USERNAME }}" \
+          --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
+          -n production --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Create deployment with proper configuration (no Discord token env var needed - using Vault)
+        cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: quantflow-discord
+          namespace: production
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: quantflow-discord
+          template:
+            metadata:
+              labels:
+                app: quantflow-discord
+            spec:
+              imagePullSecrets:
+              - name: harbor-registry
+              containers:
+              - name: quantflow-discord
+                image: $IMAGE_TAG
+                env:
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: "Production"
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "200m"
+        EOF
+        
+        kubectl rollout status deployment/quantflow-discord -n production --timeout=300s
