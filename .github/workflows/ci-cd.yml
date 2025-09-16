@@ -145,39 +145,56 @@ jobs:
         
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:${{ github.sha }}
         
+        # Create Harbor registry secret if it doesn't exist
+        kubectl create secret docker-registry harbor-registry \
+          --docker-server=${{ env.HARBOR_REGISTRY }} \
+          --docker-username="${{ secrets.HARBOR_USERNAME }}" \
+          --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
+          -n development --dry-run=client -o yaml | kubectl apply -f -
+        
         # Create secret for Discord token if it doesn't exist
         kubectl create secret generic discord-secrets \
           --from-literal=discord-token="${{ secrets.DISCORD_TOKEN }}" \
           -n development --dry-run=client -o yaml | kubectl apply -f -
         
-        kubectl set image deployment/quantflow-discord \
-          quantflow-discord=$IMAGE_TAG \
-          -n development || \
-        kubectl create deployment quantflow-discord \
-          --image=$IMAGE_TAG \
-          -n development
-        
-        # Add environment variable for Discord token
-        kubectl patch deployment quantflow-discord -n development -p '{
-          "spec": {
-            "template": {
-              "spec": {
-                "containers": [{
-                  "name": "quantflow-discord",
-                  "env": [{
-                    "name": "Discord__Token",
-                    "valueFrom": {
-                      "secretKeyRef": {
-                        "name": "discord-secrets",
-                        "key": "discord-token"
-                      }
-                    }
-                  }]
-                }]
-              }
-            }
-          }
-        }'
+        # Create deployment with proper configuration
+        cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: quantflow-discord
+          namespace: development
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: quantflow-discord
+          template:
+            metadata:
+              labels:
+                app: quantflow-discord
+            spec:
+              imagePullSecrets:
+              - name: harbor-registry
+              containers:
+              - name: quantflow-discord
+                image: $IMAGE_TAG
+                env:
+                - name: Discord__Token
+                  valueFrom:
+                    secretKeyRef:
+                      name: discord-secrets
+                      key: discord-token
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: "Production"
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "200m"
+        EOF
         
         kubectl rollout status deployment/quantflow-discord -n development --timeout=300s
 
@@ -230,38 +247,55 @@ jobs:
         
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:${{ github.sha }}
         
+        # Create Harbor registry secret if it doesn't exist
+        kubectl create secret docker-registry harbor-registry \
+          --docker-server=${{ env.HARBOR_REGISTRY }} \
+          --docker-username="${{ secrets.HARBOR_USERNAME }}" \
+          --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
+          -n production --dry-run=client -o yaml | kubectl apply -f -
+        
         # Create secret for Discord token if it doesn't exist
         kubectl create secret generic discord-secrets \
           --from-literal=discord-token="${{ secrets.DISCORD_TOKEN }}" \
           -n production --dry-run=client -o yaml | kubectl apply -f -
         
-        kubectl set image deployment/quantflow-discord \
-          quantflow-discord=$IMAGE_TAG \
-          -n production || \
-        kubectl create deployment quantflow-discord \
-          --image=$IMAGE_TAG \
-          -n production
-        
-        # Add environment variable for Discord token
-        kubectl patch deployment quantflow-discord -n production -p '{
-          "spec": {
-            "template": {
-              "spec": {
-                "containers": [{
-                  "name": "quantflow-discord",
-                  "env": [{
-                    "name": "Discord__Token",
-                    "valueFrom": {
-                      "secretKeyRef": {
-                        "name": "discord-secrets",
-                        "key": "discord-token"
-                      }
-                    }
-                  }]
-                }]
-              }
-            }
-          }
-        }'
+        # Create deployment with proper configuration
+        cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: quantflow-discord
+          namespace: production
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: quantflow-discord
+          template:
+            metadata:
+              labels:
+                app: quantflow-discord
+            spec:
+              imagePullSecrets:
+              - name: harbor-registry
+              containers:
+              - name: quantflow-discord
+                image: $IMAGE_TAG
+                env:
+                - name: Discord__Token
+                  valueFrom:
+                    secretKeyRef:
+                      name: discord-secrets
+                      key: discord-token
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: "Production"
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "200m"
+        EOF
         
         kubectl rollout status deployment/quantflow-discord -n production --timeout=300s
