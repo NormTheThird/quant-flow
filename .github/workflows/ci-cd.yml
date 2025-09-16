@@ -208,7 +208,9 @@ jobs:
   deploy-production:
     needs: [build-datacollection, build-discord]
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/main' && (needs.build-datacollection.result == 'success' || needs.build-discord.result == 'success')
+    # DISABLED: Production deployments temporarily disabled
+    if: false
+    # Original condition: github.ref == 'refs/heads/main' && (needs.build-datacollection.result == 'success' || needs.build-discord.result == 'success')
     environment: production
     
     steps:
