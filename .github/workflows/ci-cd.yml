@@ -11,8 +11,11 @@ env:
   HARBOR_PROJECT: "library"
 
 jobs:
+  # BUILD PHASE - All run in parallel
   build-datacollection:
     runs-on: self-hosted
+    outputs:
+      image-tag: ${{ steps.build.outputs.image-tag }}
     
     steps:
     - name: Checkout code
@@ -26,7 +29,7 @@ jobs:
         cd QuantFlow.WorkerService.DataCollection
         dotnet restore
         dotnet build --no-restore
-        # dotnet test --no-build --verbosity normal
+        dotnet test --no-build --verbosity normal
     
     - name: Login to Harbor
       run: |
@@ -34,6 +37,7 @@ jobs:
           --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
     
     - name: Build and Push DataCollection Image
+      id: build
       run: |
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:${{ github.sha }}
         IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:latest
@@ -42,29 +46,12 @@ jobs:
         docker push $IMAGE_TAG
         docker push $IMAGE_LATEST
         
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-    
-    - name: Deploy DataCollection to Development
-      if: github.ref == 'refs/heads/main'
-      run: |
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
-        export KUBECONFIG=kubeconfig
-        
-        kubectl cluster-info
-        
-        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-datacollection:${{ github.sha }}
-        
-        kubectl set image deployment/quantflow-datacollection \
-          quantflow-datacollection=$IMAGE_TAG \
-          -n development || \
-        kubectl create deployment quantflow-datacollection \
-          --image=$IMAGE_TAG \
-          -n development
-        
-        kubectl rollout status deployment/quantflow-datacollection -n development --timeout=300s
+        echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
   build-discord:
     runs-on: self-hosted
+    outputs:
+      image-tag: ${{ steps.build.outputs.image-tag }}
     
     steps:
     - name: Checkout code
@@ -83,9 +70,10 @@ jobs:
     - name: Login to Harbor
       run: |
         echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
-          --username "${ secrets.HARBOR_USERNAME }}" --password-stdin
+          --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
     
     - name: Build and Push Discord Bot Image
+      id: build
       run: |
         IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:${{ github.sha }}
         IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:latest
@@ -94,24 +82,88 @@ jobs:
         docker push $IMAGE_TAG
         docker push $IMAGE_LATEST
         
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+        echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  build-api:
+    runs-on: self-hosted
+    outputs:
+      image-tag: ${{ steps.build.outputs.image-tag }}
     
-    - name: Deploy Discord Bot to Development
-      if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Verify .NET Installation
+      run: dotnet --version
+    
+    - name: Build and Test API
+      run: |
+        cd QuantFlow.Api.Rest
+        dotnet restore
+        dotnet build --no-restore
+        dotnet test --no-build --verbosity normal
+    
+    - name: Login to Harbor
+      run: |
+        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
+          --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
+    
+    - name: Build and Push API Image
+      id: build
+      run: |
+        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-api:${{ github.sha }}
+        IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-api:latest
+        
+        docker build -f QuantFlow.Api.Rest/Dockerfile -t $IMAGE_TAG -t $IMAGE_LATEST .
+        docker push $IMAGE_TAG
+        docker push $IMAGE_LATEST
+        
+        echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  # DEVELOPMENT DEPLOYMENT PHASE - Runs after all builds complete
+  deploy-development:
+    needs: [build-datacollection, build-discord, build-api]
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+    environment: development
+    
+    steps:
+    - name: Setup Kubernetes Config
       run: |
         echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
         export KUBECONFIG=kubeconfig
-        
-        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-discord:${{ github.sha }}
-        
-        # Create Harbor registry secret if it doesn't exist
+        kubectl cluster-info
+    
+    - name: Create Harbor Registry Secret
+      run: |
+        export KUBECONFIG=kubeconfig
         kubectl create secret docker-registry harbor-registry \
           --docker-server=${{ env.HARBOR_REGISTRY }} \
           --docker-username="${{ secrets.HARBOR_USERNAME }}" \
           --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
           -n development --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Deploy DataCollection Service
+      if: needs.build-datacollection.result == 'success'
+      run: |
+        export KUBECONFIG=kubeconfig
+        IMAGE_TAG=${{ needs.build-datacollection.outputs.image-tag }}
         
-        # Create deployment with proper configuration
+        kubectl set image deployment/quantflow-datacollection \
+          quantflow-datacollection=$IMAGE_TAG \
+          -n development || \
+        kubectl create deployment quantflow-datacollection \
+          --image=$IMAGE_TAG \
+          -n development
+        
+        kubectl rollout status deployment/quantflow-datacollection -n development --timeout=300s
+    
+    - name: Deploy Discord Bot Service
+      if: needs.build-discord.result == 'success'
+      run: |
+        export KUBECONFIG=kubeconfig
+        IMAGE_TAG=${{ needs.build-discord.outputs.image-tag }}
+        
         cat <<EOF | kubectl apply -f -
         apiVersion: apps/v1
         kind: Deployment
@@ -146,56 +198,13 @@ jobs:
         EOF
         
         kubectl rollout status deployment/quantflow-discord -n development --timeout=300s
-
-  build-api:
-    runs-on: self-hosted
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Verify .NET Installation
-      run: dotnet --version
-    
-    - name: Build and Test API
+    - name: Deploy API Service
+      if: needs.build-api.result == 'success'
       run: |
-        cd QuantFlow.Api.Rest
-        dotnet restore
-        dotnet build --no-restore
-        # dotnet test --no-build --verbosity normal
-    
-    - name: Login to Harbor
-      run: |
-        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
-          --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
-    
-    - name: Build and Push API Image
-      run: |
-        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-api:${{ github.sha }}
-        IMAGE_LATEST=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-api:latest
-        
-        docker build -f QuantFlow.Api.Rest/Dockerfile -t $IMAGE_TAG -t $IMAGE_LATEST .
-        docker push $IMAGE_TAG
-        docker push $IMAGE_LATEST
-        
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-    
-    - name: Deploy API to Development
-      if: github.ref == 'refs/heads/main'
-      run: |
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
         export KUBECONFIG=kubeconfig
+        IMAGE_TAG=${{ needs.build-api.outputs.image-tag }}
         
-        IMAGE_TAG=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_PROJECT }}/quantflow-api:${{ github.sha }}
-        
-        # Create Harbor registry secret if it doesn't exist
-        kubectl create secret docker-registry harbor-registry \
-          --docker-server=${{ env.HARBOR_REGISTRY }} \
-          --docker-username="${{ secrets.HARBOR_USERNAME }}" \
-          --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
-          -n development --dry-run=client -o yaml | kubectl apply -f -
-        
-        # Create deployment with proper configuration
         cat <<EOF | kubectl apply -f -
         apiVersion: apps/v1
         kind: Deployment
@@ -280,3 +289,173 @@ jobs:
         EOF
         
         kubectl rollout status deployment/quantflow-api -n development --timeout=300s
+
+  # PRODUCTION DEPLOYMENT PHASE - Optional with manual approval
+  deploy-production:
+    needs: [build-datacollection, build-discord, build-api, deploy-development]
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+    environment: production  # This will require manual approval if configured
+    
+    steps:
+    - name: Setup Kubernetes Config
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl cluster-info
+    
+    - name: Create Harbor Registry Secret
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl create secret docker-registry harbor-registry \
+          --docker-server=${{ env.HARBOR_REGISTRY }} \
+          --docker-username="${{ secrets.HARBOR_USERNAME }}" \
+          --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
+          -n production --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Deploy DataCollection to Production
+      if: needs.build-datacollection.result == 'success'
+      run: |
+        export KUBECONFIG=kubeconfig
+        IMAGE_TAG=${{ needs.build-datacollection.outputs.image-tag }}
+        
+        kubectl set image deployment/quantflow-datacollection \
+          quantflow-datacollection=$IMAGE_TAG \
+          -n production || \
+        kubectl create deployment quantflow-datacollection \
+          --image=$IMAGE_TAG \
+          -n production
+        
+        kubectl rollout status deployment/quantflow-datacollection -n production --timeout=300s
+    
+    - name: Deploy Discord Bot to Production
+      if: needs.build-discord.result == 'success'
+      run: |
+        export KUBECONFIG=kubeconfig
+        IMAGE_TAG=${{ needs.build-discord.outputs.image-tag }}
+        
+        cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: quantflow-discord
+          namespace: production
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: quantflow-discord
+          template:
+            metadata:
+              labels:
+                app: quantflow-discord
+            spec:
+              imagePullSecrets:
+              - name: harbor-registry
+              containers:
+              - name: quantflow-discord
+                image: $IMAGE_TAG
+                env:
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: "Production"
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "200m"
+        EOF
+        
+        kubectl rollout status deployment/quantflow-discord -n production --timeout=300s
+    
+    - name: Deploy API to Production
+      if: needs.build-api.result == 'success'
+      run: |
+        export KUBECONFIG=kubeconfig
+        IMAGE_TAG=${{ needs.build-api.outputs.image-tag }}
+        
+        cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: quantflow-api
+          namespace: production
+        spec:
+          replicas: 3
+          selector:
+            matchLabels:
+              app: quantflow-api
+          template:
+            metadata:
+              labels:
+                app: quantflow-api
+            spec:
+              imagePullSecrets:
+              - name: harbor-registry
+              containers:
+              - name: quantflow-api
+                image: $IMAGE_TAG
+                ports:
+                - containerPort: 8080
+                env:
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: "Production"
+                - name: ASPNETCORE_URLS
+                  value: "http://*:8080"
+                resources:
+                  requests:
+                    memory: "512Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "1Gi"
+                    cpu: "1000m"
+                livenessProbe:
+                  httpGet:
+                    path: /health
+                    port: 8080
+                  initialDelaySeconds: 30
+                  periodSeconds: 10
+                readinessProbe:
+                  httpGet:
+                    path: /health
+                    port: 8080
+                  initialDelaySeconds: 5
+                  periodSeconds: 5
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: quantflow-api-service
+          namespace: production
+        spec:
+          selector:
+            app: quantflow-api
+          ports:
+          - port: 80
+            targetPort: 8080
+            protocol: TCP
+          type: ClusterIP
+        ---
+        apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: quantflow-api-ingress
+          namespace: production
+          annotations:
+            nginx.ingress.kubernetes.io/rewrite-target: /
+        spec:
+          rules:
+          - host: api.quantflow.local
+            http:
+              paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: quantflow-api-service
+                    port:
+                      number: 80
+        EOF
+        
+        kubectl rollout status deployment/quantflow-api -n production --timeout=300s
