@@ -152,12 +152,7 @@ jobs:
           --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
           -n development --dry-run=client -o yaml | kubectl apply -f -
         
-        # Create secret for Discord token if it doesn't exist
-        kubectl create secret generic discord-secrets \
-          --from-literal=discord-token="${{ secrets.DISCORD_TOKEN }}" \
-          -n development --dry-run=client -o yaml | kubectl apply -f -
-        
-        # Create deployment with proper configuration
+        # Create deployment with proper configuration (no Discord token env var needed - using Vault)
         cat <<EOF | kubectl apply -f -
         apiVersion: apps/v1
         kind: Deployment
@@ -180,11 +175,6 @@ jobs:
               - name: quantflow-discord
                 image: $IMAGE_TAG
                 env:
-                - name: Discord__Token
-                  valueFrom:
-                    secretKeyRef:
-                      name: discord-secrets
-                      key: discord-token
                 - name: ASPNETCORE_ENVIRONMENT
                   value: "Production"
                 resources:
@@ -254,12 +244,7 @@ jobs:
           --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
           -n production --dry-run=client -o yaml | kubectl apply -f -
         
-        # Create secret for Discord token if it doesn't exist
-        kubectl create secret generic discord-secrets \
-          --from-literal=discord-token="${{ secrets.DISCORD_TOKEN }}" \
-          -n production --dry-run=client -o yaml | kubectl apply -f -
-        
-        # Create deployment with proper configuration
+        # Create deployment with proper configuration (no Discord token env var needed - using Vault)
         cat <<EOF | kubectl apply -f -
         apiVersion: apps/v1
         kind: Deployment
@@ -282,11 +267,6 @@ jobs:
               - name: quantflow-discord
                 image: $IMAGE_TAG
                 env:
-                - name: Discord__Token
-                  valueFrom:
-                    secretKeyRef:
-                      name: discord-secrets
-                      key: discord-token
                 - name: ASPNETCORE_ENVIRONMENT
                   value: "Production"
                 resources:
