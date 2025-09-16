@@ -37,6 +37,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WorkerServices", "WorkerSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.WorkerService.DataCollection", "QuantFlow.WorkerService.DataCollection\QuantFlow.WorkerService.DataCollection.csproj", "{34106921-6874-C2E4-E9C5-F13B895DF8A9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuantFlow.WorkerService.Discord", "QuantFlow.WorkerService.Discord\QuantFlow.WorkerService.Discord.csproj", "{2D6C1C45-B5AA-4A7B-8A62-C667C49FA892}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,10 @@ Global
 		{34106921-6874-C2E4-E9C5-F13B895DF8A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34106921-6874-C2E4-E9C5-F13B895DF8A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34106921-6874-C2E4-E9C5-F13B895DF8A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D6C1C45-B5AA-4A7B-8A62-C667C49FA892}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D6C1C45-B5AA-4A7B-8A62-C667C49FA892}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D6C1C45-B5AA-4A7B-8A62-C667C49FA892}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D6C1C45-B5AA-4A7B-8A62-C667C49FA892}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -103,6 +109,7 @@ Global
 		{F0389BD3-366B-4418-AAB7-2884211B46A5} = {FE7F36FF-76D8-4EB9-A026-75C668E3BD1B}
 		{9EB2D697-7610-440A-95F5-1D59B337E8A2} = {91864212-2616-4177-A742-F75ABB9BF4F6}
 		{34106921-6874-C2E4-E9C5-F13B895DF8A9} = {D1466D6D-F249-42A1-9219-614C6116ECEF}
+		{2D6C1C45-B5AA-4A7B-8A62-C667C49FA892} = {D1466D6D-F249-42A1-9219-614C6116ECEF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {578F7D72-54B3-44F0-ADCE-12E33B921A50}
