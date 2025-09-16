@@ -2,11 +2,7 @@
 global using DSharpPlus.Entities;
 global using DSharpPlus.EventArgs;
 global using DSharpPlus.SlashCommands;
-global using Microsoft.Extensions.Configuration;
-global using Microsoft.Extensions.DependencyInjection;
-global using Microsoft.Extensions.Hosting;
-global using Microsoft.Extensions.Logging;
-global using QuantFlow.WorkerService.Discord;
+global using QuantFlow.Common.Infrastructure.Vault;
 global using QuantFlow.WorkerService.Discord.Commands;
 global using QuantFlow.WorkerService.Discord.Services;
 global using Serilog;

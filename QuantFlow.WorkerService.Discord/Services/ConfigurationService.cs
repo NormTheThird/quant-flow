@@ -37,6 +37,14 @@ public static class ConfigurationService
             if (context.HostingEnvironment.IsDevelopment())
             {
                 config.AddUserSecrets<Program>();
+
+                // Add Vault for local development
+                config.AddVault("http://vault.local:30420", "quant-flow", "root");
+            }
+            else
+            {
+                // Add Vault for production
+                config.AddVault("http://vault.vault.svc.cluster.local:8200", "quant-flow", "root");
             }
         });
     }
@@ -87,11 +95,11 @@ public static class ConfigurationService
                 slashCommands.RegisterCommands<ServerCommands>();
 
                 // Optionally register for specific guild for faster testing
-                var guildId = configuration.GetValue<ulong?>("Discord:GuildId");
-                if (guildId.HasValue)
+                var serverId = configuration.GetValue<ulong?>("Discord:ServerId");
+                if (serverId.HasValue)
                 {
-                    slashCommands.RegisterCommands<ServerCommands>(guildId.Value);
-                    logger.LogInformation("Registered slash commands for guild {GuildId}", guildId.Value);
+                    slashCommands.RegisterCommands<ServerCommands>(serverId.Value);
+                    logger.LogInformation("Registered slash commands for server (guild) {ServerId}", serverId.Value);
                 }
 
                 return client;

@@ -35,6 +35,14 @@ public class VaultConfigurationProvider : ConfigurationProvider
             var krakenSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("kraken", mountPoint: _mountPoint);
             Data["Kraken:ApiKey"] = krakenSecret.Data.Data["apikey"].ToString();
             Data["Kraken:ApiSecret"] = krakenSecret.Data.Data["apisecret"].ToString();
+
+            var discordSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("discord", mountPoint: _mountPoint);
+            Data["Discord:Token"] = discordSecret.Data.Data["token"].ToString();
+            Data["Discord:ServerId"] = discordSecret.Data.Data["serverId"].ToString();
+            Data["Discord:ClientId"] = discordSecret.Data.Data["clientId"].ToString();
+            Data["Discord:ClientSecret"] = discordSecret.Data.Data["clientSecret"].ToString();
+            Data["Discord:PTMemberRoleId"] = discordSecret.Data.Data["ptMemberRoleId"].ToString();
+            Data["Discord:VerifiedRoleId"] = discordSecret.Data.Data["verifiedRoleId"].ToString();
         }
         catch (Exception ex)
         {
