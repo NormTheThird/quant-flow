@@ -11,6 +11,7 @@
 		<PackageReference Include="Microsoft.Extensions.Http" Version="9.0.8" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.2" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.1" />
 		<PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
@@ -21,6 +22,7 @@
 		<ProjectReference Include="../QuantFlow.Common/QuantFlow.Common.csproj" />
 		<ProjectReference Include="../QuantFlow.Domain/QuantFlow.Domain.csproj" />
 		<ProjectReference Include="../QuantFlow.Data.InfluxDB/QuantFlow.Data.InfluxDB.csproj" />
-		<ProjectReference Include="..\QuantFlow.Data.SQLServer\QuantFlow.Data.SQLServer.csproj" />
+		<ProjectReference Include="../QuantFlow.Data.SQLServer/QuantFlow.Data.SQLServer.csproj" />
+
 	</ItemGroup>
 </Project>

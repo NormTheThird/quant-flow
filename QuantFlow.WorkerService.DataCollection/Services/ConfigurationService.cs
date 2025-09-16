@@ -1,8 +1,4 @@
-﻿using QuantFlow.Common.Infrastructure;
-using QuantFlow.Common.Infrastructure.Vault;
-using QuantFlow.Common.Interfaces.Infrastructure;
-
-namespace QuantFlow.WorkerService.DataCollection.Services;
+﻿namespace QuantFlow.WorkerService.DataCollection.Services;
 
 /// <summary>
 /// Configuration service for setting up dependency injection and configuration
@@ -15,7 +11,6 @@ public static class ConfigurationService
     public static IHostBuilder ConfigureApplication(this IHostBuilder hostBuilder, string[] args)
     {
         return hostBuilder.ConfigureAppConfiguration(args)
-            .UseSerilog(ConfigureSerilog)
             .ConfigureServices();
     }
 
@@ -54,6 +49,8 @@ public static class ConfigurationService
     {
         return hostBuilder.ConfigureServices((context, services) =>
         {
+            services.AddSerilog(context, "DataCollection");
+
             // Register configuration as singleton
             services.AddSingleton(context.Configuration);
 
@@ -108,40 +105,5 @@ public static class ConfigurationService
                 return credentials;
             });
         });
-    }
-
-    /// <summary>
-    /// Configures Serilog with console and Grafana Loki sinks
-    /// </summary>
-    private static void ConfigureSerilog(HostBuilderContext context, LoggerConfiguration loggerConfiguration)
-    {
-        loggerConfiguration
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
-            .MinimumLevel.Override("QuantFlow", LogEventLevel.Debug)
-            .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
-            .Enrich.FromLogContext()
-            .Enrich.WithProperty("Application", "QuantFlow.DataCollection")
-            .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName)
-            .Filter.ByExcluding(logEvent =>
-                logEvent.Level == LogEventLevel.Information &&
-                logEvent.RenderMessage().Contains("Content root path"))
-            .WriteTo.Console(
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}",
-                restrictedToMinimumLevel: LogEventLevel.Information);
-
-        // Add Grafana Loki sink if configured
-        var lokiUrl = context.Configuration.GetSection("Logging:Loki:Url").Value;
-        if (!string.IsNullOrEmpty(lokiUrl))
-        {
-            loggerConfiguration.WriteTo.GrafanaLoki(
-                uri: lokiUrl,
-                labels: new[]
-                {
-                    new LokiLabel { Key = "app", Value = "quantflow-datacollection" },
-                    new LokiLabel { Key = "env", Value = context.HostingEnvironment.EnvironmentName.ToLowerInvariant() }
-                },
-                restrictedToMinimumLevel: LogEventLevel.Information);
-        }
     }
 }

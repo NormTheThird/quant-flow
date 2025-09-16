@@ -2,8 +2,8 @@
 global using DSharpPlus.Entities;
 global using DSharpPlus.EventArgs;
 global using DSharpPlus.SlashCommands;
+global using QuantFlow.Common.Extensions;
 global using QuantFlow.Common.Infrastructure.Vault;
 global using QuantFlow.WorkerService.Discord.Commands;
 global using QuantFlow.WorkerService.Discord.Services;
 global using Serilog;
-global using Serilog.Sinks.Grafana.Loki;

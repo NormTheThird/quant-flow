@@ -23,6 +23,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\QuantFlow.Common\QuantFlow.Common.csproj" />
+		<ProjectReference Include="../QuantFlow.Common/QuantFlow.Common.csproj" />
 	</ItemGroup>
 </Project>

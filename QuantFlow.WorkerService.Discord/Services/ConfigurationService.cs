@@ -14,7 +14,6 @@ public static class ConfigurationService
     public static IHostBuilder ConfigureApplication(this IHostBuilder hostBuilder, string[] args)
     {
         return hostBuilder.ConfigureAppConfiguration(args)
-            .UseSerilog(ConfigureSerilog)
             .ConfigureServices();
     }
 
@@ -58,6 +57,8 @@ public static class ConfigurationService
     {
         return hostBuilder.ConfigureServices((context, services) =>
         {
+            services.AddSerilog(context, "Discord");
+
             // Register configuration as singleton
             services.AddSingleton(context.Configuration);
 
@@ -113,29 +114,4 @@ public static class ConfigurationService
         });
     }
 
-    /// <summary>
-    /// Configures Serilog logging with console and Grafana Loki output
-    /// </summary>
-    /// <param name="context">Host builder context</param>
-    /// <param name="loggerConfiguration">Serilog logger configuration</param>
-    private static void ConfigureSerilog(HostBuilderContext context, LoggerConfiguration loggerConfiguration)
-    {
-        var lokiUrl = context.Configuration.GetConnectionString("Loki");
-
-        loggerConfiguration
-            .ReadFrom.Configuration(context.Configuration)
-            .Enrich.FromLogContext()
-            .Enrich.WithProperty("Application", "QuantFlow.Discord.Bot")
-            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
-
-        // Add Grafana Loki sink if URL is configured
-        if (!string.IsNullOrEmpty(lokiUrl))
-        {
-            loggerConfiguration.WriteTo.GrafanaLoki(lokiUrl, new List<LokiLabel>
-            {
-                new() { Key = "application", Value = "quantflow-discord-bot" },
-                new() { Key = "environment", Value = context.HostingEnvironment.EnvironmentName.ToLowerInvariant() }
-            });
-        }
-    }
 }
