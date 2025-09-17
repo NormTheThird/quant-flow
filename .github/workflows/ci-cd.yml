@@ -173,6 +173,8 @@ jobs:
                 env:
                 - name: ASPNETCORE_ENVIRONMENT
                   value: "Production"
+                - name: VAULT_TOKEN
+                  value: "${{ secrets.VAULT_TOKEN }}"
                 resources:
                   requests:
                     memory: "256Mi"
@@ -214,6 +216,8 @@ jobs:
                 env:
                 - name: ASPNETCORE_ENVIRONMENT
                   value: "Production"
+                - name: VAULT_TOKEN
+                  value: "${{ secrets.VAULT_TOKEN }}"
                 resources:
                   requests:
                     memory: "128Mi"
@@ -259,6 +263,8 @@ jobs:
                   value: "Production"
                 - name: ASPNETCORE_URLS
                   value: "http://*:8080"
+                - name: VAULT_TOKEN
+                  value: "${{ secrets.VAULT_TOKEN }}"
                 resources:
                   requests:
                     memory: "256Mi"
