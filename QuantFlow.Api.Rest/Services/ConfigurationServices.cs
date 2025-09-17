@@ -53,33 +53,6 @@ public static class ConfigurationServices
     }
 
     /// <summary>
-    /// Legacy method for IHostBuilder (if needed for other services)
-    /// </summary>
-    public static IHostBuilder ConfigureAppConfiguration(this IHostBuilder hostBuilder, string[] args)
-    {
-        return hostBuilder.ConfigureAppConfiguration((context, config) =>
-        {
-            config.AddJsonFile("appsettings.json", optional: false)
-                .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true)
-                .AddEnvironmentVariables()
-                .AddCommandLine(args);
-
-            // Add User Secrets in Development
-            if (context.HostingEnvironment.IsDevelopment())
-            {
-                config.AddUserSecrets<Program>();
-                // Add Vault for local development
-                config.AddVault("http://vault.local:30420", "quant-flow", "root");
-            }
-            else
-            {
-                // Add Vault for production
-                config.AddVault("http://vault.vault.svc.cluster.local:8200", "quant-flow", "root");
-            }
-        });
-    }
-
-    /// <summary>
     /// Adds API versioning configuration
     /// </summary>
     private static void AddApiVersioning(this WebApplicationBuilder builder)
