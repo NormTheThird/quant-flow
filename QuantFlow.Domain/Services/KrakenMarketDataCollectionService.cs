@@ -6,17 +6,17 @@ public class KrakenMarketDataCollectionService : IKrakenMarketDataCollectionServ
 {
     private readonly ILogger<KrakenMarketDataCollectionService> _logger;
     private readonly IKrakenApiService _krakenApiService;
-    private readonly KrakenCredentials _credentials;
+    //rivate readonly KrakenCredentials _credentials;
     private readonly IMarketDataRepository _marketDataRepository;
     private readonly IApiRateLimitHandler _apiRateLimitHandler;
 
-    public KrakenMarketDataCollectionService(ILogger<KrakenMarketDataCollectionService> logger, IKrakenApiService krakenApiService, KrakenCredentials credentials,
+    public KrakenMarketDataCollectionService(ILogger<KrakenMarketDataCollectionService> logger, IKrakenApiService krakenApiService,
                                              IMarketDataRepository marketDataRepository, IApiRateLimitHandler apiRateLimitHandler)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _krakenApiService = krakenApiService ?? throw new ArgumentNullException(nameof(krakenApiService));
         _marketDataRepository = marketDataRepository ?? throw new ArgumentNullException(nameof(marketDataRepository));
-        _credentials = credentials ?? throw new ArgumentNullException(nameof(credentials));
+        //_credentials = credentials ?? throw new ArgumentNullException(nameof(credentials));
         _apiRateLimitHandler = apiRateLimitHandler ?? throw new ArgumentNullException(nameof(apiRateLimitHandler));
     }
 

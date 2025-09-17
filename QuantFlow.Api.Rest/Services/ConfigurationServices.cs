@@ -1,4 +1,8 @@
-﻿namespace QuantFlow.Api.Rest.Services;
+﻿using QuantFlow.Common.Infrastructure;
+using QuantFlow.Common.Interfaces.Infrastructure;
+using QuantFlow.Domain.Extensions;
+
+namespace QuantFlow.Api.Rest.Services;
 
 /// <summary>
 /// Configuration services for setting up the API application
@@ -6,27 +10,23 @@
 public static class ConfigurationServices
 {
     /// <summary>
-    /// Configures all application services
+    /// Configures the host builder with all necessary services and configuration
     /// </summary>
-    public static void ConfigureServices(this WebApplicationBuilder builder)
+    /// <param name="builder">The web application builder to configure</param>
+    /// <param name="args">Command line arguments</param>
+    /// <returns>Configured web application builder for method chaining</returns>
+    public static WebApplicationBuilder ConfigureApplication(this WebApplicationBuilder builder, string[] args)
     {
-        builder.Host.ConfigureServices((context, services) =>
-        {
-            services.AddSerilog(context, "Api");
-        });
+        builder.ConfigureAppConfiguration(args);
+        builder.ConfigureServices();
 
-        builder.AddApiVersioning();
-        builder.AddDataStores();
-        builder.AddDomainServices();
-        builder.AddAuthentication();
-        builder.AddApiServices();
-        builder.AddSwagger();
+        return builder;
     }
 
     /// <summary>
     /// Configures application configuration sources for WebApplicationBuilder
     /// </summary>
-    public static void ConfigureAppConfiguration(this WebApplicationBuilder builder, string[] args)
+    private static void ConfigureAppConfiguration(this WebApplicationBuilder builder, string[] args)
     {
         // Clear existing sources to have full control
         builder.Configuration.Sources.Clear();
@@ -53,6 +53,28 @@ public static class ConfigurationServices
     }
 
     /// <summary>
+    /// Configures all application services
+    /// </summary>
+    private static void ConfigureServices(this WebApplicationBuilder builder)
+    {
+        builder.Host.ConfigureServices((context, services) =>
+        {
+            services.AddSerilog(context, "Api");
+            services.AddSqlServerDataStore(builder.Configuration);
+            services.AddInfluxDataStore(builder.Configuration);
+       
+            services.AddScoped<IApiRateLimitHandler, ApiRateLimitHandler>();
+
+            services.AddDomainServices();
+        });
+
+        builder.AddApiVersioning();
+        builder.AddAuthentication();
+        builder.AddApiServices();
+        builder.AddSwagger();
+    }
+
+    /// <summary>
     /// Adds API versioning configuration
     /// </summary>
     private static void AddApiVersioning(this WebApplicationBuilder builder)
@@ -70,35 +92,6 @@ public static class ConfigurationServices
             options.GroupNameFormat = "'v'VVV";
             options.SubstituteApiVersionInUrl = true;
         });
-    }
-
-    /// <summary>
-    /// Adds data store services
-    /// </summary>
-    private static void AddDataStores(this WebApplicationBuilder builder)
-    {
-        var sqlConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-        var influxUrl = builder.Configuration.GetSection("InfluxDb:Url").Value;
-
-        if (!string.IsNullOrEmpty(sqlConnectionString))
-        {
-            builder.Services.AddSqlServerDataStore(builder.Configuration);
-        }
-
-        if (!string.IsNullOrEmpty(influxUrl))
-        {
-            builder.Services.AddInfluxDataStore(builder.Configuration);
-        }
-    }
-
-    /// <summary>
-    /// Adds domain services
-    /// </summary>
-    private static void AddDomainServices(this WebApplicationBuilder builder)
-    {
-        builder.Services.AddScoped<IMarketDataService, MarketDataService>();
-        builder.Services.AddScoped<IExchangeConfigurationService, ExchangeConfigurationService>();
-        builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
     }
 
     /// <summary>

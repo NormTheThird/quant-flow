@@ -1,8 +1,7 @@
-var builder = WebApplication.CreateBuilder(args);
-builder.ConfigureServices();
-builder.ConfigureAppConfiguration(args);
+var app = WebApplication.CreateBuilder(args)
+    .ConfigureApplication(args)
+    .Build();
 
-var app = builder.Build();
 app.ConfigurePipeline();
 
 app.Run();

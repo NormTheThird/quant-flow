@@ -1,5 +1,5 @@
-var host = Host.CreateDefaultBuilder(args)
+var hostBuilder = Host.CreateDefaultBuilder(args)
     .ConfigureApplication(args)
     .Build();
 
-await host.RunAsync();
+await hostBuilder.RunAsync();
