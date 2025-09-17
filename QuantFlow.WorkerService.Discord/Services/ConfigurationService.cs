@@ -20,31 +20,11 @@ public static class ConfigurationService
     /// <summary>
     /// Configures application configuration sources
     /// </summary>
-    /// <param name="hostBuilder">The host builder to configure</param>
-    /// <param name="args">Command line arguments</param>
-    /// <returns>Host builder with configured application configuration</returns>
     public static IHostBuilder ConfigureAppConfiguration(this IHostBuilder hostBuilder, string[] args)
     {
         return hostBuilder.ConfigureAppConfiguration((context, config) =>
         {
-            config.AddJsonFile("appsettings.json", optional: false)
-                .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true)
-                .AddEnvironmentVariables()
-                .AddCommandLine(args);
-
-            // Add User Secrets in Development
-            if (context.HostingEnvironment.IsDevelopment())
-            {
-                config.AddUserSecrets<Program>();
-
-                // Add Vault for local development
-                config.AddVault("http://vault.local:30420", "quant-flow", "root");
-            }
-            else
-            {
-                // Add Vault for production
-                config.AddVault("http://vault.vault.svc.cluster.local:8200", "quant-flow", "root");
-            }
+            config.AddQuantFlowConfiguration<Program>(context.HostingEnvironment, args);
         });
     }
 

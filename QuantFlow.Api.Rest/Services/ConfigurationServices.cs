@@ -1,8 +1,4 @@
-﻿using QuantFlow.Common.Infrastructure;
-using QuantFlow.Common.Interfaces.Infrastructure;
-using QuantFlow.Domain.Extensions;
-
-namespace QuantFlow.Api.Rest.Services;
+﻿namespace QuantFlow.Api.Rest.Services;
 
 /// <summary>
 /// Configuration services for setting up the API application
@@ -17,39 +13,10 @@ public static class ConfigurationServices
     /// <returns>Configured web application builder for method chaining</returns>
     public static WebApplicationBuilder ConfigureApplication(this WebApplicationBuilder builder, string[] args)
     {
-        builder.ConfigureAppConfiguration(args);
+        builder.Configuration.AddQuantFlowConfiguration<Program>(builder.Environment, args);
         builder.ConfigureServices();
 
         return builder;
-    }
-
-    /// <summary>
-    /// Configures application configuration sources for WebApplicationBuilder
-    /// </summary>
-    private static void ConfigureAppConfiguration(this WebApplicationBuilder builder, string[] args)
-    {
-        // Clear existing sources to have full control
-        builder.Configuration.Sources.Clear();
-
-        // Add configuration sources in order
-        builder.Configuration
-            .AddJsonFile("appsettings.json", optional: false)
-            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
-            .AddEnvironmentVariables()
-            .AddCommandLine(args);
-
-        // Add User Secrets in Development
-        if (builder.Environment.IsDevelopment())
-        {
-            builder.Configuration.AddUserSecrets<Program>();
-            // Add Vault for local development
-            builder.Configuration.AddVault("http://vault.local:30420", "quant-flow", "root");
-        }
-        else
-        {
-            // Add Vault for production
-            builder.Configuration.AddVault("http://vault.vault.svc.cluster.local:8200", "quant-flow", "root");
-        }
     }
 
     /// <summary>

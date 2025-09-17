@@ -7,6 +7,7 @@ global using QuantFlow.Common.Enumerations;
 global using QuantFlow.Common.Exceptions;
 global using QuantFlow.Common.ExternalModels.Kraken;
 global using QuantFlow.Common.Infrastructure;
+global using QuantFlow.Common.Infrastructure.Vault;
 global using QuantFlow.Common.Interfaces.Infrastructure;
 global using QuantFlow.Common.Models;
 global using Serilog;

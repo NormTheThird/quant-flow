@@ -120,12 +120,12 @@ jobs:
         
         echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-  # DEVELOPMENT DEPLOYMENT PHASE - Runs after all builds complete
-  deploy-development:
+  # TEST/STAGING DEPLOYMENT PHASE - Runs after all builds complete
+  deploy-test:
     needs: [build-datacollection, build-discord, build-api]
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main'
-    environment: development
+    environment: test
     
     steps:
     - name: Setup Kubernetes Config
@@ -141,7 +141,7 @@ jobs:
           --docker-server=${{ env.HARBOR_REGISTRY }} \
           --docker-username="${{ secrets.HARBOR_USERNAME }}" \
           --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
-          -n development --dry-run=client -o yaml | kubectl apply -f -
+          -n test --dry-run=client -o yaml | kubectl apply -f -
     
     - name: Deploy DataCollection Service
       if: needs.build-datacollection.result == 'success'
@@ -149,14 +149,40 @@ jobs:
         export KUBECONFIG=kubeconfig
         IMAGE_TAG=${{ needs.build-datacollection.outputs.image-tag }}
         
-        kubectl set image deployment/quantflow-datacollection \
-          quantflow-datacollection=$IMAGE_TAG \
-          -n development || \
-        kubectl create deployment quantflow-datacollection \
-          --image=$IMAGE_TAG \
-          -n development
+        cat <<EOF | kubectl apply -f -
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: quantflow-datacollection
+          namespace: test
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: quantflow-datacollection
+          template:
+            metadata:
+              labels:
+                app: quantflow-datacollection
+            spec:
+              imagePullSecrets:
+              - name: harbor-registry
+              containers:
+              - name: quantflow-datacollection
+                image: $IMAGE_TAG
+                env:
+                - name: ASPNETCORE_ENVIRONMENT
+                  value: "Production"
+                resources:
+                  requests:
+                    memory: "256Mi"
+                    cpu: "200m"
+                  limits:
+                    memory: "512Mi"
+                    cpu: "500m"
+        EOF
         
-        kubectl rollout status deployment/quantflow-datacollection -n development --timeout=300s
+        kubectl rollout status deployment/quantflow-datacollection -n test --timeout=300s
     
     - name: Deploy Discord Bot Service
       if: needs.build-discord.result == 'success'
@@ -169,7 +195,7 @@ jobs:
         kind: Deployment
         metadata:
           name: quantflow-discord
-          namespace: development
+          namespace: test
         spec:
           replicas: 1
           selector:
@@ -197,7 +223,7 @@ jobs:
                     cpu: "200m"
         EOF
         
-        kubectl rollout status deployment/quantflow-discord -n development --timeout=300s
+        kubectl rollout status deployment/quantflow-discord -n test --timeout=300s
     
     - name: Deploy API Service
       if: needs.build-api.result == 'success'
@@ -210,7 +236,7 @@ jobs:
         kind: Deployment
         metadata:
           name: quantflow-api
-          namespace: development
+          namespace: test
         spec:
           replicas: 1
           selector:
@@ -257,7 +283,7 @@ jobs:
         kind: Service
         metadata:
           name: quantflow-api-service
-          namespace: development
+          namespace: test
         spec:
           selector:
             app: quantflow-api
@@ -271,12 +297,12 @@ jobs:
         kind: Ingress
         metadata:
           name: quantflow-api-ingress
-          namespace: development
+          namespace: test
           annotations:
             nginx.ingress.kubernetes.io/rewrite-target: /
         spec:
           rules:
-          - host: api-dev.quantflow.local
+          - host: api-test.quantflow.local
             http:
               paths:
               - path: /
@@ -288,174 +314,17 @@ jobs:
                       number: 8080
         EOF
         
-        kubectl rollout status deployment/quantflow-api -n development --timeout=300s
+        kubectl rollout status deployment/quantflow-api -n test --timeout=300s
 
-  # PRODUCTION DEPLOYMENT PHASE - Optional with manual approval
+  # PRODUCTION DEPLOYMENT PHASE - Placeholder for future implementation
   deploy-production:
-    needs: [build-datacollection, build-discord, build-api, deploy-development]
+    needs: [build-datacollection, build-discord, build-api, deploy-test]
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
-    environment: production  # This will require manual approval if configured
+    if: false  # Disabled for now - will be enabled when production deployment is ready
+    environment: production
     
     steps:
-    - name: Setup Kubernetes Config
+    - name: Production Deployment Placeholder
       run: |
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
-        export KUBECONFIG=kubeconfig
-        kubectl cluster-info
-    
-    - name: Create Harbor Registry Secret
-      run: |
-        export KUBECONFIG=kubeconfig
-        kubectl create secret docker-registry harbor-registry \
-          --docker-server=${{ env.HARBOR_REGISTRY }} \
-          --docker-username="${{ secrets.HARBOR_USERNAME }}" \
-          --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
-          -n production --dry-run=client -o yaml | kubectl apply -f -
-    
-    - name: Deploy DataCollection to Production
-      if: needs.build-datacollection.result == 'success'
-      run: |
-        export KUBECONFIG=kubeconfig
-        IMAGE_TAG=${{ needs.build-datacollection.outputs.image-tag }}
-        
-        kubectl set image deployment/quantflow-datacollection \
-          quantflow-datacollection=$IMAGE_TAG \
-          -n production || \
-        kubectl create deployment quantflow-datacollection \
-          --image=$IMAGE_TAG \
-          -n production
-        
-        kubectl rollout status deployment/quantflow-datacollection -n production --timeout=300s
-    
-    - name: Deploy Discord Bot to Production
-      if: needs.build-discord.result == 'success'
-      run: |
-        export KUBECONFIG=kubeconfig
-        IMAGE_TAG=${{ needs.build-discord.outputs.image-tag }}
-        
-        cat <<EOF | kubectl apply -f -
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: quantflow-discord
-          namespace: production
-        spec:
-          replicas: 1
-          selector:
-            matchLabels:
-              app: quantflow-discord
-          template:
-            metadata:
-              labels:
-                app: quantflow-discord
-            spec:
-              imagePullSecrets:
-              - name: harbor-registry
-              containers:
-              - name: quantflow-discord
-                image: $IMAGE_TAG
-                env:
-                - name: ASPNETCORE_ENVIRONMENT
-                  value: "Production"
-                resources:
-                  requests:
-                    memory: "128Mi"
-                    cpu: "100m"
-                  limits:
-                    memory: "256Mi"
-                    cpu: "200m"
-        EOF
-        
-        kubectl rollout status deployment/quantflow-discord -n production --timeout=300s
-    
-    - name: Deploy API to Production
-      if: needs.build-api.result == 'success'
-      run: |
-        export KUBECONFIG=kubeconfig
-        IMAGE_TAG=${{ needs.build-api.outputs.image-tag }}
-        
-        cat <<EOF | kubectl apply -f -
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: quantflow-api
-          namespace: production
-        spec:
-          replicas: 2
-          selector:
-            matchLabels:
-              app: quantflow-api
-          template:
-            metadata:
-              labels:
-                app: quantflow-api
-            spec:
-              imagePullSecrets:
-              - name: harbor-registry
-              containers:
-              - name: quantflow-api
-                image: $IMAGE_TAG
-                ports:
-                - containerPort: 8080
-                env:
-                - name: ASPNETCORE_ENVIRONMENT
-                  value: "Production"
-                - name: ASPNETCORE_URLS
-                  value: "http://*:8080"
-                resources:
-                  requests:
-                    memory: "512Mi"
-                    cpu: "500m"
-                  limits:
-                    memory: "1Gi"
-                    cpu: "1000m"
-                livenessProbe:
-                  httpGet:
-                    path: /health
-                    port: 8080
-                  initialDelaySeconds: 30
-                  periodSeconds: 10
-                readinessProbe:
-                  httpGet:
-                    path: /health
-                    port: 8080
-                  initialDelaySeconds: 5
-                  periodSeconds: 5
-        ---
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: quantflow-api-service
-          namespace: production
-        spec:
-          selector:
-            app: quantflow-api
-          ports:
-          - port: 80
-            targetPort: 8080
-            protocol: TCP
-          type: ClusterIP
-        ---
-        apiVersion: networking.k8s.io/v1
-        kind: Ingress
-        metadata:
-          name: quantflow-api-ingress
-          namespace: production
-          annotations:
-            nginx.ingress.kubernetes.io/rewrite-target: /
-        spec:
-          rules:
-          - host: api.quantflow.local
-            http:
-              paths:
-              - path: /
-                pathType: Prefix
-                backend:
-                  service:
-                    name: quantflow-api-service
-                    port:
-                      number: 80
-        EOF
-        
-        kubectl rollout status deployment/quantflow-api -n production --timeout=300s
+        echo "Production deployment will be implemented later"
+        echo "This job is currently disabled via 'if: false' condition"
