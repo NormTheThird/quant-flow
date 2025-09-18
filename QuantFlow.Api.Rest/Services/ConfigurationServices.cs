@@ -29,7 +29,7 @@ public static class ConfigurationServices
             services.AddSerilog(context, "Api");
             services.AddSqlServerDataStore(builder.Configuration);
             services.AddInfluxDataStore(builder.Configuration);
-       
+
             services.AddScoped<IApiRateLimitHandler, ApiRateLimitHandler>();
 
             services.AddDomainServices();
@@ -175,18 +175,15 @@ public static class ConfigurationServices
     /// </summary>
     public static void ConfigurePipeline(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        app.UseSwagger();
+        app.UseSwaggerUI(options =>
         {
-            app.UseSwagger();
-            app.UseSwaggerUI(options =>
-            {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "QuantFlow Public API v1");
-                options.RoutePrefix = "swagger";
-                options.DisplayRequestDuration();
-                options.EnableDeepLinking();
-                options.EnableFilter();
-            });
-        }
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "QuantFlow Public API v1");
+            options.RoutePrefix = "swagger";
+            options.DisplayRequestDuration();
+            options.EnableDeepLinking();
+            options.EnableFilter();
+        });
 
         app.UseMiddleware<ErrorHandlingMiddleware>();
         app.UseHttpsRedirection();
