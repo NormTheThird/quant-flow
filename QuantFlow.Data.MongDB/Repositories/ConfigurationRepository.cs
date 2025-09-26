@@ -177,7 +177,7 @@ public class ConfigurationRepository : IConfigurationRepository
             configuration.Id = Guid.NewGuid();
 
         configuration.CreatedAt = DateTime.UtcNow;
-        configuration.UpdatedAt = null;
+        configuration.UpdatedAt = DateTime.UtcNow;
 
         var document = configuration.ToDocument();
         await _collection.InsertOneAsync(document);

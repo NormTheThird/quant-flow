@@ -7,7 +7,7 @@
 [Route("api/v{version:apiVersion}/pub/[controller]")]
 [ApiVersion("1.0")]
 [Authorize(Policy = "ApiKeyPolicy")]
-public class ExchangeConfigurationController : BaseController
+public class ExchangeConfigurationController : BaseController<ExchangeConfigurationController>
 {
     private readonly IExchangeConfigurationService _exchangeConfigurationService;
 

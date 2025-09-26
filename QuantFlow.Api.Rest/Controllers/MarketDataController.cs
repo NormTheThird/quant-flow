@@ -7,7 +7,7 @@
 [Route("api/v{version:apiVersion}/pub/[controller]")]
 [ApiVersion("1.0")]
 [Authorize(Policy = "ApiKeyPolicy")]
-public class MarketDataController : BaseController
+public class MarketDataController : BaseController<MarketDataController>
 {
     private readonly IMarketDataService _marketDataService;
 

@@ -6,10 +6,8 @@
 public static class UserMappingExtensions
 {
     /// <summary>
-    /// Converts UserEntity to UserModel
+    /// Converts UserEntity to UserModel WITH password hash (for authentication only)
     /// </summary>
-    /// <param name="entity">The entity to convert</param>
-    /// <returns>UserModel business object</returns>
     public static UserModel ToBusinessModel(this UserEntity entity)
     {
         return new UserModel
@@ -17,37 +15,15 @@ public static class UserMappingExtensions
             Id = entity.Id,
             Username = entity.Username,
             Email = entity.Email,
-            PasswordHash = entity.PasswordHash,
+            FirstName = entity.FirstName,
+            LastName = entity.LastName,
             IsEmailVerified = entity.IsEmailVerified,
             IsSystemAdmin = entity.IsSystemAdmin,
-            CreatedAt = entity.CreatedAt,
-            UpdatedAt = entity.UpdatedAt,
             IsDeleted = entity.IsDeleted,
+            CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
+            UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
-        };
-    }
-
-    /// <summary>
-    /// Converts UserModel to UserEntity
-    /// </summary>
-    /// <param name="model">The business model to convert</param>
-    /// <returns>UserEntity for database operations</returns>
-    public static UserEntity ToEntity(this UserModel model)
-    {
-        return new UserEntity
-        {
-            Id = model.Id,
-            Username = model.Username,
-            Email = model.Email,
-            PasswordHash = model.PasswordHash,
-            IsEmailVerified = model.IsEmailVerified,
-            IsSystemAdmin = model.IsSystemAdmin,
-            CreatedAt = model.CreatedAt,
-            UpdatedAt = model.UpdatedAt,
-            IsDeleted = model.IsDeleted,
-            CreatedBy = model.CreatedBy,
-            UpdatedBy = model.UpdatedBy
         };
     }
 
@@ -59,5 +35,27 @@ public static class UserMappingExtensions
     public static IEnumerable<UserModel> ToBusinessModels(this IEnumerable<UserEntity> entities)
     {
         return entities.Select(e => e.ToBusinessModel());
+    }
+
+    /// <summary>
+    /// Converts UserModel to UserEntity (password hash should be set separately)
+    /// </summary>
+    public static UserEntity ToEntity(this UserModel model)
+    {
+        return new UserEntity
+        {
+            Id = model.Id,
+            Username = model.Username,
+            Email = model.Email,
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            IsEmailVerified = model.IsEmailVerified,
+            IsSystemAdmin = model.IsSystemAdmin,
+            IsDeleted = model.IsDeleted,
+            CreatedAt = model.CreatedAt,
+            CreatedBy = model.CreatedBy ?? "System",
+            UpdatedAt = model.UpdatedAt,
+            UpdatedBy = model.UpdatedBy
+        };
     }
 }

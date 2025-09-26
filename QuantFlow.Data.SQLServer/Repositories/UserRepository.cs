@@ -30,6 +30,36 @@ public class UserRepository : IUserRepository
     }
 
     /// <summary>
+    /// Gets a user by email address
+    /// </summary>
+    /// <param name="email">Email address to search for</param>
+    /// <returns>User business model if found, null otherwise</returns>
+    public async Task<UserModel?> GetByEmailAsync(string email)
+    {
+        _logger.LogInformation("Getting user by email: {Email}", email);
+
+        var entity = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
+
+        return entity?.ToBusinessModel();
+    }
+
+    /// <summary>
+    /// Gets a user by username
+    /// </summary>
+    /// <param name="username">Username to search for</param>
+    /// <returns>User business model if found, null otherwise</returns>
+    public async Task<UserModel?> GetByUsernameAsync(string username)
+    {
+        _logger.LogInformation("Getting user by username: {Username}", username);
+
+        var entity = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username == username && !u.IsDeleted);
+
+        return entity?.ToBusinessModel();
+    }
+
+    /// <summary>
     /// Gets all active users
     /// </summary>
     /// <returns>Collection of user business models</returns>
@@ -37,11 +67,24 @@ public class UserRepository : IUserRepository
     {
         _logger.LogInformation("Getting all users");
 
-        var entities = await _context.Users
-            .Where(u => !u.IsDeleted)
-            .ToListAsync();
+        var entities = await _context.Users.Where(u => !u.IsDeleted).ToListAsync();
 
         return entities.ToBusinessModels();
+    }
+
+    /// <summary>
+    /// Gets a user's password hash by email for authentication validation
+    /// </summary>
+    public async Task<string?> GetPasswordHashByEmailAsync(string email)
+    {
+        _logger.LogInformation("Getting password hash for email: {Email}", email);
+
+        var entity = await _context.Users
+            .Where(u => u.Email == email && !u.IsDeleted)
+            .Select(u => u.PasswordHash)
+            .FirstOrDefaultAsync();
+
+        return entity;
     }
 
     /// <summary>
@@ -88,13 +131,32 @@ public class UserRepository : IUserRepository
 
         entity.Username = user.Username;
         entity.Email = user.Email;
-        entity.PasswordHash = user.PasswordHash;
         entity.IsEmailVerified = user.IsEmailVerified;
         entity.IsSystemAdmin = user.IsSystemAdmin;
         entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedBy = user.UpdatedBy ?? "System";
 
         await _context.SaveChangesAsync();
         return entity.ToBusinessModel();
+    }
+
+    /// <summary>
+    /// Updates a user's password hash
+    /// </summary>
+    public async Task<bool> UpdatePasswordHashAsync(Guid userId, string newPasswordHash)
+    {
+        _logger.LogInformation("Updating password hash for user: {UserId}", userId);
+
+        var entity = await _context.Users.FindAsync(userId);
+        if (entity == null)
+            return false;
+
+        entity.PasswordHash = newPasswordHash;
+        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedBy = "System";
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 
     /// <summary>
@@ -112,38 +174,9 @@ public class UserRepository : IUserRepository
 
         entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedBy = "System";
 
         await _context.SaveChangesAsync();
         return true;
-    }
-
-    /// <summary>
-    /// Gets a user by email address
-    /// </summary>
-    /// <param name="email">Email address to search for</param>
-    /// <returns>User business model if found, null otherwise</returns>
-    public async Task<UserModel?> GetByEmailAsync(string email)
-    {
-        _logger.LogInformation("Getting user by email: {Email}", email);
-
-        var entity = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
-
-        return entity?.ToBusinessModel();
-    }
-
-    /// <summary>
-    /// Gets a user by username
-    /// </summary>
-    /// <param name="username">Username to search for</param>
-    /// <returns>User business model if found, null otherwise</returns>
-    public async Task<UserModel?> GetByUsernameAsync(string username)
-    {
-        _logger.LogInformation("Getting user by username: {Username}", username);
-
-        var entity = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == username && !u.IsDeleted);
-
-        return entity?.ToBusinessModel();
     }
 }

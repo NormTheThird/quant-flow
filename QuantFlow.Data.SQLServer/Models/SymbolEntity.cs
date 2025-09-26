@@ -21,24 +21,27 @@ public class SymbolEntity
     [MaxLength(10)]
     public string QuoteAsset { get; set; } = string.Empty;
 
-    public bool IsActive { get; set; } = true;
-
     [Precision(18, 8)]
     public decimal MinTradeAmount { get; set; } = 0.0m;
 
     public int PricePrecision { get; set; } = 8;
+
     public int QuantityPrecision { get; set; } = 8;
 
-    public DateTime CreatedAt { get; set; } = new();
-    public DateTime? UpdatedAt { get; set; } = null;
+    public bool IsActive { get; set; } = true;
+
     public bool IsDeleted { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = new();
 
     [MaxLength(100)]
     public string CreatedBy { get; set; } = string.Empty;
 
-    [MaxLength(100)]
-    public string? UpdatedBy { get; set; } = null;
+    public DateTime UpdatedAt { get; set; } = new();
 
-    // EF Core navigation properties
-    public virtual ICollection<ExchangeSymbolEntity> ExchangeSymbols { get; set; } = [];
+    [MaxLength(100)]
+    public string UpdatedBy { get; set; } = string.Empty;
+
+    //// EF Core navigation properties
+    //public virtual ICollection<ExchangeSymbolEntity> ExchangeSymbols { get; set; } = [];
 }

@@ -19,9 +19,10 @@ public static class ServiceCollectionExtensions
 
         // Register repository implementations
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IPortfolioRepository, PortfolioRepository>();
-        services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
-        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+        //services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+        //services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
+        //services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<ITradeRepository, TradeRepository>();
         services.AddScoped<ISymbolRepository, SymbolRepository>();
         //services.AddScoped<IExchangeSymbolRepository, SqlExchangeSymbolRepository>();
@@ -29,7 +30,7 @@ public static class ServiceCollectionExtensions
         //services.AddScoped<IUserPreferencesRepository, SqlUserPreferencesRepository>();
 
         // Exchange Configuration Repository (NEW)
-        services.AddScoped<IExchangeConfigurationRepository, ExchangeConfigurationRepository>();
+        //services.AddScoped<IExchangeConfigurationRepository, ExchangeConfigurationRepository>();
 
         return services;
     }
@@ -48,17 +49,18 @@ public static class ServiceCollectionExtensions
 
         // Register repository implementations
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IPortfolioRepository, PortfolioRepository>();
-        services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
+        services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+        //services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+        //services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
         services.AddScoped<ITradeRepository, TradeRepository>();
         services.AddScoped<ISymbolRepository, SymbolRepository>();
-        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        //services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         //services.AddScoped<IExchangeSymbolRepository, SqlExchangeSymbolRepository>();
         //services.AddScoped<IConfigurationRepository, SqlConfigurationRepository>();
         //services.AddScoped<IUserPreferencesRepository, SqlUserPreferencesRepository>();
 
         // Exchange Configuration Repository (NEW)
-        services.AddScoped<IExchangeConfigurationRepository, ExchangeConfigurationRepository>();
+        //services.AddScoped<IExchangeConfigurationRepository, ExchangeConfigurationRepository>();
 
         return services;
     }

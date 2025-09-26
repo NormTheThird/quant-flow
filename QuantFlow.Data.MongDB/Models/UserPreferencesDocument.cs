@@ -61,6 +61,9 @@ public class UserPreferencesDocument
 
     [BsonElement("privacy_settings")]
     public BsonDocument PrivacySettings { get; set; } = new();
+    
+    [BsonElement("is_deleted")]
+    public bool IsDeleted { get; set; } = false;
 
     [BsonElement("created_at")]
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
@@ -68,8 +71,5 @@ public class UserPreferencesDocument
 
     [BsonElement("updated_at")]
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
-    public DateTime? UpdatedAt { get; set; } = null;
-
-    [BsonElement("is_deleted")]
-    public bool IsDeleted { get; set; } = false;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

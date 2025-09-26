@@ -6,9 +6,9 @@
 public abstract class BaseModel
 {
     public Guid Id { get; set; } = Guid.Empty;
-    public DateTime CreatedAt { get; set; } = new();
-    public DateTime? UpdatedAt { get; set; } = null;
     public bool IsDeleted { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = new();
     public string CreatedBy { get; set; } = string.Empty;
-    public string? UpdatedBy { get; set; } = null;
+    public DateTime UpdatedAt { get; set; } = new();
+    public string UpdatedBy { get; set; } = string.Empty;
 }

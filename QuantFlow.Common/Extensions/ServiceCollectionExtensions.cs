@@ -38,8 +38,10 @@ public static class ServiceCollectionExtensions
         if (environment.IsDevelopment())
             config.AddUserSecrets<TProgram>();
 
-        var vaultToken = Environment.GetEnvironmentVariable("VAULT_TOKEN") ?? 
-            throw new InvalidOperationException("VAULT_TOKEN environment variable must be set");
+        var intermediateConfig = config.Build();
+        var vaultToken = intermediateConfig["Vault:Token"] ??
+            Environment.GetEnvironmentVariable("VAULT_TOKEN") ??
+            throw new InvalidOperationException("VAULT_TOKEN must be set in user secrets or environment variables");
 
         if (environment.IsDevelopment())
             config.AddVault("http://vault.local:30420", "quant-flow", vaultToken);

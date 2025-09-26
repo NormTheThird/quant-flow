@@ -4,11 +4,11 @@ namespace QuantFlow.Api.Rest.Controllers;
 /// Base controller providing common functionality for all API controllers
 /// </summary>
 [ApiController]
-public abstract class BaseController : ControllerBase
+public abstract class BaseController<T> : ControllerBase where T : class
 {
-    protected readonly ILogger _logger;
+    protected readonly ILogger<T> _logger;
 
-    protected BaseController(ILogger logger)
+    protected BaseController(ILogger<T> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }

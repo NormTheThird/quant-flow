@@ -18,13 +18,12 @@ public static class UserModelFixture
             Id = Guid.NewGuid(),
             Username = defaultUsername,
             Email = defaultEmail,
-            PasswordHash = "hashedpassword123",
             IsEmailVerified = true,
             IsSystemAdmin = false,
             CreatedAt = DateTime.UtcNow.AddDays(-30),
             CreatedBy = "system",
-            UpdatedAt = null,
-            UpdatedBy = null
+            UpdatedAt = DateTime.UtcNow.AddDays(-30),
+            UpdatedBy = "system"
         };
     }
 
@@ -61,13 +60,12 @@ public static class UserModelFixture
             Id = Guid.NewGuid(),
             Username = adminUsername,
             Email = adminEmail,
-            PasswordHash = "hashedadminpassword123",
             IsEmailVerified = true,
             IsSystemAdmin = true,
-            CreatedAt = DateTime.UtcNow.AddDays(-90),
+            CreatedAt = DateTime.UtcNow.AddDays(-30),
             CreatedBy = "system",
-            UpdatedAt = null,
-            UpdatedBy = null
+            UpdatedAt = DateTime.UtcNow.AddDays(-30),
+            UpdatedBy = "system"
         };
     }
 
@@ -84,13 +82,12 @@ public static class UserModelFixture
             Id = Guid.NewGuid(),
             Username = newUsername,
             Email = newEmail,
-            PasswordHash = "hashedpassword123",
             IsEmailVerified = false,
             IsSystemAdmin = false,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "registration",
-            UpdatedAt = null,
-            UpdatedBy = null
+            UpdatedAt = DateTime.UtcNow,
+            UpdatedBy = "registration",
         };
     }
 
@@ -105,13 +102,12 @@ public static class UserModelFixture
             Id = Guid.NewGuid(),
             Username = username,
             Email = email,
-            PasswordHash = passwordHash ?? "hashedpassword123",
             IsEmailVerified = isEmailVerified,
             IsSystemAdmin = isSystemAdmin,
             CreatedAt = createdAt ?? DateTime.UtcNow.AddDays(-1),
             CreatedBy = "test",
-            UpdatedAt = null,
-            UpdatedBy = null
+            UpdatedAt = createdAt ?? DateTime.UtcNow.AddDays(-1),
+            UpdatedBy = "test",
         };
     }
 
@@ -141,7 +137,6 @@ public static class UserModelFixture
             Id = userId,
             Username = newUsername ?? "updateduser",
             Email = newEmail ?? "updated@example.com",
-            PasswordHash = newPasswordHash ?? "updatedpasswordhash",
             IsEmailVerified = isEmailVerified ?? true,
             IsSystemAdmin = isSystemAdmin ?? false,
             CreatedAt = DateTime.UtcNow.AddDays(-30),

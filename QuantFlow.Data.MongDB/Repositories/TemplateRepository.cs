@@ -239,7 +239,7 @@ public class TemplateRepository : ITemplateRepository
             template.Id = Guid.NewGuid();
 
         template.CreatedAt = DateTime.UtcNow;
-        template.UpdatedAt = null;
+        template.UpdatedAt = DateTime.UtcNow;
 
         var document = template.ToDocument();
         await _collection.InsertOneAsync(document);

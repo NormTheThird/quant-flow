@@ -52,11 +52,5 @@ public class SymbolConfiguration : IEntityTypeConfiguration<SymbolEntity>
 
         // Soft delete filter
         builder.HasQueryFilter(x => !x.IsDeleted);
-
-        // Relationships
-        builder.HasMany(x => x.ExchangeSymbols)
-            .WithOne(x => x.Symbol)
-            .HasForeignKey(x => x.SymbolId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }

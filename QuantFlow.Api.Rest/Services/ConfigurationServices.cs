@@ -31,6 +31,7 @@ public static class ConfigurationServices
             services.AddInfluxDataStore(builder.Configuration);
 
             services.AddScoped<IApiRateLimitHandler, ApiRateLimitHandler>();
+            services.AddScoped<IJwtTokenService, JwtTokenService>();
 
             services.AddDomainServices();
         });

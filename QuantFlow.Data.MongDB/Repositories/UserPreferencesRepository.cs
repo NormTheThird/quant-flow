@@ -65,7 +65,7 @@ public class UserPreferencesRepository : IUserPreferencesRepository
             preferences.Id = Guid.NewGuid();
 
         preferences.CreatedAt = DateTime.UtcNow;
-        preferences.UpdatedAt = null;
+        preferences.UpdatedAt = DateTime.UtcNow;
 
         var document = preferences.ToDocument();
         await _collection.InsertOneAsync(document);

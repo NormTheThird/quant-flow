@@ -8,7 +8,7 @@ public interface IJwtTokenService
     /// <summary>
     /// Generates a JWT token for the specified user
     /// </summary>
-    string GenerateToken(string userId, string email, List<string> roles);
+    string GenerateToken(string userId, string email, bool isSystemAdmin);
 
     /// <summary>
     /// Generates a refresh token

@@ -17,20 +17,22 @@ public class JwtTokenService : IJwtTokenService
     /// <summary>
     /// Generates a JWT token for the specified user
     /// </summary>
-    public string GenerateToken(string userId, string email, List<string> roles)
+    public string GenerateToken(string userId, string email, bool isSystemAdmin)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key not configured")));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, userId),
-            new(ClaimTypes.Email, email),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
-        };
+    {
+        new(ClaimTypes.NameIdentifier, userId),
+        new(ClaimTypes.Email, email),
+        new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+    };
 
-        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        // Add role based on isSystemAdmin flag
+        var role = isSystemAdmin ? "admin" : "user";
+        claims.Add(new Claim(ClaimTypes.Role, role));
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],

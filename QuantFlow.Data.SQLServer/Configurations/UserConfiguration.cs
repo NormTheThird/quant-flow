@@ -47,16 +47,5 @@ public class UserConfiguration : IEntityTypeConfiguration<UserEntity>
 
         // Soft delete filter
         builder.HasQueryFilter(x => !x.IsDeleted);
-
-        // Relationships
-        builder.HasMany(x => x.Portfolios)
-            .WithOne(x => x.User)
-            .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(x => x.Subscriptions)
-            .WithOne(x => x.User)
-            .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }

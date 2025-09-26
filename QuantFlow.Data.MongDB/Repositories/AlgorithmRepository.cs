@@ -153,7 +153,7 @@ public class AlgorithmRepository : IAlgorithmRepository
             algorithm.Id = Guid.NewGuid();
 
         algorithm.CreatedAt = DateTime.UtcNow;
-        algorithm.UpdatedAt = null;
+        algorithm.UpdatedAt = DateTime.UtcNow;
 
         var document = algorithm.ToDocument();
         await _collection.InsertOneAsync(document);

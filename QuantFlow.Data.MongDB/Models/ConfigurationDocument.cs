@@ -66,20 +66,20 @@ public class ConfigurationDocument
     [BsonElement("version")]
     public int Version { get; set; } = 1;
 
+    [BsonElement("is_deleted")]
+    public bool IsDeleted { get; set; } = false;
+
     [BsonElement("created_at")]
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [BsonElement("updated_at")]
-    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
-    public DateTime? UpdatedAt { get; set; } = null;
-
     [BsonElement("created_by")]
     public string CreatedBy { get; set; } = string.Empty;
 
-    [BsonElement("updated_by")]
-    public string? UpdatedBy { get; set; } = null;
+    [BsonElement("updated_at")]
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    [BsonElement("is_deleted")]
-    public bool IsDeleted { get; set; } = false;
+    [BsonElement("updated_by")]
+    public string UpdatedBy { get; set; } = string.Empty;
 }

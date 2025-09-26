@@ -12,6 +12,8 @@ public class TradeEntity
     [Required]
     public Guid BacktestRunId { get; set; } = Guid.Empty;
 
+    public Guid? EntryTradeId { get; set; } = null;
+
     [Required]
     [MaxLength(20)]
     public string Symbol { get; set; } = string.Empty;
@@ -54,21 +56,17 @@ public class TradeEntity
     [Precision(8, 4)]
     public decimal? RealizedProfitLossPercent { get; set; } = null;
 
-    public Guid? EntryTradeId { get; set; } = null;
+    public bool IsDeleted { get; set; } = false;
 
     public DateTime CreatedAt { get; set; } = new();
-    public DateTime? UpdatedAt { get; set; } = null;
-    public bool IsDeleted { get; set; } = false;
 
     [MaxLength(100)]
     public string CreatedBy { get; set; } = string.Empty;
 
-    [MaxLength(100)]
-    public string? UpdatedBy { get; set; } = null;
+    public DateTime UpdatedAt { get; set; } = new();
 
-    // EF Core navigation properties
-    [ForeignKey(nameof(BacktestRunId))]
-    public virtual BacktestRunEntity BacktestRun { get; set; } = null!;
+    [MaxLength(100)]
+    public string UpdatedBy { get; set; } = string.Empty;
 
     [ForeignKey(nameof(EntryTradeId))]
     public virtual TradeEntity? EntryTrade { get; set; } = null;
