@@ -1,13 +1,11 @@
-﻿using System.Reflection;
-
-namespace QuantFlow.Data.SQLServer.Context;
+﻿namespace QuantFlow.Data.SQLServer.Context;
 
 /// <summary>
 /// Entity Framework Database Context for QuantFlow application
 /// </summary>
-public class ApplicationDbContext : DbContext
+public class QuantFlowDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    public QuantFlowDbContext(DbContextOptions<QuantFlowDbContext> options) : base(options)
     {
     }
 

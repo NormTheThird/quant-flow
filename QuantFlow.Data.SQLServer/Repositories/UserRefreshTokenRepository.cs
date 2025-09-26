@@ -5,10 +5,10 @@
 /// </summary>
 public class UserRefreshTokenRepository : IUserRefreshTokenRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly QuantFlowDbContext _context;
     private readonly ILogger<UserRefreshTokenRepository> _logger;
 
-    public UserRefreshTokenRepository(ApplicationDbContext context, ILogger<UserRefreshTokenRepository> logger)
+    public UserRefreshTokenRepository(QuantFlowDbContext context, ILogger<UserRefreshTokenRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -29,7 +29,9 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
             TokenType = "refresh",
             ExpiresAt = expiresAt,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "System"
+            CreatedBy = "System",
+            UpdatedAt = DateTime.UtcNow,
+            UpdatedBy = "System"
         };
 
         _context.UserRefreshTokens.Add(entity);
@@ -52,8 +54,9 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
             Token = token,
             TokenType = "password_reset",
             ExpiresAt = expiresAt,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = "System"
+            CreatedBy = "System",
+            UpdatedAt = DateTime.UtcNow,
+            UpdatedBy = "System"
         };
 
         _context.UserRefreshTokens.Add(entity);
@@ -72,8 +75,7 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
         var entity = await _context.UserRefreshTokens
             .FirstOrDefaultAsync(rt => rt.Token == token
                                     && rt.TokenType == "refresh"
-                                    && !rt.IsRevoked
-                                    && !rt.IsDeleted);
+                                    && !rt.IsRevoked);
 
         return entity?.ToBusinessModel();
     }
@@ -89,7 +91,6 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
             .FirstOrDefaultAsync(rt => rt.Token == token
                                     && rt.TokenType == "password_reset"
                                     && !rt.IsRevoked
-                                    && !rt.IsDeleted
                                     && rt.ExpiresAt > DateTime.UtcNow);
 
         return entity?.ToBusinessModel();
@@ -102,9 +103,7 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
     {
         _logger.LogInformation("Revoking refresh token");
 
-        var entity = await _context.UserRefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == token && !rt.IsDeleted);
-
+        var entity = await _context.UserRefreshTokens.FirstOrDefaultAsync(rt => rt.Token == token);
         if (entity == null)
             return false;
 
@@ -123,10 +122,7 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
     {
         _logger.LogInformation("Revoking all refresh tokens for user: {UserId}", userId);
 
-        var entities = await _context.UserRefreshTokens
-            .Where(rt => rt.UserId == userId && !rt.IsRevoked && !rt.IsDeleted)
-            .ToListAsync();
-
+        var entities = await _context.UserRefreshTokens.Where(rt => rt.UserId == userId && !rt.IsRevoked).ToListAsync();
         foreach (var entity in entities)
         {
             entity.IsRevoked = true;
@@ -144,12 +140,10 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
     public async Task<IEnumerable<UserRefreshTokenModel>> GetActiveTokensByUserAsync(Guid userId)
     {
         _logger.LogInformation("Getting active refresh tokens for user: {UserId}", userId);
-
         var entities = await _context.UserRefreshTokens
             .Where(rt => rt.UserId == userId
                       && rt.TokenType == "refresh"
                       && !rt.IsRevoked
-                      && !rt.IsDeleted
                       && rt.ExpiresAt > DateTime.UtcNow)
             .ToListAsync();
 
@@ -163,13 +157,9 @@ public class UserRefreshTokenRepository : IUserRefreshTokenRepository
     {
         _logger.LogInformation("Deleting expired refresh tokens");
 
-        var expiredTokens = await _context.UserRefreshTokens
-            .Where(rt => rt.ExpiresAt < DateTime.UtcNow && !rt.IsDeleted)
-            .ToListAsync();
-
+        var expiredTokens = await _context.UserRefreshTokens.Where(rt => rt.ExpiresAt < DateTime.UtcNow).ToListAsync();
         foreach (var token in expiredTokens)
         {
-            token.IsDeleted = true;
             token.UpdatedAt = DateTime.UtcNow;
             token.UpdatedBy = "System";
         }

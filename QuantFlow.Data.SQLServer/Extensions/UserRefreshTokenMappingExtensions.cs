@@ -19,7 +19,6 @@ public static class UserRefreshTokenMappingExtensions
             IsRevoked = entity.IsRevoked,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
-            IsDeleted = entity.IsDeleted,
             CreatedBy = entity.CreatedBy,
             UpdatedBy = entity.UpdatedBy
         };
@@ -39,7 +38,6 @@ public static class UserRefreshTokenMappingExtensions
             IsRevoked = model.IsRevoked,
             CreatedAt = model.CreatedAt,
             UpdatedAt = model.UpdatedAt,
-            IsDeleted = model.IsDeleted,
             CreatedBy = model.CreatedBy ?? "System",
             UpdatedBy = model.UpdatedBy
         };

@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSqlServerDataStore(this IServiceCollection services, IConfiguration configuration)
     {
         // Add Entity Framework DbContext
-        services.AddDbContext<ApplicationDbContext>(options =>
+        services.AddDbContext<QuantFlowDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         // Register repository implementations
@@ -44,7 +44,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSqlServerDataStore(this IServiceCollection services, string connectionString)
     {
         // Add Entity Framework DbContext
-        services.AddDbContext<ApplicationDbContext>(options =>
+        services.AddDbContext<QuantFlowDbContext>(options =>
             options.UseSqlServer(connectionString));
 
         // Register repository implementations

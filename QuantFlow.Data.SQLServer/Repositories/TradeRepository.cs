@@ -5,10 +5,10 @@
 /// </summary>
 public class TradeRepository : ITradeRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly QuantFlowDbContext _context;
     private readonly ILogger<TradeRepository> _logger;
 
-    public TradeRepository(ApplicationDbContext context, ILogger<TradeRepository> logger)
+    public TradeRepository(QuantFlowDbContext context, ILogger<TradeRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

@@ -46,9 +46,6 @@ public class UserRefreshTokenConfiguration : IEntityTypeConfiguration<UserRefres
         builder.Property(x => x.IsRevoked)
             .HasDefaultValue(false);
 
-        builder.Property(x => x.IsDeleted)
-            .HasDefaultValue(false);
-
         builder.Property(x => x.CreatedAt)
             .HasDefaultValueSql("GETUTCDATE()");
 
@@ -57,8 +54,5 @@ public class UserRefreshTokenConfiguration : IEntityTypeConfiguration<UserRefres
             .WithMany() // Add navigation property to UserEntity if needed
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // Soft delete filter
-        builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

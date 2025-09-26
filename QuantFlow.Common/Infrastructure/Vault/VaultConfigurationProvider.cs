@@ -26,23 +26,30 @@ public class VaultConfigurationProvider : ConfigurationProvider
             var vaultClientSettings = new VaultClientSettings(_vaultUrl, authMethod);
             var vaultClient = new VaultClient(vaultClientSettings);
 
+            // Load Discord configuration
+            var discordSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("discord", mountPoint: _mountPoint);
+            Data["Discord:ClientId"] = discordSecret.Data.Data["clientId"].ToString();
+            Data["Discord:ClientSecret"] = discordSecret.Data.Data["clientSecret"].ToString();
+            Data["Discord:PTMemberRoleId"] = discordSecret.Data.Data["ptMemberRoleId"].ToString();
+            Data["Discord:ServerId"] = discordSecret.Data.Data["serverId"].ToString();
+            Data["Discord:Token"] = discordSecret.Data.Data["token"].ToString();
+            Data["Discord:VerifiedRoleId"] = discordSecret.Data.Data["verifiedRoleId"].ToString();
+
+            // Load InfluxDB configuration
             var influxSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("influxdb", mountPoint: _mountPoint);
-            Data["InfluxDb:Url"] = influxSecret.Data.Data["url"].ToString();
-            Data["InfluxDb:Token"] = influxSecret.Data.Data["token"].ToString();
             Data["InfluxDb:Bucket"] = influxSecret.Data.Data["bucket"].ToString();
             Data["InfluxDb:Organization"] = influxSecret.Data.Data["organization"].ToString();
+            Data["InfluxDb:Token"] = influxSecret.Data.Data["token"].ToString();
+            Data["InfluxDb:Url"] = influxSecret.Data.Data["url"].ToString();
 
+            // Load Kraken API configuration
             var krakenSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("kraken", mountPoint: _mountPoint);
             Data["Kraken:ApiKey"] = krakenSecret.Data.Data["apikey"].ToString();
             Data["Kraken:ApiSecret"] = krakenSecret.Data.Data["apisecret"].ToString();
 
-            var discordSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("discord", mountPoint: _mountPoint);
-            Data["Discord:Token"] = discordSecret.Data.Data["token"].ToString();
-            Data["Discord:ServerId"] = discordSecret.Data.Data["serverId"].ToString();
-            Data["Discord:ClientId"] = discordSecret.Data.Data["clientId"].ToString();
-            Data["Discord:ClientSecret"] = discordSecret.Data.Data["clientSecret"].ToString();
-            Data["Discord:PTMemberRoleId"] = discordSecret.Data.Data["ptMemberRoleId"].ToString();
-            Data["Discord:VerifiedRoleId"] = discordSecret.Data.Data["verifiedRoleId"].ToString();
+            // Load SQL Server connection string
+            var sqlServerSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("sqlserver", mountPoint: _mountPoint);
+            Data["ConnectionStrings:DefaultConnection"] = sqlServerSecret.Data.Data["defaultConnection"].ToString();
         }
         catch (Exception ex)
         {

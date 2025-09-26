@@ -5,10 +5,10 @@
 /// </summary>
 public class SymbolRepository : ISymbolRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly QuantFlowDbContext _context;
     private readonly ILogger<SymbolRepository> _logger;
 
-    public SymbolRepository(ApplicationDbContext context, ILogger<SymbolRepository> logger)
+    public SymbolRepository(QuantFlowDbContext context, ILogger<SymbolRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

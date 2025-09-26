@@ -5,10 +5,10 @@
 /// </summary>
 public class UserRepository : IUserRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly QuantFlowDbContext _context;
     private readonly ILogger<UserRepository> _logger;
 
-    public UserRepository(ApplicationDbContext context, ILogger<UserRepository> logger)
+    public UserRepository(QuantFlowDbContext context, ILogger<UserRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

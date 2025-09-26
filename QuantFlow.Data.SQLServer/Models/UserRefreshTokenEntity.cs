@@ -24,8 +24,6 @@ public class UserRefreshTokenEntity
 
     public bool IsRevoked { get; set; } = false;
 
-    public bool IsDeleted { get; set; } = false;
-
     public DateTime CreatedAt { get; set; } = new();
 
     [MaxLength(100)]
