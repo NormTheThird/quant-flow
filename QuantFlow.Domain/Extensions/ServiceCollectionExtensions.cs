@@ -18,8 +18,10 @@ public static class ServiceCollectionExtensions
         // Register Domain services
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IMarketDataService, MarketDataService>();
+        services.AddScoped<IMarketDataConfigurationService, MarketDataConfigurationService>();
         //services.AddScoped<IExchangeConfigurationService, ExchangeConfigurationService>();
         services.AddScoped<IKrakenMarketDataCollectionService, KrakenMarketDataCollectionService>();
+        services.AddScoped<ISymbolService, SymbolService>();
 
         return services;
     }

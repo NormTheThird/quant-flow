@@ -180,6 +180,7 @@ public static class ConfigurationServices
         app.UseSwaggerUI(options =>
         {
             options.SwaggerEndpoint("/swagger/v1/swagger.json", "QuantFlow Public API v1");
+            options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
             options.RoutePrefix = "swagger";
             options.DisplayRequestDuration();
             options.EnableDeepLinking();

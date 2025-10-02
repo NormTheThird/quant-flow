@@ -21,12 +21,40 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Symbol business model if found, null otherwise</returns>
     public async Task<SymbolModel?> GetByIdAsync(Guid id)
     {
-        _logger.LogInformation("Getting symbol with ID: {SymbolId}", id);
+        try
+        {
+            var entity = await _context.Symbols
+                .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
 
-        var entity = await _context.Symbols
-            .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+            return entity?.ToBusinessModel();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error getting symbol by ID: {SymbolId}", id);
+            throw;
+        }
+    }
 
-        return entity?.ToBusinessModel();
+    /// <summary>
+    /// Gets a symbol by its unique identifier, including soft-deleted symbols
+    /// </summary>
+    /// <param name="id">The symbol's unique identifier</param>
+    /// <returns>Symbol business model if found (including deleted), null otherwise</returns>
+    public async Task<SymbolModel?> GetByIdIncludingDeletedAsync(Guid id)
+    {
+        try
+        {
+            var entity = await _context.Symbols
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            return entity?.ToBusinessModel();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error getting symbol by ID including deleted: {SymbolId}", id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -36,12 +64,17 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Symbol business model if found, null otherwise</returns>
     public async Task<SymbolModel?> GetBySymbolAsync(string symbol)
     {
-        _logger.LogInformation("Getting symbol: {Symbol}", symbol);
+        try
+        {
+            var entity = await _context.Symbols.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Symbol == symbol);
 
-        var entity = await _context.Symbols
-            .FirstOrDefaultAsync(s => s.Symbol == symbol && !s.IsDeleted);
-
-        return entity?.ToBusinessModel();
+            return entity?.ToBusinessModel();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error getting symbol by name: {Symbol}", symbol);
+            throw;
+        }
     }
 
     /// <summary>
@@ -50,14 +83,20 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Collection of symbol business models</returns>
     public async Task<IEnumerable<SymbolModel>> GetAllAsync()
     {
-        _logger.LogInformation("Getting all symbols");
+        try
+        {
+            var entities = await _context.Symbols
+                .Where(s => !s.IsDeleted)
+                .OrderBy(s => s.Symbol)
+                .ToListAsync();
 
-        var entities = await _context.Symbols
-            .Where(s => !s.IsDeleted)
-            .OrderBy(s => s.Symbol)
-            .ToListAsync();
-
-        return entities.ToBusinessModels();
+            return entities.ToBusinessModels();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error getting all symbols");
+            throw;
+        }
     }
 
     /// <summary>
@@ -66,14 +105,20 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Collection of active symbol business models</returns>
     public async Task<IEnumerable<SymbolModel>> GetActiveAsync()
     {
-        _logger.LogInformation("Getting active symbols");
+        try
+        {
+            var entities = await _context.Symbols
+                .Where(s => s.IsActive && !s.IsDeleted)
+                .OrderBy(s => s.Symbol)
+                .ToListAsync();
 
-        var entities = await _context.Symbols
-            .Where(s => s.IsActive && !s.IsDeleted)
-            .OrderBy(s => s.Symbol)
-            .ToListAsync();
-
-        return entities.ToBusinessModels();
+            return entities.ToBusinessModels();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error getting active symbols");
+            throw;
+        }
     }
 
     /// <summary>
@@ -83,15 +128,73 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Created symbol business model</returns>
     public async Task<SymbolModel> CreateAsync(SymbolModel symbol)
     {
-        _logger.LogInformation("Creating symbol: {Symbol}", symbol.Symbol);
+        try
+        {
+            var entity = symbol.ToEntity();
+            entity.Id = Guid.NewGuid();
 
-        var entity = symbol.ToEntity();
-        entity.CreatedAt = DateTime.UtcNow;
+            var utcNow = DateTime.UtcNow;
+            entity.CreatedAt = utcNow;
+            entity.UpdatedAt = utcNow;
 
-        _context.Symbols.Add(entity);
-        await _context.SaveChangesAsync();
+            _context.Symbols.Add(entity);
+            await _context.SaveChangesAsync();
 
-        return entity.ToBusinessModel();
+            return entity.ToBusinessModel();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error creating symbol: {Symbol}", symbol.Symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Restores a soft-deleted symbol by setting IsDeleted to false
+    /// </summary>
+    /// <param name="symbol">Symbol business model with updated properties</param>
+    /// <returns>Restored symbol business model</returns>
+    public async Task<SymbolModel> RestoreAsync(SymbolModel symbol)
+    {
+        try
+        {
+            var entity = await _context.Symbols
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(s => s.Id == symbol.Id);
+
+            if (entity == null)
+                throw new NotFoundException($"Symbol with ID {symbol.Id} not found");
+
+            if (!entity.IsDeleted)
+                throw new InvalidOperationException("Symbol is not deleted and cannot be restored");
+
+            // Restore and update properties
+            entity.IsDeleted = false;
+            entity.Symbol = symbol.Symbol;
+            entity.BaseAsset = symbol.BaseAsset;
+            entity.QuoteAsset = symbol.QuoteAsset;
+            entity.IsActive = symbol.IsActive;
+            entity.MinTradeAmount = symbol.MinTradeAmount;
+            entity.PricePrecision = symbol.PricePrecision;
+            entity.QuantityPrecision = symbol.QuantityPrecision;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return entity.ToBusinessModel();
+        }
+        catch (NotFoundException)
+        {
+            throw;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error restoring symbol: {SymbolId}", symbol.Id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -101,23 +204,33 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Updated symbol business model</returns>
     public async Task<SymbolModel> UpdateAsync(SymbolModel symbol)
     {
-        _logger.LogInformation("Updating symbol with ID: {SymbolId}", symbol.Id);
+        try
+        {
+            var entity = await _context.Symbols.FindAsync(symbol.Id);
+            if (entity == null)
+                throw new NotFoundException($"Symbol with ID {symbol.Id} not found");
 
-        var entity = await _context.Symbols.FindAsync(symbol.Id);
-        if (entity == null)
-            throw new NotFoundException($"Symbol with ID {symbol.Id} not found");
+            entity.Symbol = symbol.Symbol;
+            entity.BaseAsset = symbol.BaseAsset;
+            entity.QuoteAsset = symbol.QuoteAsset;
+            entity.IsActive = symbol.IsActive;
+            entity.MinTradeAmount = symbol.MinTradeAmount;
+            entity.PricePrecision = symbol.PricePrecision;
+            entity.QuantityPrecision = symbol.QuantityPrecision;
+            entity.UpdatedAt = DateTime.UtcNow;
 
-        entity.Symbol = symbol.Symbol;
-        entity.BaseAsset = symbol.BaseAsset;
-        entity.QuoteAsset = symbol.QuoteAsset;
-        entity.IsActive = symbol.IsActive;
-        entity.MinTradeAmount = symbol.MinTradeAmount;
-        entity.PricePrecision = symbol.PricePrecision;
-        entity.QuantityPrecision = symbol.QuantityPrecision;
-        entity.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        return entity.ToBusinessModel();
+            await _context.SaveChangesAsync();
+            return entity.ToBusinessModel();
+        }
+        catch (NotFoundException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error updating symbol: {SymbolId}", symbol.Id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -127,17 +240,23 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>True if deletion was successful</returns>
     public async Task<bool> DeleteAsync(Guid id)
     {
-        _logger.LogInformation("Deleting symbol with ID: {SymbolId}", id);
+        try
+        {
+            var entity = await _context.Symbols.FindAsync(id);
+            if (entity == null)
+                return false;
 
-        var entity = await _context.Symbols.FindAsync(id);
-        if (entity == null)
-            return false;
+            entity.IsDeleted = true;
+            entity.UpdatedAt = DateTime.UtcNow;
 
-        entity.IsDeleted = true;
-        entity.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        return true;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error deleting symbol: {SymbolId}", id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -147,14 +266,20 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Collection of symbol business models</returns>
     public async Task<IEnumerable<SymbolModel>> GetByBaseAssetAsync(string baseAsset)
     {
-        _logger.LogInformation("Getting symbols with base asset: {BaseAsset}", baseAsset);
+        try
+        {
+            var entities = await _context.Symbols
+                .Where(s => s.BaseAsset == baseAsset && s.IsActive && !s.IsDeleted)
+                .OrderBy(s => s.Symbol)
+                .ToListAsync();
 
-        var entities = await _context.Symbols
-            .Where(s => s.BaseAsset == baseAsset && s.IsActive && !s.IsDeleted)
-            .OrderBy(s => s.Symbol)
-            .ToListAsync();
-
-        return entities.ToBusinessModels();
+            return entities.ToBusinessModels();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error getting symbols by base asset: {BaseAsset}", baseAsset);
+            throw;
+        }
     }
 
     /// <summary>
@@ -164,13 +289,36 @@ public class SymbolRepository : ISymbolRepository
     /// <returns>Collection of symbol business models</returns>
     public async Task<IEnumerable<SymbolModel>> GetByQuoteAssetAsync(string quoteAsset)
     {
-        _logger.LogInformation("Getting symbols with quote asset: {QuoteAsset}", quoteAsset);
+        try
+        {
+            var entities = await _context.Symbols
+                .Where(s => s.QuoteAsset == quoteAsset && s.IsActive && !s.IsDeleted)
+                .OrderBy(s => s.Symbol)
+                .ToListAsync();
 
-        var entities = await _context.Symbols
-            .Where(s => s.QuoteAsset == quoteAsset && s.IsActive && !s.IsDeleted)
-            .OrderBy(s => s.Symbol)
-            .ToListAsync();
+            return entities.ToBusinessModels();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error getting symbols by quote asset: {QuoteAsset}", quoteAsset);
+            throw;
+        }
+    }
 
-        return entities.ToBusinessModels();
+    /// <summary>
+    /// Checks if a symbol exists by ID
+    /// </summary>
+    public async Task<bool> ExistsAsync(Guid symbolId)
+    {
+        try
+        {
+            return await _context.Symbols
+                .AnyAsync(s => s.Id == symbolId && !s.IsDeleted);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error checking if symbol exists: {SymbolId}", symbolId);
+            throw;
+        }
     }
 }

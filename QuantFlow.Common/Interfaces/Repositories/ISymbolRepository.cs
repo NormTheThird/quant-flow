@@ -13,6 +13,13 @@ public interface ISymbolRepository
     Task<SymbolModel?> GetByIdAsync(Guid id);
 
     /// <summary>
+    /// Gets a symbol by its unique identifier, including soft-deleted symbols
+    /// </summary>
+    /// <param name="id">The symbol's unique identifier</param>
+    /// <returns>Symbol business model if found (including deleted), null otherwise</returns>
+    Task<SymbolModel?> GetByIdIncludingDeletedAsync(Guid id);
+
+    /// <summary>
     /// Gets a symbol by its symbol name
     /// </summary>
     /// <param name="symbol">The symbol name</param>
@@ -37,6 +44,13 @@ public interface ISymbolRepository
     /// <param name="symbol">Symbol business model to create</param>
     /// <returns>Created symbol business model</returns>
     Task<SymbolModel> CreateAsync(SymbolModel symbol);
+
+    /// <summary>
+    /// Restores a soft-deleted symbol by setting IsDeleted to false
+    /// </summary>
+    /// <param name="symbol">Symbol business model with updated properties</param>
+    /// <returns>Restored symbol business model</returns>
+    Task<SymbolModel> RestoreAsync(SymbolModel symbol);
 
     /// <summary>
     /// Updates an existing symbol
@@ -65,4 +79,9 @@ public interface ISymbolRepository
     /// <param name="quoteAsset">The quote asset to filter by</param>
     /// <returns>Collection of symbol business models</returns>
     Task<IEnumerable<SymbolModel>> GetByQuoteAssetAsync(string quoteAsset);
+
+    /// <summary>
+    /// Checks if a symbol exists by ID
+    /// </summary>
+    Task<bool> ExistsAsync(Guid symbolId);
 }

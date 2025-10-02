@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
         // Register repository implementations
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+        services.AddScoped<IMarketDataConfigurationRepository, MarketDataConfigurationRepository>();
         //services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         //services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
         //services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();

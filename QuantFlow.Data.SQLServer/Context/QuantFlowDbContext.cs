@@ -18,6 +18,8 @@ public class QuantFlowDbContext : DbContext
     //// Trading and Backtesting
     ////public DbSet<AlgorithmEntity> Algorithms { get; set; } = null!;
     //public DbSet<BacktestRunEntity> BacktestRuns { get; set; } = null!;
+
+    public DbSet<MarketDataConfigurationEntity> MarketDataConfigurations { get; set; } = null!;
     public DbSet<TradeEntity> Trades { get; set; } = null!;
 
     // Market Data and Symbols
@@ -30,8 +32,8 @@ public class QuantFlowDbContext : DbContext
     //public DbSet<SymbolFeeOverrideEntity> SymbolFeeOverrides { get; set; } = null!;
 
     // Configuration
-   // public DbSet<ConfigurationEntity> Configurations { get; set; } = null!;
-   // public DbSet<UserPreferencesEntity> UserPreferences { get; set; } = null!;
+    // public DbSet<ConfigurationEntity> Configurations { get; set; } = null!;
+    // public DbSet<UserPreferencesEntity> UserPreferences { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,9 +82,7 @@ public class QuantFlowDbContext : DbContext
     /// </summary>
     private void UpdateAuditFields()
     {
-        var entries = ChangeTracker.Entries()
-            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
-
+        var entries = ChangeTracker.Entries().Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added)
