@@ -42,6 +42,12 @@ public class VaultConfigurationProvider : ConfigurationProvider
             Data["InfluxDb:Token"] = influxSecret.Data.Data["token"].ToString();
             Data["InfluxDb:Url"] = influxSecret.Data.Data["url"].ToString();
 
+            // Load JWT configuration
+            var jwtSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("jwt", mountPoint: _mountPoint);
+            Data["Jwt:Key"] = jwtSecret.Data.Data["key"].ToString();
+            Data["Jwt:Issuer"] = jwtSecret.Data.Data["issuer"].ToString();
+            Data["Jwt:Audience"] = jwtSecret.Data.Data["audience"].ToString();
+
             // Load Kraken API configuration
             var krakenSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("kraken", mountPoint: _mountPoint);
             Data["Kraken:ApiKey"] = krakenSecret.Data.Data["apikey"].ToString();
