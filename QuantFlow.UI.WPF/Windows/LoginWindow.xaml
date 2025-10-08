@@ -1,0 +1,57 @@
+﻿<Window x:Class="QuantFlow.UI.WPF.Windows.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="QuantFlow - Login" 
+        Height="450" 
+        Width="350"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#1E1E1E">
+    <Grid>
+        <StackPanel VerticalAlignment="Center" Margin="40">
+            <TextBlock Text="QuantFlow" 
+                       FontSize="32" 
+                       FontWeight="Bold" 
+                       Foreground="White" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,0,0,40"/>
+
+            <TextBlock Text="Username" 
+                       Foreground="#B0B0B0" 
+                       Margin="0,0,0,5"/>
+            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                     Height="35" 
+                     Background="#2D2D2D" 
+                     Foreground="White" 
+                     BorderBrush="#3F3F3F" 
+                     Padding="10,8"/>
+
+            <TextBlock Text="Password" 
+                       Foreground="#B0B0B0" 
+                       Margin="0,20,0,5"/>
+            <PasswordBox x:Name="PasswordBox" 
+                         Height="35" 
+                         Background="#2D2D2D" 
+                         Foreground="White" 
+                         BorderBrush="#3F3F3F" 
+                         Padding="10,8"/>
+
+            <TextBlock Text="{Binding ErrorMessage}" 
+                       Foreground="#FF4444" 
+                       Margin="0,10,0,0"
+                       TextWrapping="Wrap"/>
+
+            <Button Command="{Binding LoginCommand}"
+                    CommandParameter="{Binding ElementName=PasswordBox}"
+                    Content="Login" 
+                    Height="40" 
+                    Margin="0,20,0,0" 
+                    Background="#0078D4" 
+                    Foreground="White" 
+                    BorderThickness="0" 
+                    FontSize="14" 
+                    FontWeight="SemiBold"
+                    Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>
