@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QuantFlow.Data.SQLServer.Context;
 
@@ -11,9 +12,11 @@ using QuantFlow.Data.SQLServer.Context;
 namespace QuantFlow.Data.SQLServer.Migrations
 {
     [DbContext(typeof(QuantFlowDbContext))]
-    partial class QuantFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251009155127_AddUserExchangeDetailsTable")]
+    partial class AddUserExchangeDetailsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -23,8 +23,11 @@ public partial class MainWindowViewModel : ObservableObject
     public void NavigateToDashboard()
     {
         _logger.LogInformation("Navigating to Dashboard");
-        var dashboardViewModel = _serviceProvider.GetRequiredService<DashboardViewModel>();
-        var dashboardView = _serviceProvider.GetRequiredService<DashboardView>();
+
+        // Create a scope for scoped services
+        var scope = _serviceProvider.CreateScope();
+        var dashboardViewModel = scope.ServiceProvider.GetRequiredService<DashboardViewModel>();
+        var dashboardView = scope.ServiceProvider.GetRequiredService<DashboardView>();
         dashboardView.DataContext = dashboardViewModel;
         CurrentView = dashboardView;
     }
@@ -33,8 +36,11 @@ public partial class MainWindowViewModel : ObservableObject
     public void NavigateToSettings()
     {
         _logger.LogInformation("Navigating to Settings");
-        var settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
-        var settingsView = _serviceProvider.GetRequiredService<SettingsView>();
+
+        // Create a scope for scoped services
+        var scope = _serviceProvider.CreateScope();
+        var settingsViewModel = scope.ServiceProvider.GetRequiredService<SettingsViewModel>();
+        var settingsView = scope.ServiceProvider.GetRequiredService<SettingsView>();
         settingsView.DataContext = settingsViewModel;
         CurrentView = settingsView;
     }

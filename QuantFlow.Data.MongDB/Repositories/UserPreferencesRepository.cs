@@ -304,6 +304,11 @@ public class UserPreferencesRepository : IUserPreferencesRepository
                 ["maxDrawdown"] = 0.10,
                 ["stopLossDefault"] = 0.02
             },
+            MarketOverviewCards = new Dictionary<string, object>
+            {
+                ["Kraken"] = new List<string> { "XBTUSD", "ETHUSD", "ADAUSD", "SOLUSD", "DOTUSD" },
+                ["Kucoin"] = new List<string>()
+            },
             FavoriteSymbols = [],
             FavoriteExchanges = [],
             CustomAlerts = [],

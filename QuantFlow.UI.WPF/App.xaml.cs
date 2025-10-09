@@ -20,6 +20,7 @@ public partial class App : Application
         var credentialStorage = _host.Services.GetRequiredService<ICredentialStorageService>();
         var authService = _host.Services.GetRequiredService<IAuthenticationApiService>();
         var tokenStorage = _host.Services.GetRequiredService<ITokenStorageService>();
+        var userSession = _host.Services.GetRequiredService<IUserSessionService>();
 
         // Check for stored credentials
         if (credentialStorage.HasStoredCredentials())
@@ -33,6 +34,9 @@ public partial class App : Application
                 if (result != null)
                 {
                     tokenStorage.StoreToken(result.Token, result.RefreshToken);
+
+                    // Set user session
+                    userSession.SetCurrentUser(result.User.Id, result.User.Username);
 
                     // Ensure user preferences exist
                     _ = authService.ValidateUserPreferencesAsync(result.User.Id, result.Token);

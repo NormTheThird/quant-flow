@@ -33,8 +33,10 @@ public static class ConfigurationService
         services.AddSqlServerDataStore(context.Configuration);
         services.AddMongoDb(context.Configuration);
 
-        // Domain services - only UserService for now
-        services.AddScoped<IUserService, UserService>();
+        // Domain services
+        services.AddTransient<IUserService, UserService>();
+        services.AddTransient<IKrakenApiService, KrakenApiService>();
+        services.AddTransient<ISymbolService, SymbolService>();
 
         // HttpClient configuration
         services.AddHttpClient<IAuthenticationApiService, AuthenticationApiService>(client =>
@@ -51,6 +53,9 @@ public static class ConfigurationService
 
         // Theme service
         services.AddSingleton<IThemeService, ThemeService>();
+
+        // User session service
+        services.AddSingleton<IUserSessionService, UserSessionService>();
 
         // ViewModels
         services.AddTransient<LoginViewModel>();

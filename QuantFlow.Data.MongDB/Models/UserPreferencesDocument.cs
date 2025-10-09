@@ -29,6 +29,9 @@ public class UserPreferencesDocument
     [BsonElement("dashboard_layout")]
     public BsonDocument DashboardLayout { get; set; } = new();
 
+    [BsonElement("market_overview_cards")]
+    public BsonDocument MarketOverviewCards { get; set; } = new();
+
     [BsonElement("chart_settings")]
     public BsonDocument ChartSettings { get; set; } = new();
 

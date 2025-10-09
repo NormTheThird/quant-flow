@@ -11,6 +11,7 @@ public class QuantFlowDbContext : DbContext
 
     // User and Account Management
     public DbSet<UserEntity> Users { get; set; } = null!;
+    public DbSet<UserExchangeDetailsEntity> UserExchangeDetails { get; set; } = null!;
     public DbSet<UserRefreshTokenEntity> UserRefreshTokens { get; set; } = null!;
     //public DbSet<SubscriptionEntity> Subscriptions { get; set; } = null!;
     //public DbSet<PortfolioEntity> Portfolios { get; set; } = null!;

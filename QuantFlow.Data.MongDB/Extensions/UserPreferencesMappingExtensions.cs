@@ -23,6 +23,7 @@ public static class UserPreferencesMappingExtensions
             Timezone = document.Timezone,
             CurrencyDisplay = document.CurrencyDisplay,
             DashboardLayout = ConvertBsonToObject(document.DashboardLayout),
+            MarketOverviewCards = ConvertBsonToObject(document.MarketOverviewCards),
             ChartSettings = ConvertBsonToObject(document.ChartSettings),
             NotificationSettings = ConvertBsonToObject(document.NotificationSettings),
             TradingSettings = ConvertBsonToObject(document.TradingSettings),
@@ -58,6 +59,7 @@ public static class UserPreferencesMappingExtensions
             Timezone = model.Timezone,
             CurrencyDisplay = model.CurrencyDisplay,
             DashboardLayout = ConvertObjectToBson(model.DashboardLayout),
+            MarketOverviewCards = ConvertObjectToBson(model.MarketOverviewCards),
             ChartSettings = ConvertObjectToBson(model.ChartSettings),
             NotificationSettings = ConvertObjectToBson(model.NotificationSettings),
             TradingSettings = ConvertObjectToBson(model.TradingSettings),
@@ -101,6 +103,7 @@ public static class UserPreferencesMappingExtensions
         document.Timezone = model.Timezone;
         document.CurrencyDisplay = model.CurrencyDisplay;
         document.DashboardLayout = ConvertObjectToBson(model.DashboardLayout);
+        document.MarketOverviewCards = ConvertObjectToBson(model.MarketOverviewCards);
         document.ChartSettings = ConvertObjectToBson(model.ChartSettings);
         document.NotificationSettings = ConvertObjectToBson(model.NotificationSettings);
         document.TradingSettings = ConvertObjectToBson(model.TradingSettings);

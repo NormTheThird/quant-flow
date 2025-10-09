@@ -11,6 +11,7 @@ public class UserPreferencesModel : BaseModel
     public string Timezone { get; set; } = "UTC";
     public string CurrencyDisplay { get; set; } = "USD";
     public object DashboardLayout { get; set; } = new();
+    public object MarketOverviewCards { get; set; } = new();
     public object ChartSettings { get; set; } = new();
     public object NotificationSettings { get; set; } = new();
     public object TradingSettings { get; set; } = new();

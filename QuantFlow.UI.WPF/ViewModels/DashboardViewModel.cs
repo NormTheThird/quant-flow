@@ -3,6 +3,10 @@
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly ILogger<DashboardViewModel> _logger;
+    private readonly IUserPreferencesRepository _userPreferencesRepository;
+    private readonly IKrakenApiService _krakenApiService;
+    private readonly IUserSessionService _userSessionService;
+    private readonly ISymbolService _symbolService;
 
     [ObservableProperty]
     private List<CryptoCardViewModel> _cryptoCards = new();
@@ -13,37 +17,165 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private List<RecentTradeViewModel> _recentTrades = new();
 
-    public DashboardViewModel(ILogger<DashboardViewModel> logger)
+    [ObservableProperty]
+    private bool _isLoading = false;
+
+    [ObservableProperty]
+    private bool _hasNoSymbols = false;
+
+    public DashboardViewModel(ILogger<DashboardViewModel> logger, IUserPreferencesRepository userPreferencesRepository, IKrakenApiService krakenApiService,
+                                      IUserSessionService userSessionService, ISymbolService symbolService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userPreferencesRepository = userPreferencesRepository ?? throw new ArgumentNullException(nameof(userPreferencesRepository));
+        _krakenApiService = krakenApiService ?? throw new ArgumentNullException(nameof(krakenApiService));
+        _userSessionService = userSessionService ?? throw new ArgumentNullException(nameof(userSessionService));
+        _symbolService = symbolService ?? throw new ArgumentNullException(nameof(symbolService));
+
         _logger.LogInformation("DashboardViewModel initialized");
 
-        InitializeCryptoCards();
-        InitializePortfolios();
-        InitializeRecentTrades();
+        _ = InitializeAsync();
+        _symbolService = symbolService;
     }
 
-    private void InitializeCryptoCards()
+    private async Task InitializeAsync()
     {
-        CryptoCards = new List<CryptoCardViewModel>
+        // Load portfolios and trades immediately (synchronous/fast)
+        InitializePortfolios();
+        InitializeRecentTrades();
+
+        // Load market overview cards asynchronously without blocking
+        _ = LoadMarketOverviewCardsAsync();
+    }
+
+    private async Task LoadMarketOverviewCardsAsync()
+    {
+        IsLoading = true;
+
+        try
         {
-            new CryptoCardViewModel("BTC", "Bitcoin", 43521.32, 2.45,
-                new[] { 42000.0, 42500, 41800, 43000, 42700, 43200, 43521 }),
+            var userId = _userSessionService.CurrentUserId;
+            _logger.LogInformation("Loading market overview cards for user: {UserId}", userId);
 
-            new CryptoCardViewModel("ETH", "Ethereum", 2284.56, 3.12,
-                new[] { 2200.0, 2250, 2180, 2300, 2270, 2290, 2284 }),
+            var cryptoCards = await FetchCryptoCardsAsync(userId);
 
-            new CryptoCardViewModel("ADA", "Cardano", 0.5821, -1.23,
-                new[] { 0.60, 0.59, 0.58, 0.57, 0.58, 0.59, 0.58 }),
+            CryptoCards = cryptoCards;
+            HasNoSymbols = cryptoCards.Count == 0;
+            _logger.LogInformation("Loaded {Count} crypto cards", cryptoCards.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Critical error loading market overview cards");
+            SetEmptyState();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
 
-            new CryptoCardViewModel("FET", "Fetch.ai", 1.2453, 5.67,
-                new[] { 1.10, 1.15, 1.12, 1.18, 1.20, 1.23, 1.24 }),
+    private async Task<List<CryptoCardViewModel>> FetchCryptoCardsAsync(Guid userId)
+    {
+        // Get user preferences
+        var preferences = await _userPreferencesRepository.GetByUserIdAsync(userId);
+        if (preferences == null)
+        {
+            _logger.LogWarning("No preferences found for user: {UserId}", userId);
+            return new List<CryptoCardViewModel>();
+        }
 
-            new CryptoCardViewModel("SOL", "Solana", 98.32, 4.21,
-                new[] { 92.0, 94, 93, 96, 97, 98, 98 }),
+        // Parse MarketOverviewCards from preferences
+        var marketOverviewCards = preferences.MarketOverviewCards as Dictionary<string, object>;
+        if (marketOverviewCards == null || !marketOverviewCards.ContainsKey("Kraken"))
+        {
+            _logger.LogInformation("No Kraken symbols configured for user: {UserId}", userId);
+            return new List<CryptoCardViewModel>();
+        }
 
-            new CryptoCardViewModel("DOT", "Polkadot", 6.84, -0.87,
-                new[] { 7.10, 7.05, 6.95, 6.90, 6.85, 6.88, 6.84 })
+        // Get Kraken symbols
+        var krakenSymbols = marketOverviewCards["Kraken"] as List<object>;
+        if (krakenSymbols == null || !krakenSymbols.Any())
+        {
+            _logger.LogInformation("User has empty Kraken symbols list");
+            return new List<CryptoCardViewModel>();
+        }
+
+        var cryptoCards = new List<CryptoCardViewModel>();
+
+        // Fetch data for each symbol
+        foreach (var symbolObj in krakenSymbols)
+        {
+            var symbol = symbolObj?.ToString();
+            if (string.IsNullOrEmpty(symbol)) continue;
+
+            var card = await FetchCardForSymbolAsync(symbol);
+            if (card != null)
+                cryptoCards.Add(card);
+        }
+
+        return cryptoCards;
+    }
+    private async Task<CryptoCardViewModel?> FetchCardForSymbolAsync(string symbol)
+    {
+        try
+        {
+            // Get symbol info from database first
+            var symbolInfo = await _symbolService.GetBySymbolAsync(symbol);
+            if (symbolInfo == null)
+            {
+                _logger.LogWarning("Symbol {Symbol} not found in database, skipping", symbol);
+                return null;
+            }
+
+            var dailyData = await _krakenApiService.GetDailyKlinesAsync(symbol, 7);
+            if (dailyData == null || !dailyData.Any())
+            {
+                _logger.LogWarning("No daily data found for symbol: {Symbol}, showing as unsupported", symbol);
+                return new CryptoCardViewModel(symbolInfo, 0, 0, new double[7], "Kraken", isSupported: false);
+            }
+
+            var currentPrice = dailyData.Last().ClosingPrice;
+            var previousClose = dailyData.First().ClosingPrice;
+            var changePercent = ((currentPrice - previousClose) / previousClose) * 100;
+            var chartData = dailyData.Select(k => (double)k.ClosingPrice).ToArray();
+
+            return new CryptoCardViewModel(
+                symbolInfo,
+                (double)currentPrice,
+                (double)changePercent,
+                chartData,
+                "Kraken",
+                isSupported: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch data for symbol: {Symbol}", symbol);
+
+            // Try to get symbol info for unsupported card
+            var symbolInfo = await _symbolService.GetBySymbolAsync(symbol);
+            if (symbolInfo != null)
+                return new CryptoCardViewModel(symbolInfo, 0, 0, new double[7], "Kraken", isSupported: false);
+
+            return null;
+        }
+    }
+
+    private void SetEmptyState()
+    {
+        CryptoCards = new List<CryptoCardViewModel>();
+        HasNoSymbols = true;
+    }
+
+    private string GetCryptoName(string symbol)
+    {
+        return symbol switch
+        {
+            "BTC" => "Bitcoin",
+            "ETH" => "Ethereum",
+            "ADA" => "Cardano",
+            "SOL" => "Solana",
+            "DOT" => "Polkadot",
+            _ => symbol
         };
     }
 
@@ -59,7 +191,6 @@ public partial class DashboardViewModel : ObservableObject
 
     private void InitializeRecentTrades()
     {
-        // Show only the 10 most recent trades
         RecentTrades = new List<RecentTradeViewModel>
         {
             new RecentTradeViewModel("BUY", "BTC/USDT", 0.0245, 43521.32,

@@ -3,9 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:converters="clr-namespace:QuantFlow.UI.WPF.Converters">
     <Application.Resources>
-        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
-        <converters:IsLastItemConverter x:Key="IsLastItemConverter"/>
         
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:IsLastItemConverter x:Key="IsLastItemConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:BooleanAndToVisibilityConverter x:Key="BooleanAndToVisibilityConverter"/>
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+
+
         <!-- Theme Color Resources (will be updated dynamically by ThemeService) -->
         <SolidColorBrush x:Key="PrimaryColor" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="SecondaryColor" Color="#F7F7F7"/>
@@ -362,72 +369,107 @@
             BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="1"
             CornerRadius="12"
-            Padding="24"
-            Margin="0,0,20,20"
             Width="280"
-            Height="180">
+            Height="180"
+            Margin="0,0,20,0"
+            Padding="20">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSupported}" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Asset Header with Quote Currency -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="{Binding Symbol}" 
-                           FontSize="18" 
-                           FontWeight="SemiBold" 
-                           Foreground="{DynamicResource TextPrimaryColor}"
-                           FontFamily="Segoe UI"
-                           VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding QuoteCurrency}" 
-                           FontSize="13" 
-                           Foreground="{DynamicResource TextSecondaryColor}"
-                           FontFamily="Segoe UI"
-                           VerticalAlignment="Center"
-                           Margin="2,0,0,0"/>
-                        <TextBlock Text="{Binding Name}" 
-                           FontSize="13" 
-                           Foreground="{DynamicResource TextSecondaryColor}"
-                           FontFamily="Segoe UI"
-                           VerticalAlignment="Center"
-                           Margin="12,0,0,0"/>
-                    </StackPanel>
+                    <!-- Header -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Price Info -->
-                    <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                        <TextBlock Text="{Binding PriceFormatted}" 
-                           FontSize="24" 
-                           FontWeight="SemiBold" 
-                           Foreground="{DynamicResource TextPrimaryColor}"
-                           FontFamily="Segoe UI"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <TextBlock Text="{Binding ChangeIndicator}" 
+                        <StackPanel Grid.Column="0">
+                            <TextBlock FontSize="18" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimaryColor}">
+                        <Run Text="{Binding Symbol}"/>
+                        <Run Text="{Binding QuoteCurrency}" FontSize="14" Foreground="{DynamicResource TextSecondaryColor}"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding Name}" 
                                FontSize="12" 
-                               Foreground="{Binding ChangeColor}"
-                               VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding ChangePercentFormatted}" 
-                               FontSize="13" 
-                               Foreground="{Binding ChangeColor}"
-                               FontFamily="Segoe UI"
-                               Margin="4,0,0,0"
-                               VerticalAlignment="Center"/>
-                            <TextBlock Text="7D" 
-                               FontSize="11" 
                                Foreground="{DynamicResource TextSecondaryColor}"
-                               FontFamily="Segoe UI"
-                               Margin="8,0,0,0"
-                               VerticalAlignment="Center"/>
+                               Margin="0,2,0,0"/>
                         </StackPanel>
-                    </StackPanel>
 
-                    <!-- LiveCharts Mini Chart -->
-                    <ContentControl Grid.Row="2" Content="{Binding ChartView}"/>
+                        <!-- Exchange Badge -->
+                        <Border Grid.Column="1"
+                        Background="{DynamicResource BackgroundColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="8,4"
+                        VerticalAlignment="Top">
+                            <TextBlock Text="{Binding Exchange}" 
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryColor}"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- Chart -->
+                    <ContentControl Grid.Row="1" 
+                            Content="{Binding ChartView}"
+                            Margin="0,8,0,8"/>
+
+                    <!-- Footer -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Price or Unsupported Message -->
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{Binding PriceFormatted}" 
+                               FontSize="20" 
+                               FontWeight="Bold" 
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               Visibility="{Binding IsSupported, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                            <TextBlock Text="{Binding UnsupportedMessage}" 
+                               FontSize="11" 
+                               FontStyle="Italic"
+                               Foreground="#db4f4a"
+                               Visibility="{Binding IsSupported, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                        </StackPanel>
+
+                        <!-- Change Percent -->
+                        <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal"
+                            VerticalAlignment="Bottom"
+                            Visibility="{Binding IsSupported, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="{Binding ChangeIndicator}" 
+                               FontSize="14"
+                               Foreground="{Binding ChangeColor}"
+                               Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding ChangePercentFormatted}" 
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding ChangeColor}"/>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
         </DataTemplate>
-        
+
         <!-- Portfolio Card Template -->
         <DataTemplate x:Key="PortfolioCardTemplate">
             <Border Background="{DynamicResource SurfaceColor}"

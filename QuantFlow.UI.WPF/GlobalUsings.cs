@@ -1,6 +1,8 @@
 ﻿global using CommunityToolkit.Mvvm.ComponentModel;
 global using CommunityToolkit.Mvvm.Input;
 global using CredentialManagement;
+global using LiveCharts;
+global using LiveCharts.Wpf;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
@@ -14,6 +16,7 @@ global using QuantFlow.Data.MongoDB.Extensions;
 global using QuantFlow.Data.SQLServer.Extensions;
 global using QuantFlow.Domain.Extensions;
 global using QuantFlow.Domain.Services;
+global using QuantFlow.Domain.Services.ApiServices;
 global using QuantFlow.UI.WPF.Interfaces;
 global using QuantFlow.UI.WPF.Models;
 global using QuantFlow.UI.WPF.Responses;
@@ -30,3 +33,4 @@ global using System.Windows;
 global using System.Windows.Controls;
 global using System.Windows.Data;
 global using System.Windows.Media;
+

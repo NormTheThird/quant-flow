@@ -13,6 +13,10 @@ public partial class MainWindow : Window
 
     public void InitializeTopBar(Guid userId, string username)
     {
+        // Set current user session
+        var userSession = _serviceProvider.GetRequiredService<IUserSessionService>();
+        userSession.SetCurrentUser(userId, username);
+
         // Initialize MainWindowViewModel
         var logger = _serviceProvider.GetRequiredService<ILogger<MainWindowViewModel>>();
         _mainViewModel = new MainWindowViewModel(_serviceProvider, logger);
@@ -41,6 +45,10 @@ public partial class MainWindow : Window
 
     private void OnLogoutRequested(object? sender, EventArgs e)
     {
+        // Clear user session on logout
+        var userSession = _serviceProvider.GetRequiredService<IUserSessionService>();
+        userSession.ClearCurrentUser();
+
         var loginWindow = _serviceProvider.GetRequiredService<LoginWindow>();
         loginWindow.Show();
         this.Close();
