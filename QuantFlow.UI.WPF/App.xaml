@@ -4,36 +4,689 @@
              xmlns:converters="clr-namespace:QuantFlow.UI.WPF.Converters">
     <Application.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <converters:IsLastItemConverter x:Key="IsLastItemConverter"/>
+        
+        <!-- Theme Color Resources (will be updated dynamically by ThemeService) -->
+        <SolidColorBrush x:Key="PrimaryColor" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SecondaryColor" Color="#F7F7F7"/>
+        <SolidColorBrush x:Key="AccentColor" Color="#0078D4"/>
+        <SolidColorBrush x:Key="BackgroundColor" Color="#FAFAFA"/>
+        <SolidColorBrush x:Key="SurfaceColor" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextPrimaryColor" Color="#1A1A1A"/>
+        <SolidColorBrush x:Key="TextSecondaryColor" Color="#666666"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="ShadowColor" Color="#000000"/>
+        <SolidColorBrush x:Key="HoverColor" Color="#EEEEEE"/>
+        <SolidColorBrush x:Key="SidebarHoverColor" Color="#F5F5F5"/>
 
+        <!-- Modern Sidebar Button Style -->
         <Style x:Key="SidebarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#B0B0B0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Height" Value="45"/>
+            <Setter Property="Height" Value="48"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Padding" Value="16,0"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="5"
-                                Margin="5,2">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}" 
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="8"
+                        Margin="8,2">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                            VerticalAlignment="Center"
-                                            Margin="{TemplateBinding Padding}"/>
+                                    VerticalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource SidebarHoverColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2D2D2D"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="8"
+                        Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                    VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverColor}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource SurfaceColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern TextBox Style -->
+        <Style x:Key="ModernTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="6"
+                        SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" 
+                                Focusable="False"
+                                HorizontalScrollBarVisibility="Hidden"
+                                VerticalScrollBarVisibility="Hidden"
+                                VerticalAlignment="Center"
+                                Margin="12,0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern PasswordBox Style -->
+        <Style x:Key="ModernPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="6"
+                        SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" 
+                                Focusable="False"
+                                HorizontalScrollBarVisibility="Hidden"
+                                VerticalScrollBarVisibility="Hidden"
+                                VerticalAlignment="Center"
+                                Margin="12,0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Primary Button Style -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="24,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern ComboBox Style -->
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                  Grid.Column="2"
+                                  Focusable="False"
+                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                  ClickMode="Press"
+                                  Background="{TemplateBinding Background}"
+                                  BorderBrush="{TemplateBinding BorderBrush}"
+                                  BorderThickness="{TemplateBinding BorderThickness}">
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Border x:Name="Border"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="6">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition/>
+                                                                <ColumnDefinition Width="20"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Path x:Name="Arrow"
+                                                          Grid.Column="1"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Data="M 0 0 L 4 4 L 8 0 Z"
+                                                          Fill="{DynamicResource TextSecondaryColor}"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ToggleButton.Style>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="ContentSite"
+                                      IsHitTestVisible="False"
+                                      Content="{TemplateBinding SelectionBoxItem}"
+                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                      Margin="10,0,25,0"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Left">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                            <Popup x:Name="Popup"
+                           Placement="Bottom"
+                           IsOpen="{TemplateBinding IsDropDownOpen}"
+                           AllowsTransparency="True"
+                           Focusable="False"
+                           PopupAnimation="Slide">
+                                <Grid x:Name="DropDown"
+                              SnapsToDevicePixels="True"
+                              MinWidth="{TemplateBinding ActualWidth}"
+                              MaxHeight="200">
+                                    <Border x:Name="DropDownBorder"
+                                    Background="{DynamicResource SurfaceColor}"
+                                    BorderThickness="1"
+                                    BorderBrush="{DynamicResource BorderColor}"
+                                    CornerRadius="6"
+                                    Margin="0,2,0,0">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.2"/>
+                                        </Border.Effect>
+                                        <ScrollViewer Margin="4,6" SnapsToDevicePixels="True">
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Padding" Value="10,8"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Border"
+                                    Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}"
+                                    CornerRadius="4"
+                                    Margin="2">
+                                        <ContentPresenter>
+                                            <ContentPresenter.Resources>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
+                                                </Style>
+                                            </ContentPresenter.Resources>
+                                        </ContentPresenter>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource HoverColor}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource AccentColor}"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Crypto Price Card Template -->
+        <DataTemplate x:Key="CryptoCardTemplate">
+            <Border Background="{DynamicResource SurfaceColor}"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="24"
+            Margin="0,0,20,20"
+            Width="280"
+            Height="180">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Asset Header with Quote Currency -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="{Binding Symbol}" 
+                           FontSize="18" 
+                           FontWeight="SemiBold" 
+                           Foreground="{DynamicResource TextPrimaryColor}"
+                           FontFamily="Segoe UI"
+                           VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding QuoteCurrency}" 
+                           FontSize="13" 
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           FontFamily="Segoe UI"
+                           VerticalAlignment="Center"
+                           Margin="2,0,0,0"/>
+                        <TextBlock Text="{Binding Name}" 
+                           FontSize="13" 
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           FontFamily="Segoe UI"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Price Info -->
+                    <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding PriceFormatted}" 
+                           FontSize="24" 
+                           FontWeight="SemiBold" 
+                           Foreground="{DynamicResource TextPrimaryColor}"
+                           FontFamily="Segoe UI"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="{Binding ChangeIndicator}" 
+                               FontSize="12" 
+                               Foreground="{Binding ChangeColor}"
+                               VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding ChangePercentFormatted}" 
+                               FontSize="13" 
+                               Foreground="{Binding ChangeColor}"
+                               FontFamily="Segoe UI"
+                               Margin="4,0,0,0"
+                               VerticalAlignment="Center"/>
+                            <TextBlock Text="7D" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               FontFamily="Segoe UI"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- LiveCharts Mini Chart -->
+                    <ContentControl Grid.Row="2" Content="{Binding ChartView}"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        
+        <!-- Portfolio Card Template -->
+        <DataTemplate x:Key="PortfolioCardTemplate">
+            <Border Background="{DynamicResource SurfaceColor}"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Padding="24"
+            Margin="0,0,20,20"
+            Width="380">
+                <StackPanel>
+                    <!-- Header: Portfolio Name + Mode Badge -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                           Text="{Binding PortfolioName}" 
+                           FontSize="20" 
+                           FontWeight="SemiBold" 
+                           Foreground="{DynamicResource TextPrimaryColor}"
+                           FontFamily="Segoe UI"
+                           VerticalAlignment="Center"/>
+
+                        <Border Grid.Column="1"
+                        Background="{Binding ModeBadgeColor}"
+                        CornerRadius="4"
+                        Padding="8,4">
+                            <TextBlock Text="{Binding ModeBadgeText}" 
+                               FontSize="11" 
+                               FontWeight="SemiBold" 
+                               Foreground="White"
+                               FontFamily="Segoe UI"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- Exchange (small, subtle) -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <TextBlock Text="&#xE945;" 
+                           FontFamily="Segoe MDL2 Assets" 
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,6,0"/>
+                        <TextBlock Text="{Binding Exchange}" 
+                           FontSize="12" 
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           FontFamily="Segoe UI"
+                           VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Total Value (Big) -->
+                    <StackPanel Margin="0,0,0,8">
+                        <TextBlock Text="Total Value" 
+                           FontSize="12" 
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           FontFamily="Segoe UI"
+                           Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding TotalValue}" 
+                           FontSize="28" 
+                           FontWeight="SemiBold" 
+                           Foreground="{DynamicResource TextPrimaryColor}"
+                           FontFamily="Segoe UI"/>
+                    </StackPanel>
+
+                    <!-- Profit/Loss -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <TextBlock Text="{Binding ProfitLoss}" 
+                           FontSize="16" 
+                           FontWeight="SemiBold" 
+                           Foreground="{Binding ProfitLossColor}"
+                           FontFamily="Segoe UI"
+                           Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding ProfitLossPercent}" 
+                           FontSize="14" 
+                           Foreground="{Binding ProfitLossColor}"
+                           FontFamily="Segoe UI"
+                           VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Separator Background="{DynamicResource BorderColor}"
+                       Height="1"
+                       Margin="0,0,0,16"/>
+
+                    <!-- Stats Grid -->
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Allocated Funds -->
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Allocated" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               FontFamily="Segoe UI"
+                               Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding AllocatedFunds}" 
+                               FontSize="14" 
+                               FontWeight="SemiBold" 
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               FontFamily="Segoe UI"/>
+                        </StackPanel>
+
+                        <!-- Active Algorithms -->
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                            <TextBlock Text="Active Algorithms" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               FontFamily="Segoe UI"
+                               Margin="0,0,0,4"
+                               TextAlignment="Right"/>
+                            <TextBlock Text="{Binding ActiveAlgorithms}" 
+                               FontSize="14" 
+                               FontWeight="SemiBold" 
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               FontFamily="Segoe UI"
+                               TextAlignment="Right"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Quick Actions -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0"
+                        Content="View"
+                        Style="{StaticResource SecondaryButton}"
+                        Height="36"/>
+
+                        <Button Grid.Column="2"
+                        Content="Add Trade"
+                        Style="{StaticResource SecondaryButton}"
+                        Height="36"/>
+
+                        <Button Grid.Column="4"
+                        Content="Settings"
+                        Style="{StaticResource SecondaryButton}"
+                        Height="36"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- Recent Trade Template -->
+        <DataTemplate x:Key="RecentTradeTemplate">
+            <Border Background="Transparent" Padding="20,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Trade Type Badge + Symbol + Amount -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,20,0">
+                        <!-- BUY/SELL Badge -->
+                        <Border Background="{Binding TradeTypeColor}"
+                        CornerRadius="4"
+                        Padding="8,4"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center">
+                            <TextBlock Text="{Binding TradeType}" 
+                               FontSize="11" 
+                               FontWeight="SemiBold" 
+                               Foreground="White"
+                               FontFamily="Segoe UI"/>
+                        </Border>
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Symbol}" 
+                               FontSize="14" 
+                               FontWeight="SemiBold" 
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               FontFamily="Segoe UI"/>
+                            <TextBlock FontSize="12" 
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               FontFamily="Segoe UI">
+                        <Run Text="{Binding Amount}"/>
+                        <Run Text="@"/>
+                        <Run Text="{Binding Price}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Center: Portfolio Info + Exchange -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding PortfolioName}" 
+                           FontSize="12" 
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           FontFamily="Segoe UI"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock Text="&#xE945;" 
+                               FontFamily="Segoe MDL2 Assets" 
+                               FontSize="10"
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding Exchange}" 
+                               FontSize="11" 
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               FontFamily="Segoe UI"
+                               VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Right: Status + Mode Badge + Time -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,20,0" VerticalAlignment="Center">
+                        <!-- Status Badge -->
+                        <Border Background="{Binding StatusColor}"
+                        CornerRadius="4"
+                        Padding="8,4"
+                        Margin="0,0,8,0">
+                            <TextBlock Text="{Binding Status}" 
+                               FontSize="11" 
+                               FontWeight="SemiBold" 
+                               Foreground="White"
+                               FontFamily="Segoe UI"/>
+                        </Border>
+
+                        <!-- TEST/LIVE Badge -->
+                        <Border Background="{Binding ModeBadgeColor}"
+                        CornerRadius="4"
+                        Padding="6,4">
+                            <TextBlock Text="{Binding ModeBadge}" 
+                               FontSize="10" 
+                               FontWeight="SemiBold" 
+                               Foreground="White"
+                               FontFamily="Segoe UI"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Far Right: Time + Total -->
+                    <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Total}" 
+                           FontSize="14" 
+                           FontWeight="SemiBold" 
+                           Foreground="{DynamicResource TextPrimaryColor}"
+                           FontFamily="Segoe UI"
+                           TextAlignment="Right"/>
+                        <TextBlock Text="{Binding Timestamp}" 
+                           FontSize="11" 
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           FontFamily="Segoe UI"
+                           TextAlignment="Right"
+                           Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
     </Application.Resources>
 </Application>

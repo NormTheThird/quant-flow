@@ -1,0 +1,254 @@
+﻿<UserControl x:Class="QuantFlow.UI.WPF.Views.TopBarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="60"
+             Background="{DynamicResource SurfaceColor}"
+             MouseDown="TopBar_MouseDown">
+    <Border BorderBrush="{DynamicResource BorderColor}" 
+            BorderThickness="0,0,0,1">
+        <Grid Margin="24,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Side - Title (Draggable Area) -->
+            <TextBlock Grid.Column="0" 
+                       Text="Quant Flow" 
+                       FontSize="20" 
+                       FontWeight="SemiBold"
+                       FontFamily="Segoe UI"
+                       Foreground="{DynamicResource TextPrimaryColor}"
+                       VerticalAlignment="Center"/>
+
+            <!-- Center - Theme Selector -->
+            <StackPanel Grid.Column="1" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center"
+                        Margin="0,0,24,0">
+                <TextBlock Text="Theme:" 
+                           FontSize="14"
+                           FontFamily="Segoe UI"
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <ComboBox Style="{StaticResource ModernComboBox}"
+                          Width="160"
+                          ItemsSource="{Binding AvailableThemes}"
+                          SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"/>
+            </StackPanel>
+
+            <!-- Right Side - User Menu and Window Controls -->
+            <StackPanel Grid.Column="2" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center"
+                        Margin="0,0,16,0">
+                <Button x:Name="UserMenuButton"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="8"
+                        Cursor="Hand"
+                        Command="{Binding ToggleUserMenuCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE77B;" 
+                                   FontFamily="Segoe MDL2 Assets" 
+                                   FontSize="20"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding Username}" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="&#xE70D;" 
+                                   FontFamily="Segoe MDL2 Assets" 
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- User Menu Popup -->
+                <Popup PlacementTarget="{Binding ElementName=UserMenuButton}"
+                       Placement="Bottom"
+                       IsOpen="{Binding IsUserMenuOpen, Mode=TwoWay}"
+                       StaysOpen="False"
+                       AllowsTransparency="True">
+                    <Border Background="{DynamicResource SurfaceColor}"
+                            BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="4">
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black"
+                            BlurRadius="12"
+                            ShadowDepth="2"
+                            Opacity="0.2"/>
+                        </Border.Effect>
+                        <StackPanel Width="200">
+                            <!-- Settings Button -->
+                            <Button Command="{Binding SettingsCommand}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="12,10"
+                                    HorizontalContentAlignment="Left"
+                                    Cursor="Hand">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            CornerRadius="4"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE713;" 
+                                               FontFamily="Segoe MDL2 Assets" 
+                                               FontSize="16"
+                                               Foreground="{DynamicResource TextPrimaryColor}"
+                                               Margin="0,0,12,0"/>
+                                    <TextBlock Text="Settings" 
+                                               FontSize="14"
+                                               FontFamily="Segoe UI"
+                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Separator -->
+                            <Separator Margin="8,4" 
+                                       Background="{DynamicResource BorderColor}"
+                                       Height="1"/>
+
+                            <!-- Logout Button -->
+                            <Button Command="{Binding LogoutCommand}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="12,10"
+                                    HorizontalContentAlignment="Left"
+                                    Cursor="Hand">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            CornerRadius="4"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE7E8;" 
+                                               FontFamily="Segoe MDL2 Assets" 
+                                               FontSize="16"
+                                               Foreground="{DynamicResource TextPrimaryColor}"
+                                               Margin="0,0,12,0"/>
+                                    <TextBlock Text="Logout" 
+                                               FontSize="14"
+                                               FontFamily="Segoe UI"
+                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Popup>
+            </StackPanel>
+
+            <!-- Window Control Buttons -->
+            <StackPanel Grid.Column="3" 
+                        Orientation="Horizontal" 
+                        VerticalAlignment="Center">
+                <!-- Minimize Button -->
+                <Button Click="MinimizeButton_Click"
+                        Width="46"
+                        Height="32"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock Text="&#xE921;" 
+                               FontFamily="Segoe MDL2 Assets" 
+                               FontSize="10"
+                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                </Button>
+
+                <!-- Close Button -->
+                <Button Click="CloseButton_Click"
+                        Width="46"
+                        Height="32"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E81123"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock Text="&#xE711;" 
+                               FontFamily="Segoe MDL2 Assets" 
+                               FontSize="10"
+                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

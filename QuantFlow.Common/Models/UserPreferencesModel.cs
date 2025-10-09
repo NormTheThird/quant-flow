@@ -6,7 +6,7 @@
 public class UserPreferencesModel : BaseModel
 {
     public Guid UserId { get; set; } = Guid.Empty;
-    public string Theme { get; set; } = "dark";
+    public string Theme { get; set; } = "Light";
     public string Language { get; set; } = "en-US";
     public string Timezone { get; set; } = "UTC";
     public string CurrencyDisplay { get; set; } = "USD";

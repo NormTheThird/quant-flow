@@ -1,4 +1,4 @@
-﻿namespace QuantFlow.Api.Rest.Responses;
+﻿namespace QuantFlow.Common.Responses;
 
 /// <summary>
 /// Standard API response wrapper for all endpoints

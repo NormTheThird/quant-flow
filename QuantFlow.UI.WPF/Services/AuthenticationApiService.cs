@@ -41,11 +41,27 @@ public class AuthenticationApiService : IAuthenticationApiService
             return null;
         }
     }
-}
 
-public class ApiResponse<T>
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public T? Data { get; set; }
+    public async Task<bool> ValidateUserPreferencesAsync(Guid userId, string token)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.PostAsync($"/api/v1.0/pub/user/preferences/{userId}", null);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to ensure user preferences with status code: {StatusCode}", response.StatusCode);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error ensuring user preferences");
+            return false;
+        }
+    }
 }

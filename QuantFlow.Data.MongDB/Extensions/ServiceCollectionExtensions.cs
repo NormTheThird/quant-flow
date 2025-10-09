@@ -160,7 +160,7 @@ public static class ServiceCollectionExtensions
                 new EnumRepresentationConvention(BsonType.String)
             };
 
-            // Apply conventions to all types in the QuantFlow namespace
+            // Apply conventions to all types in the QuantFlow namespace 
             ConventionRegistry.Register(
                 "QuantFlowConventions",
                 conventionPack,

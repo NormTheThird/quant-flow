@@ -13,6 +13,10 @@ public partial class App : Application
     {
         await _host.StartAsync();
 
+        // Apply default theme immediately
+        var themeService = _host.Services.GetRequiredService<IThemeService>();
+        themeService.ApplyTheme("Midnight Pro");
+
         var credentialStorage = _host.Services.GetRequiredService<ICredentialStorageService>();
         var authService = _host.Services.GetRequiredService<IAuthenticationApiService>();
         var tokenStorage = _host.Services.GetRequiredService<ITokenStorageService>();
@@ -29,7 +33,12 @@ public partial class App : Application
                 if (result != null)
                 {
                     tokenStorage.StoreToken(result.Token, result.RefreshToken);
+
+                    // Ensure user preferences exist
+                    _ = authService.ValidateUserPreferencesAsync(result.User.Id, result.Token);
+
                     var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+                    mainWindow.InitializeTopBar(result.User.Id, result.User.Username);
                     mainWindow.Show();
                     base.OnStartup(e);
                     return;

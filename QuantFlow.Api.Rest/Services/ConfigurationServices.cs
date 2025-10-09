@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.Api.Rest.Services;
+﻿using QuantFlow.Data.MongoDB.Extensions;
+
+namespace QuantFlow.Api.Rest.Services;
 
 /// <summary>
 /// Configuration services for setting up the API application
@@ -29,6 +31,7 @@ public static class ConfigurationServices
             services.AddSerilog(context, "Api");
             services.AddSqlServerDataStore(builder.Configuration);
             services.AddInfluxDataStore(builder.Configuration);
+            services.AddMongoDb(context.Configuration);
 
             services.AddScoped<IApiRateLimitHandler, ApiRateLimitHandler>();
             services.AddScoped<IJwtTokenService, JwtTokenService>();

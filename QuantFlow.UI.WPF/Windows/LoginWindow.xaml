@@ -2,56 +2,127 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="QuantFlow - Login" 
-        Height="450" 
-        Width="350"
+        Height="500" 
+        Width="450"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
         ResizeMode="NoResize"
-        Background="#1E1E1E">
-    <Grid>
-        <StackPanel VerticalAlignment="Center" Margin="40">
-            <TextBlock Text="QuantFlow" 
-                       FontSize="32" 
-                       FontWeight="Bold" 
-                       Foreground="White" 
-                       HorizontalAlignment="Center" 
-                       Margin="0,0,0,40"/>
+        Background="Transparent">
+    <Border Background="{DynamicResource SurfaceColor}"
+            CornerRadius="12"
+            Padding="40">
+        <Border.Effect>
+            <DropShadowEffect Color="Black"
+                            BlurRadius="30"
+                            ShadowDepth="0"
+                            Opacity="0.3"/>
+        </Border.Effect>
 
-            <TextBlock Text="Username" 
-                       Foreground="#B0B0B0" 
-                       Margin="0,0,0,5"/>
-            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                     Height="35" 
-                     Background="#2D2D2D" 
-                     Foreground="White" 
-                     BorderBrush="#3F3F3F" 
-                     Padding="10,8"/>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <TextBlock Text="Password" 
-                       Foreground="#B0B0B0" 
-                       Margin="0,20,0,5"/>
-            <PasswordBox x:Name="PasswordBox" 
-                         Height="35" 
-                         Background="#2D2D2D" 
-                         Foreground="White" 
-                         BorderBrush="#3F3F3F" 
-                         Padding="10,8"/>
+            <!-- Close Button -->
+            <Button Grid.Row="0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Width="32"
+                    Height="32"
+                    Margin="-20,-20,0,0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Click="CloseButton_Click">
+                <TextBlock Text="&#xE711;" 
+                           FontFamily="Segoe MDL2 Assets" 
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryColor}"/>
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            CornerRadius="16"
+                                            Width="32"
+                                            Height="32">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
 
-            <TextBlock Text="{Binding ErrorMessage}" 
-                       Foreground="#FF4444" 
-                       Margin="0,10,0,0"
-                       TextWrapping="Wrap"/>
+            <!-- Login Content -->
+            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                <!-- Logo/Title -->
+                <TextBlock Text="QuantFlow" 
+                           FontSize="32" 
+                           FontWeight="SemiBold" 
+                           FontFamily="Segoe UI"
+                           Foreground="{DynamicResource TextPrimaryColor}" 
+                           HorizontalAlignment="Center" 
+                           Margin="0,0,0,10"/>
 
-            <Button Command="{Binding LoginCommand}"
-                    CommandParameter="{Binding ElementName=PasswordBox}"
-                    Content="Login" 
-                    Height="40" 
-                    Margin="0,20,0,0" 
-                    Background="#0078D4" 
-                    Foreground="White" 
-                    BorderThickness="0" 
-                    FontSize="14" 
-                    FontWeight="SemiBold"
-                    Cursor="Hand"/>
-        </StackPanel>
-    </Grid>
+                <TextBlock Text="Automated Trading Platform" 
+                           FontSize="14" 
+                           FontFamily="Segoe UI"
+                           Foreground="{DynamicResource TextSecondaryColor}" 
+                           HorizontalAlignment="Center" 
+                           Margin="0,0,0,40"/>
+
+                <!-- Username -->
+                <TextBlock Text="Username" 
+                           FontSize="14"
+                           FontFamily="Segoe UI"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource TextPrimaryColor}" 
+                           Margin="0,0,0,8"/>
+
+                <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource ModernTextBox}"/>
+
+                <!-- Password -->
+                <TextBlock Text="Password" 
+                           FontSize="14"
+                           FontFamily="Segoe UI"
+                           FontWeight="Medium"
+                           Foreground="{DynamicResource TextPrimaryColor}" 
+                           Margin="0,20,0,8"/>
+
+                <PasswordBox x:Name="PasswordBox" 
+                             Style="{StaticResource ModernPasswordBox}"/>
+
+                <!-- Error Message -->
+                <TextBlock Text="{Binding ErrorMessage}" 
+                           Foreground="#EF4444" 
+                           FontSize="13"
+                           FontFamily="Segoe UI"
+                           Margin="0,12,0,0"
+                           TextWrapping="Wrap"
+                           MinHeight="20"
+                           Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                <!-- Login Button -->
+                <Button Command="{Binding LoginCommand}"
+                        CommandParameter="{Binding ElementName=PasswordBox}"
+                        Content="Login" 
+                        Style="{StaticResource PrimaryButton}"
+                        Margin="0,24,0,0"
+                        HorizontalAlignment="Stretch"/>
+            </StackPanel>
+        </Grid>
+    </Border>
 </Window>

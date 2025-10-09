@@ -13,16 +13,17 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty]
     private string _errorMessage = string.Empty;
 
+    public AuthenticateResponse? LastAuthResult { get; private set; }
+
     public event EventHandler? LoginSuccessful;
 
-    public LoginViewModel(ILogger<LoginViewModel> logger, IAuthenticationApiService authService, ITokenStorageService tokenStorage, 
+    public LoginViewModel(ILogger<LoginViewModel> logger, IAuthenticationApiService authService, ITokenStorageService tokenStorage,
                           ICredentialStorageService credentialStorage)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _tokenStorage = tokenStorage ?? throw new ArgumentNullException(nameof(tokenStorage));
         _credentialStorage = credentialStorage ?? throw new ArgumentNullException(nameof(credentialStorage));
-
     }
 
     [RelayCommand]
@@ -50,6 +51,9 @@ public partial class LoginViewModel : ObservableObject
             ErrorMessage = "Invalid username or password";
             return;
         }
+
+        // Store the result
+        LastAuthResult = result;
 
         // Store tokens
         _tokenStorage.StoreToken(result.Token, result.RefreshToken);

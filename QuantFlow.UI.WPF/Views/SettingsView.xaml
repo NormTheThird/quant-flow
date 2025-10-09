@@ -1,0 +1,480 @@
+﻿<UserControl x:Class="QuantFlow.UI.WPF.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundColor}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="40">
+            <!-- Page Title -->
+            <TextBlock Text="Settings" 
+                       FontSize="32" 
+                       FontWeight="SemiBold" 
+                       Foreground="{DynamicResource TextPrimaryColor}"
+                       FontFamily="Segoe UI"
+                       Margin="0,0,0,32"/>
+
+            <!-- Responsive WrapPanel for Cards -->
+            <WrapPanel Orientation="Horizontal">
+
+                <!-- Profile Settings Card -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="32"
+                        Margin="0,0,20,20"
+                        Width="480">
+                    <StackPanel>
+                        <TextBlock Text="Profile Settings" 
+                                   FontSize="20" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   FontFamily="Segoe UI"
+                                   Margin="0,0,0,24"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="First Name" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <TextBox Style="{StaticResource ModernTextBox}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Last Name" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <TextBox Style="{StaticResource ModernTextBox}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Username" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                   Margin="0,20,0,8"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"/>
+
+                        <TextBlock Text="Email" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,20,0,8"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"/>
+
+                        <Separator Margin="0,24" 
+                                   Background="{DynamicResource BorderColor}"
+                                   Height="1"/>
+
+                        <Button Content="Reset Password" 
+                                Style="{StaticResource PrimaryButton}"
+                                Width="160"
+                                HorizontalAlignment="Left"
+                                Margin="0,0,0,24"/>
+
+                        <Button Content="Save Profile" 
+                                Style="{StaticResource PrimaryButton}"
+                                Width="150"
+                                HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Kraken API Card -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="32"
+                        Margin="0,0,20,20"
+                        Width="480">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                            <TextBlock Text="&#xE945;" 
+                                       FontFamily="Segoe MDL2 Assets" 
+                                       FontSize="24"
+                                       Foreground="{DynamicResource AccentColor}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"/>
+                            <TextBlock Text="Kraken API" 
+                                       FontSize="20" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource TextPrimaryColor}"
+                                       FontFamily="Segoe UI"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <TextBlock Text="API Key" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                   Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"/>
+
+                        <TextBlock Text="API Secret" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                   Margin="0,20,0,8"/>
+                        <PasswordBox Style="{StaticResource ModernPasswordBox}"/>
+
+                        <Button Content="Save Kraken API" 
+                                Style="{StaticResource PrimaryButton}"
+                                Width="160"
+                                HorizontalAlignment="Right"
+                                Margin="0,24,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- KuCoin API Card -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="32"
+                        Margin="0,0,20,20"
+                        Width="480">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                            <TextBlock Text="&#xE945;" 
+                                       FontFamily="Segoe MDL2 Assets" 
+                                       FontSize="24"
+                                       Foreground="{DynamicResource AccentColor}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"/>
+                            <TextBlock Text="KuCoin API" 
+                                       FontSize="20" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource TextPrimaryColor}"
+                                       FontFamily="Segoe UI"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <TextBlock Text="API Key" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                   Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource ModernTextBox}"/>
+
+                        <TextBlock Text="API Secret" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                   Margin="0,20,0,8"/>
+                        <PasswordBox Style="{StaticResource ModernPasswordBox}"/>
+
+                        <TextBlock Text="API Passphrase" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                   Margin="0,20,0,8"/>
+                        <PasswordBox Style="{StaticResource ModernPasswordBox}"/>
+
+                        <Button Content="Save KuCoin API" 
+                                Style="{StaticResource PrimaryButton}"
+                                Width="160"
+                                HorizontalAlignment="Right"
+                                Margin="0,24,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Preferences Card (Responsive - fills available width) -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="32"
+                        Margin="0,0,20,20"
+                        MinWidth="480"
+                        HorizontalAlignment="Stretch">
+                    <StackPanel>
+                        <TextBlock Text="User Preferences" 
+                                   FontSize="20" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   FontFamily="Segoe UI"
+                                   Margin="0,0,0,24"/>
+
+                        <!-- General Section -->
+                        <TextBlock Text="General" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   FontFamily="Segoe UI"
+                                   Margin="0,0,0,16"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Timezone" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}">
+                                    <ComboBoxItem Content="UTC" IsSelected="True"/>
+                                    <ComboBoxItem Content="EST"/>
+                                    <ComboBoxItem Content="PST"/>
+                                    <ComboBoxItem Content="CST"/>
+                                    <ComboBoxItem Content="MST"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Currency Display" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}">
+                                    <ComboBoxItem Content="USD" IsSelected="True"/>
+                                    <ComboBoxItem Content="EUR"/>
+                                    <ComboBoxItem Content="GBP"/>
+                                    <ComboBoxItem Content="BTC"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <Separator Margin="0,24" 
+                                   Background="{DynamicResource BorderColor}"
+                                   Height="1"/>
+
+                        <!-- Chart Settings Section -->
+                        <TextBlock Text="Chart Settings" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   FontFamily="Segoe UI"
+                                   Margin="0,0,0,16"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Default Timeframe" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}">
+                                    <ComboBoxItem Content="1m"/>
+                                    <ComboBoxItem Content="5m"/>
+                                    <ComboBoxItem Content="15m"/>
+                                    <ComboBoxItem Content="1h" IsSelected="True"/>
+                                    <ComboBoxItem Content="4h"/>
+                                    <ComboBoxItem Content="1d"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Candlestick Style" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}">
+                                    <ComboBoxItem Content="Candles" IsSelected="True"/>
+                                    <ComboBoxItem Content="Bars"/>
+                                    <ComboBoxItem Content="Line"/>
+                                    <ComboBoxItem Content="Heikin-Ashi"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <CheckBox Content="Show Volume" 
+                                  FontSize="14"
+                                  FontFamily="Segoe UI"
+                                  Foreground="{DynamicResource TextPrimaryColor}"
+                                  Margin="0,16,0,0"
+                                  IsChecked="True"/>
+
+                        <Separator Margin="0,24" 
+                                   Background="{DynamicResource BorderColor}"
+                                   Height="1"/>
+
+                        <!-- Notifications Section -->
+                        <TextBlock Text="Notifications" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   FontFamily="Segoe UI"
+                                   Margin="0,0,0,16"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Column="0"
+                                      Content="Email Notifications" 
+                                      FontSize="14"
+                                      FontFamily="Segoe UI"
+                                      Foreground="{DynamicResource TextPrimaryColor}"
+                                      IsChecked="True"/>
+
+                            <CheckBox Grid.Column="1"
+                                      Content="Push Notifications" 
+                                      FontSize="14"
+                                      FontFamily="Segoe UI"
+                                      Foreground="{DynamicResource TextPrimaryColor}"/>
+
+                            <CheckBox Grid.Column="2"
+                                      Content="Trading Alerts" 
+                                      FontSize="14"
+                                      FontFamily="Segoe UI"
+                                      Foreground="{DynamicResource TextPrimaryColor}"
+                                      IsChecked="True"/>
+                        </Grid>
+
+                        <Separator Margin="0,24" 
+                                   Background="{DynamicResource BorderColor}"
+                                   Height="1"/>
+
+                        <!-- Trading Settings Section -->
+                        <TextBlock Text="Trading" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   FontFamily="Segoe UI"
+                                   Margin="0,0,0,16"/>
+
+                        <CheckBox Content="Confirm Orders Before Execution" 
+                                  FontSize="14"
+                                  FontFamily="Segoe UI"
+                                  Foreground="{DynamicResource TextPrimaryColor}"
+                                  Margin="0,0,0,16"
+                                  IsChecked="True"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Default Order Type" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}">
+                                    <ComboBoxItem Content="Market"/>
+                                    <ComboBoxItem Content="Limit" IsSelected="True"/>
+                                    <ComboBoxItem Content="Stop Loss"/>
+                                    <ComboBoxItem Content="Take Profit"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Max Order Size (USD)" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <TextBox Style="{StaticResource ModernTextBox}" Text="1000"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Separator Margin="0,24" 
+                                   Background="{DynamicResource BorderColor}"
+                                   Height="1"/>
+
+                        <!-- Risk Management Section -->
+                        <TextBlock Text="Risk Management" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   FontFamily="Segoe UI"
+                                   Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Risk Level" 
+                                   FontSize="14"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimaryColor}" 
+                                   Margin="0,0,0,8"/>
+                        <ComboBox Style="{StaticResource ModernComboBox}" Width="250" HorizontalAlignment="Left">
+                            <ComboBoxItem Content="Low"/>
+                            <ComboBoxItem Content="Medium" IsSelected="True"/>
+                            <ComboBoxItem Content="High"/>
+                        </ComboBox>
+
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Max Drawdown (%)" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <TextBox Style="{StaticResource ModernTextBox}" Text="10"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Default Stop Loss (%)" 
+                                           FontSize="14"
+                                           FontFamily="Segoe UI"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimaryColor}" 
+                                           Margin="0,0,0,8"/>
+                                <TextBox Style="{StaticResource ModernTextBox}" Text="2"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Separator Margin="0,24" 
+                                   Background="{DynamicResource BorderColor}"
+                                   Height="1"/>
+
+                        <Button Content="Save Preferences" 
+                                Style="{StaticResource PrimaryButton}"
+                                Width="170"
+                                HorizontalAlignment="Right"/>
+                    </StackPanel>
+                </Border>
+
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

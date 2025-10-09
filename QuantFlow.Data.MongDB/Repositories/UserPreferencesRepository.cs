@@ -271,7 +271,7 @@ public class UserPreferencesRepository : IUserPreferencesRepository
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Theme = "dark",
+            Theme = "Light",
             Language = "en-US",
             Timezone = "UTC",
             CurrencyDisplay = "USD",

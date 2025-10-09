@@ -7,6 +7,7 @@
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<NoWarn>CS1591</NoWarn>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<UserSecretsId>9302c1ff-c299-4dcb-835e-dda866f5896d</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>

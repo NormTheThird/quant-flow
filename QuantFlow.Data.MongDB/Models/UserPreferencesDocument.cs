@@ -15,7 +15,7 @@ public class UserPreferencesDocument
     public Guid UserId { get; set; } = Guid.Empty;
 
     [BsonElement("theme")]
-    public string Theme { get; set; } = "dark";
+    public string Theme { get; set; } = "Light";
 
     [BsonElement("language")]
     public string Language { get; set; } = "en-US";
