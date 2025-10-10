@@ -8,33 +8,22 @@ public class QuantFlowDbContext : DbContext
     public QuantFlowDbContext(DbContextOptions<QuantFlowDbContext> options) : base(options)
     {
     }
-
-    // User and Account Management
+    public DbSet<MarketDataConfigurationEntity> MarketDataConfigurations { get; set; } = null!;
+    public DbSet<PortfolioEntity> Portfolios { get; set; } = null!;
+    public DbSet<SymbolEntity> Symbols { get; set; } = null!;
+    public DbSet<TradeEntity> Trades { get; set; } = null!;
     public DbSet<UserEntity> Users { get; set; } = null!;
     public DbSet<UserExchangeDetailsEntity> UserExchangeDetails { get; set; } = null!;
     public DbSet<UserRefreshTokenEntity> UserRefreshTokens { get; set; } = null!;
+
     //public DbSet<SubscriptionEntity> Subscriptions { get; set; } = null!;
-    //public DbSet<PortfolioEntity> Portfolios { get; set; } = null!;
-
-    //// Trading and Backtesting
-    ////public DbSet<AlgorithmEntity> Algorithms { get; set; } = null!;
     //public DbSet<BacktestRunEntity> BacktestRuns { get; set; } = null!;
-
-    public DbSet<MarketDataConfigurationEntity> MarketDataConfigurations { get; set; } = null!;
-    public DbSet<TradeEntity> Trades { get; set; } = null!;
-
-    // Market Data and Symbols
-    public DbSet<SymbolEntity> Symbols { get; set; } = null!;
     //public DbSet<ExchangeSymbolEntity> ExchangeSymbols { get; set; } = null!;
-
-    //// Exchange Configuration (NEW)
     //public DbSet<ExchangeConfigurationEntity> ExchangeConfigurations { get; set; } = null!;
     //public DbSet<FeeTierEntity> FeeTiers { get; set; } = null!;
     //public DbSet<SymbolFeeOverrideEntity> SymbolFeeOverrides { get; set; } = null!;
-
-    // Configuration
-    // public DbSet<ConfigurationEntity> Configurations { get; set; } = null!;
-    // public DbSet<UserPreferencesEntity> UserPreferences { get; set; } = null!;
+    //public DbSet<ConfigurationEntity> Configurations { get; set; } = null!;
+    //public DbSet<UserPreferencesEntity> UserPreferences { get; set; } = null!;;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

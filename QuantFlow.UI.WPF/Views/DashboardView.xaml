@@ -30,7 +30,7 @@
                         BorderThickness="1"
                         CornerRadius="12"
                         Height="200"
-                        Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                        Visibility="{Binding IsLoadingMarketOverview, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <controls:LoadingSpinner SpinnerSize="45" Margin="0,0,0,16"/>
                         <TextBlock Text="Loading market data..." 
@@ -80,16 +80,61 @@
 
             <!-- Section: My Portfolios -->
             <TextBlock Text="My Portfolios" 
-                       FontSize="18" 
-                       FontWeight="SemiBold" 
+                       FontSize="24" 
+                       FontWeight="Bold" 
                        Foreground="{DynamicResource TextPrimaryColor}"
-                       FontFamily="Segoe UI"
-                       Margin="0,0,0,16"/>
+                       Margin="0,40,0,20"/>
+
+            <!-- Loading State for Portfolios -->
+            <Border Background="{DynamicResource SurfaceColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="40"
+                    MinHeight="200"
+                    Visibility="{Binding IsLoadingPortfolios, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="⏳" 
+                               FontSize="48" 
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,16"/>
+                    <TextBlock Text="Loading portfolios..." 
+                               FontSize="16"
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Empty State for Portfolios -->
+            <Border Background="{DynamicResource SurfaceColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="40"
+                    MinHeight="200"
+                    Margin="0,0,0,40"
+                    Visibility="{Binding HasNoPortfolios, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="💼" 
+                               FontSize="48" 
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,16"/>
+                    <TextBlock Text="No portfolios yet" 
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Text="Create your first portfolio to start trading" 
+                               FontSize="14"
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
             <!-- Portfolio Cards -->
             <ItemsControl ItemsSource="{Binding Portfolios}"
-                          ItemTemplate="{StaticResource PortfolioCardTemplate}"
-                          Margin="0,0,0,40">
+              ItemTemplate="{StaticResource PortfolioCardTemplate}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel Orientation="Horizontal"/>

@@ -35,24 +35,35 @@ public partial class PortfolioCardViewModel : ObservableObject
     [ObservableProperty]
     private int _activeAlgorithms;
 
-    public PortfolioCardViewModel(string name, bool isLive, string exchange, double totalValue, double allocatedFunds, int activeAlgorithms)
+    public PortfolioCardViewModel(PortfolioModel portfolio)
     {
-        PortfolioName = name;
-        IsLive = isLive;
-        ModeBadgeText = isLive ? "LIVE" : "TEST";
-        ModeBadgeColor = isLive ? "#4cceac" : "#f59e0b";
-        Exchange = exchange;
+        PortfolioName = portfolio.Name;
 
-        TotalValue = $"${totalValue:N2}";
-        AllocatedFunds = $"${allocatedFunds:N2}";
+        // Mode badge
+        IsLive = portfolio.Mode == PortfolioMode.ExchangeConnected;
+        ModeBadgeText = portfolio.Mode == PortfolioMode.ExchangeConnected ? "LIVE" : "TEST";
+        ModeBadgeColor = portfolio.Mode == PortfolioMode.ExchangeConnected ? "#4cceac" : "#f59e0b";
 
-        var pl = totalValue - allocatedFunds;
-        var plPercent = (pl / allocatedFunds) * 100;
+        // Exchange
+        Exchange = portfolio.Exchange?.ToString() ?? "N/A";
+
+        // Total Value = Current Balance
+        TotalValue = $"${portfolio.CurrentBalance:N2}";
+
+        // Allocated Funds = Initial Balance
+        AllocatedFunds = $"${portfolio.InitialBalance:N2}";
+
+        // Profit/Loss calculation
+        var pl = portfolio.CurrentBalance - portfolio.InitialBalance;
+        var plPercent = portfolio.InitialBalance > 0
+            ? (pl / portfolio.InitialBalance) * 100
+            : 0;
 
         ProfitLoss = pl >= 0 ? $"+${pl:N2}" : $"-${Math.Abs(pl):N2}";
         ProfitLossPercent = pl >= 0 ? $"+{plPercent:F2}%" : $"{plPercent:F2}%";
         ProfitLossColor = pl >= 0 ? "#4cceac" : "#db4f4a";
 
-        ActiveAlgorithms = activeAlgorithms;
+        // Active Algorithms - TODO: track this when we implement active trading
+        ActiveAlgorithms = 0;
     }
 }

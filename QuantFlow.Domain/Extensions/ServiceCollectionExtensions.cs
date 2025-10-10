@@ -16,12 +16,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IKrakenApiService, KrakenApiService>();
 
         // Register Domain services
-        services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IMarketDataService, MarketDataService>();
-        services.AddScoped<IMarketDataConfigurationService, MarketDataConfigurationService>();
-        //services.AddScoped<IExchangeConfigurationService, ExchangeConfigurationService>();
         services.AddScoped<IKrakenMarketDataCollectionService, KrakenMarketDataCollectionService>();
+        services.AddScoped<IMarketDataConfigurationService, MarketDataConfigurationService>();
+        services.AddScoped<IMarketDataService, MarketDataService>();
+        services.AddScoped<IPortfolioService, PortfolioService>();
         services.AddScoped<ISymbolService, SymbolService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IUserExchangeDetailsService, UserExchangeDetailsService>();
+        services.AddScoped<IEncryptionService, EncryptionService>();
 
         return services;
     }

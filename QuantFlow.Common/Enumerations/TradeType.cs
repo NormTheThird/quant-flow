@@ -6,6 +6,11 @@
 public enum TradeType
 {
     /// <summary>
+    /// Represents an unknown or unspecified value.
+    /// </summary>
+    Unknown = 0,
+
+    /// <summary>
     /// Buy order - purchasing an asset
     /// </summary>
     Buy = 1,

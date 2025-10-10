@@ -4,7 +4,7 @@
         xmlns:views="clr-namespace:QuantFlow.UI.WPF.Views"
         Title="QuantFlow - Dashboard" 
         Height="1200" 
-        Width="1850"
+        Width="1550"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResize"

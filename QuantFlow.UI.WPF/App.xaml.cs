@@ -3,6 +3,7 @@
 public partial class App : Application
 {
     private readonly IHost _host;
+    public IServiceProvider Services => _host.Services;
 
     public App()
     {

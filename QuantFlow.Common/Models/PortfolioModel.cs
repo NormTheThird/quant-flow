@@ -7,12 +7,15 @@ public class PortfolioModel : BaseModel
 {
     public required string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public required decimal InitialBalance { get; set; } = 10000.0m;
-    public required decimal CurrentBalance { get; set; } = 10000.0m;
-    public required PortfolioStatus Status { get; set; } = PortfolioStatus.Active;
+    public required decimal InitialBalance { get; set; } = 0.0m;
+    public required decimal CurrentBalance { get; set; } = 0.0m;
+    public required PortfolioStatus Status { get; set; } = PortfolioStatus.Unknown;
+    public required PortfolioMode Mode { get; set; } = PortfolioMode.Unknown;
+    public Exchange? Exchange { get; set; } = null;
+    public Guid? UserExchangeDetailsId { get; set; } = null;
     public required Guid UserId { get; set; } = Guid.Empty;
-    public decimal MaxPositionSizePercent { get; set; } = 10.0m;
-    public decimal CommissionRate { get; set; } = 0.001m;
+    public decimal MaxPositionSizePercent { get; set; } = 0.0m;
+    public decimal CommissionRate { get; set; } = 0.0m;
     public bool AllowShortSelling { get; set; } = false;
 
     // Navigation properties

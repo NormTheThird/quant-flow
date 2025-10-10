@@ -92,107 +92,221 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Kraken API Card -->
+                <!-- Market Overview Symbols Card -->
                 <Border Background="{DynamicResource SurfaceColor}"
-                        BorderBrush="{DynamicResource BorderColor}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="32"
-                        Margin="0,0,20,20"
-                        Width="480">
+                       BorderBrush="{DynamicResource BorderColor}"
+                       BorderThickness="1"
+                       CornerRadius="12"
+                       Padding="32"
+                       Margin="0,0,20,20"
+                       MinWidth="480"
+                       HorizontalAlignment="Stretch">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
-                            <TextBlock Text="&#xE945;" 
-                                       FontFamily="Segoe MDL2 Assets" 
-                                       FontSize="24"
-                                       Foreground="{DynamicResource AccentColor}"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,12,0"/>
-                            <TextBlock Text="Kraken API" 
-                                       FontSize="20" 
-                                       FontWeight="SemiBold" 
-                                       Foreground="{DynamicResource TextPrimaryColor}"
-                                       FontFamily="Segoe UI"
-                                       VerticalAlignment="Center"/>
-                        </StackPanel>
+                        <TextBlock Text="Market Overview Symbols" 
+                                  FontSize="20" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="{DynamicResource TextPrimaryColor}"
+                                  FontFamily="Segoe UI"
+                                  Margin="0,0,0,8"/>
 
-                        <TextBlock Text="API Key" 
-                                   FontSize="14"
-                                   FontFamily="Segoe UI"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource TextPrimaryColor}" 
-                                   Margin="0,0,0,8"/>
-                        <TextBox Style="{StaticResource ModernTextBox}"/>
+                        <TextBlock Text="Select up to 10 symbols to display on your dashboard (Kraken only)" 
+                                  FontSize="12"
+                                  Foreground="{DynamicResource TextSecondaryColor}"
+                                  FontFamily="Segoe UI"
+                                  Margin="0,0,0,24"/>
 
-                        <TextBlock Text="API Secret" 
-                                   FontSize="14"
-                                   FontFamily="Segoe UI"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource TextPrimaryColor}" 
-                                   Margin="0,20,0,8"/>
-                        <PasswordBox Style="{StaticResource ModernPasswordBox}"/>
+                        <!-- Add Symbol Section -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
 
-                        <Button Content="Save Kraken API" 
-                                Style="{StaticResource PrimaryButton}"
-                                Width="160"
-                                HorizontalAlignment="Right"
-                                Margin="0,24,0,0"/>
+                            <ComboBox Grid.Column="0"
+                                     ItemsSource="{Binding AvailableSymbols}"
+                                     SelectedItem="{Binding SymbolToAdd}"
+                                     Style="{StaticResource ModernComboBox}"
+                                     Margin="0,0,12,0">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                           <Run Text="{Binding Symbol}" FontWeight="SemiBold"/>
+                                           <Run Text=" - " Foreground="{DynamicResource TextSecondaryColor}"/>
+                                           <Run Text="{Binding BaseAsset}" Foreground="{DynamicResource TextSecondaryColor}"/>
+                                           <Run Text="/" Foreground="{DynamicResource TextSecondaryColor}"/>
+                                           <Run Text="{Binding QuoteAsset}" Foreground="{DynamicResource TextSecondaryColor}"/>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <Button Grid.Column="1"
+                                   Content="Add Symbol"
+                                   Command="{Binding AddSymbolCommand}"
+                                   Style="{StaticResource PrimaryButton}"/>
+                        </Grid>
+
+                        <!-- Selected Symbols List -->
+                        <TextBlock Text="Selected Symbols" 
+                                  FontSize="14"
+                                  FontWeight="SemiBold"
+                                  Foreground="{DynamicResource TextPrimaryColor}"
+                                  FontFamily="Segoe UI"
+                                  Margin="0,0,0,12"/>
+
+                        <ItemsControl ItemsSource="{Binding SelectedSymbols}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource BackgroundColor}"
+                                           BorderBrush="{DynamicResource BorderColor}"
+                                           BorderThickness="1"
+                                           CornerRadius="8"
+                                           Padding="12"
+                                           Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{Binding}"
+                                                      FontSize="14"
+                                                      FontWeight="Medium"
+                                                      Foreground="{DynamicResource TextPrimaryColor}"
+                                                      VerticalAlignment="Center"/>
+
+                                            <Button Grid.Column="1"
+                                                   Command="{Binding DataContext.RemoveSymbolCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                   CommandParameter="{Binding}"
+                                                   Background="Transparent"
+                                                   BorderThickness="0"
+                                                   Width="32"
+                                                   Height="32"
+                                                   Cursor="Hand"
+                                                   ToolTip="Remove symbol">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="{TemplateBinding Background}" 
+                                                                           CornerRadius="4">
+                                                                        <TextBlock Text="&#xE74D;" 
+                                                                                  FontFamily="Segoe MDL2 Assets"
+                                                                                  FontSize="16"
+                                                                                  Foreground="{DynamicResource TextSecondaryColor}"
+                                                                                  HorizontalAlignment="Center"
+                                                                                  VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Empty State -->
+                        <Border Background="{DynamicResource BackgroundColor}"
+               BorderBrush="{DynamicResource BorderColor}"
+               BorderThickness="1"
+               CornerRadius="8"
+               Padding="24"
+               Visibility="{Binding SelectedSymbols.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                            <TextBlock Text="No symbols selected. Add symbols above to display on your dashboard."
+                      FontSize="14"
+                      Foreground="{DynamicResource TextSecondaryColor}"
+                      TextAlignment="Center"/>
+                        </Border>
+
+                        <!-- Status Message -->
+                        <TextBlock Text="{Binding StatusMessage}"
+                  FontSize="13"
+                  Foreground="{DynamicResource AccentColor}"
+                  Margin="0,16,0,0"
+                  Visibility="{Binding StatusMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                        <!-- Save Button -->
+                        <Button Content="Save Changes"
+               Command="{Binding SaveChangesCommand}"
+               Style="{StaticResource PrimaryButton}"
+               Margin="0,16,0,0"
+               HorizontalAlignment="Right"
+               Width="140"
+               IsEnabled="{Binding HasChanges}"/>
                     </StackPanel>
                 </Border>
 
-                <!-- KuCoin API Card -->
+                <!-- Exchange Settings Card -->
                 <Border Background="{DynamicResource SurfaceColor}"
                         BorderBrush="{DynamicResource BorderColor}"
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="32"
                         Margin="0,0,20,20"
-                        Width="480">
+                        Width="980">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
-                            <TextBlock Text="&#xE945;" 
-                                       FontFamily="Segoe MDL2 Assets" 
-                                       FontSize="24"
-                                       Foreground="{DynamicResource AccentColor}"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,12,0"/>
-                            <TextBlock Text="KuCoin API" 
-                                       FontSize="20" 
-                                       FontWeight="SemiBold" 
-                                       Foreground="{DynamicResource TextPrimaryColor}"
-                                       FontFamily="Segoe UI"
-                                       VerticalAlignment="Center"/>
-                        </StackPanel>
-
-                        <TextBlock Text="API Key" 
-                                   FontSize="14"
+                        <TextBlock Text="Exchange Settings" 
+                                   FontSize="20" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextPrimaryColor}"
                                    FontFamily="Segoe UI"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource TextPrimaryColor}" 
-                                   Margin="0,0,0,8"/>
-                        <TextBox Style="{StaticResource ModernTextBox}"/>
+                                   Margin="0,0,0,24"/>
 
-                        <TextBlock Text="API Secret" 
-                                   FontSize="14"
-                                   FontFamily="Segoe UI"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource TextPrimaryColor}" 
-                                   Margin="0,20,0,8"/>
-                        <PasswordBox Style="{StaticResource ModernPasswordBox}"/>
+                        <!-- Exchange Tabs -->
+                        <TabControl Background="Transparent"
+                                    BorderThickness="0"
+                                    SelectedIndex="{Binding ExchangeSettingsViewModel.SelectedTabIndex}">
+                            <TabControl.Resources>
+                                <Style TargetType="TabItem">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TabItem">
+                                                <Border x:Name="Border"
+                                                        Background="Transparent"
+                                                        BorderBrush="{DynamicResource BorderColor}"
+                                                        BorderThickness="0,0,0,2"
+                                                        Padding="16,8"
+                                                        Margin="0,0,8,0">
+                                                    <ContentPresenter ContentSource="Header"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource HoverColor}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </TabControl.Resources>
 
-                        <TextBlock Text="API Passphrase" 
-                                   FontSize="14"
-                                   FontFamily="Segoe UI"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource TextPrimaryColor}" 
-                                   Margin="0,20,0,8"/>
-                        <PasswordBox Style="{StaticResource ModernPasswordBox}"/>
+                            <!-- Kraken Tab -->
+                            <TabItem Header="Kraken">
+                                <ContentControl Content="{Binding}" 
+                                                ContentTemplate="{StaticResource ExchangeSettingsContentTemplate}"/>
+                            </TabItem>
 
-                        <Button Content="Save KuCoin API" 
-                                Style="{StaticResource PrimaryButton}"
-                                Width="160"
-                                HorizontalAlignment="Right"
-                                Margin="0,24,0,0"/>
+                            <!-- KuCoin Tab -->
+                            <TabItem Header="KuCoin">
+                                <ContentControl Content="{Binding}" 
+                                                ContentTemplate="{StaticResource ExchangeSettingsContentTemplate}"/>
+                            </TabItem>
+                        </TabControl>
                     </StackPanel>
                 </Border>
 
@@ -471,160 +585,6 @@
                                 Style="{StaticResource PrimaryButton}"
                                 Width="170"
                                 HorizontalAlignment="Right"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Market Overview Symbols Card -->
-                <Border Background="{DynamicResource SurfaceColor}"
-                        BorderBrush="{DynamicResource BorderColor}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="32"
-                        Margin="0,0,20,20"
-                        MinWidth="480"
-                        HorizontalAlignment="Stretch">
-                    <StackPanel>
-                        <TextBlock Text="Market Overview Symbols" 
-                                   FontSize="20" 
-                                   FontWeight="SemiBold" 
-                                   Foreground="{DynamicResource TextPrimaryColor}"
-                                   FontFamily="Segoe UI"
-                                   Margin="0,0,0,8"/>
-
-                        <TextBlock Text="Select up to 10 symbols to display on your dashboard (Kraken only)" 
-                                   FontSize="12"
-                                   Foreground="{DynamicResource TextSecondaryColor}"
-                                   FontFamily="Segoe UI"
-                                   Margin="0,0,0,24"/>
-
-                        <!-- Add Symbol Section -->
-                        <Grid Margin="0,0,0,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="120"/>
-                            </Grid.ColumnDefinitions>
-
-                            <ComboBox Grid.Column="0"
-                                      ItemsSource="{Binding AvailableSymbols}"
-                                      SelectedItem="{Binding SymbolToAdd}"
-                                      Style="{StaticResource ModernComboBox}"
-                                      Margin="0,0,12,0">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock>
-                                            <Run Text="{Binding Symbol}" FontWeight="SemiBold"/>
-                                            <Run Text=" - " Foreground="{DynamicResource TextSecondaryColor}"/>
-                                            <Run Text="{Binding BaseAsset}" Foreground="{DynamicResource TextSecondaryColor}"/>
-                                            <Run Text="/" Foreground="{DynamicResource TextSecondaryColor}"/>
-                                            <Run Text="{Binding QuoteAsset}" Foreground="{DynamicResource TextSecondaryColor}"/>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-
-                            <Button Grid.Column="1"
-                                    Content="Add Symbol"
-                                    Command="{Binding AddSymbolCommand}"
-                                    Style="{StaticResource PrimaryButton}"/>
-                        </Grid>
-
-                        <!-- Selected Symbols List -->
-                        <TextBlock Text="Selected Symbols" 
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryColor}"
-                                   FontFamily="Segoe UI"
-                                   Margin="0,0,0,12"/>
-
-                        <ItemsControl ItemsSource="{Binding SelectedSymbols}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource BackgroundColor}"
-                                            BorderBrush="{DynamicResource BorderColor}"
-                                            BorderThickness="1"
-                                            CornerRadius="8"
-                                            Padding="12"
-                                            Margin="0,0,0,8">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock Text="{Binding}"
-                                                       FontSize="14"
-                                                       FontWeight="Medium"
-                                                       Foreground="{DynamicResource TextPrimaryColor}"
-                                                       VerticalAlignment="Center"/>
-
-                                            <Button Grid.Column="1"
-                                                    Command="{Binding DataContext.RemoveSymbolCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Width="32"
-                                                    Height="32"
-                                                    Cursor="Hand"
-                                                    ToolTip="Remove symbol">
-                                                <Button.Style>
-                                                    <Style TargetType="Button">
-                                                        <Setter Property="Template">
-                                                            <Setter.Value>
-                                                                <ControlTemplate TargetType="Button">
-                                                                    <Border Background="{TemplateBinding Background}" 
-                                                                            CornerRadius="4">
-                                                                        <TextBlock Text="&#xE74D;" 
-                                                                                   FontFamily="Segoe MDL2 Assets"
-                                                                                   FontSize="16"
-                                                                                   Foreground="{DynamicResource TextSecondaryColor}"
-                                                                                   HorizontalAlignment="Center"
-                                                                                   VerticalAlignment="Center"/>
-                                                                    </Border>
-                                                                    <ControlTemplate.Triggers>
-                                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
-                                                                        </Trigger>
-                                                                    </ControlTemplate.Triggers>
-                                                                </ControlTemplate>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <!-- Empty State -->
-                        <Border Background="{DynamicResource BackgroundColor}"
-                BorderBrush="{DynamicResource BorderColor}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="24"
-                Visibility="{Binding SelectedSymbols.Count, Converter={StaticResource CountToVisibilityConverter}}">
-                            <TextBlock Text="No symbols selected. Add symbols above to display on your dashboard."
-                       FontSize="14"
-                       Foreground="{DynamicResource TextSecondaryColor}"
-                       TextAlignment="Center"/>
-                        </Border>
-
-                        <!-- Status Message -->
-                        <TextBlock Text="{Binding StatusMessage}"
-                   FontSize="13"
-                   Foreground="{DynamicResource AccentColor}"
-                   Margin="0,16,0,0"
-                   Visibility="{Binding StatusMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
-
-                        <!-- Save Button -->
-                        <Button Content="Save Changes"
-                Command="{Binding SaveChangesCommand}"
-                Style="{StaticResource PrimaryButton}"
-                Margin="0,16,0,0"
-                HorizontalAlignment="Right"
-                Width="140"
-                IsEnabled="{Binding HasChanges}"/>
                     </StackPanel>
                 </Border>
 

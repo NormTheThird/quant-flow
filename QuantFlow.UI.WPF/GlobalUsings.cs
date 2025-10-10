@@ -25,6 +25,7 @@ global using QuantFlow.UI.WPF.ViewModels;
 global using QuantFlow.UI.WPF.Views;
 global using QuantFlow.UI.WPF.Windows;
 global using Serilog;
+global using System.Collections.ObjectModel;
 global using System.Globalization;
 global using System.Net.Http;
 global using System.Text;

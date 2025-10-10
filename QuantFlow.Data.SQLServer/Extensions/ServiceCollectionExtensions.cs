@@ -18,20 +18,21 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         // Register repository implementations
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
-        services.AddScoped<IMarketDataConfigurationRepository, MarketDataConfigurationRepository>();
-        //services.AddScoped<IPortfolioRepository, PortfolioRepository>();
-        //services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
-        //services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
-        services.AddScoped<ITradeRepository, TradeRepository>();
-        services.AddScoped<ISymbolRepository, SymbolRepository>();
-        //services.AddScoped<IExchangeSymbolRepository, SqlExchangeSymbolRepository>();
-        //services.AddScoped<IConfigurationRepository, SqlConfigurationRepository>();
-        //services.AddScoped<IUserPreferencesRepository, SqlUserPreferencesRepository>();
-
         // Exchange Configuration Repository (NEW)
+        services.AddScoped<IMarketDataConfigurationRepository, MarketDataConfigurationRepository>();
+        services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+        services.AddScoped<ISymbolRepository, SymbolRepository>();
+        services.AddScoped<ITradeRepository, TradeRepository>();
+        services.AddScoped<IUserExchangeDetailsRepository, UserExchangeDetailsRepository>();
+        services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+
+        //services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
+        //services.AddScoped<IConfigurationRepository, SqlConfigurationRepository>();
         //services.AddScoped<IExchangeConfigurationRepository, ExchangeConfigurationRepository>();
+        //services.AddScoped<IExchangeSymbolRepository, SqlExchangeSymbolRepository>();
+        //services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        //services.AddScoped<IUserPreferencesRepository, SqlUserPreferencesRepository>();
 
         return services;
     }

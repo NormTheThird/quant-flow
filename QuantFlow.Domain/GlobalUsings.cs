@@ -11,3 +11,6 @@ global using QuantFlow.Common.Interfaces.Services;
 global using QuantFlow.Common.Models;
 global using QuantFlow.Domain.Services;
 global using QuantFlow.Domain.Services.ApiServices;
+
+global using System.Security.Cryptography;
+global using System.Text;

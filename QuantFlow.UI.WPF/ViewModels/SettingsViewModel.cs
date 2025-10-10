@@ -3,9 +3,14 @@
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly ILogger<SettingsViewModel> _logger;
+    private readonly ILogger<ExchangeSettingsViewModel> _exchangeSettingsLogger;
     private readonly ISymbolService _symbolService;
     private readonly IUserPreferencesRepository _userPreferencesRepository;
     private readonly IUserSessionService _userSessionService;
+    private readonly IUserExchangeDetailsService _userExchangeDetailsService;
+
+    [ObservableProperty]
+    private ExchangeSettingsViewModel _exchangeSettingsViewModel;
 
     [ObservableProperty]
     private List<SymbolModel> _availableSymbols = new();
@@ -25,18 +30,18 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasChanges = false;
 
-    public SettingsViewModel(
-        ILogger<SettingsViewModel> logger,
-        ISymbolService symbolService,
-        IUserPreferencesRepository userPreferencesRepository,
-        IUserSessionService userSessionService)
+    public SettingsViewModel(ILogger<SettingsViewModel> logger, ILogger<ExchangeSettingsViewModel> exchangeSettingsLogger,
+                             ISymbolService symbolService, IUserPreferencesRepository userPreferencesRepository,
+                             IUserSessionService userSessionService, IUserExchangeDetailsService userExchangeDetailsService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _symbolService = symbolService ?? throw new ArgumentNullException(nameof(symbolService));
         _userPreferencesRepository = userPreferencesRepository ?? throw new ArgumentNullException(nameof(userPreferencesRepository));
         _userSessionService = userSessionService ?? throw new ArgumentNullException(nameof(userSessionService));
+        _userExchangeDetailsService = userExchangeDetailsService ?? throw new ArgumentNullException(nameof(userExchangeDetailsService));
 
-        _logger.LogInformation("SettingsViewModel initialized");
+        // Initialize ExchangeSettingsViewModel
+        _exchangeSettingsViewModel = new ExchangeSettingsViewModel(exchangeSettingsLogger, _userExchangeDetailsService, _userSessionService);
 
         _ = InitializeAsync();
     }

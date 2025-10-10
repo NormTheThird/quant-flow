@@ -7,6 +7,7 @@ public partial class DashboardViewModel : ObservableObject
     private readonly IKrakenApiService _krakenApiService;
     private readonly IUserSessionService _userSessionService;
     private readonly ISymbolService _symbolService;
+    private readonly IPortfolioService _portfolioService;
 
     [ObservableProperty]
     private List<CryptoCardViewModel> _cryptoCards = new();
@@ -18,39 +19,44 @@ public partial class DashboardViewModel : ObservableObject
     private List<RecentTradeViewModel> _recentTrades = new();
 
     [ObservableProperty]
-    private bool _isLoading = false;
+    private bool _isLoadingMarketOverview = false;
+
+    [ObservableProperty]
+    private bool _isLoadingPortfolios = false;
 
     [ObservableProperty]
     private bool _hasNoSymbols = false;
 
+    [ObservableProperty]
+    private bool _hasNoPortfolios;
+
     public DashboardViewModel(ILogger<DashboardViewModel> logger, IUserPreferencesRepository userPreferencesRepository, IKrakenApiService krakenApiService,
-                                      IUserSessionService userSessionService, ISymbolService symbolService)
+                                      IUserSessionService userSessionService, ISymbolService symbolService, IPortfolioService portfolioService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _userPreferencesRepository = userPreferencesRepository ?? throw new ArgumentNullException(nameof(userPreferencesRepository));
         _krakenApiService = krakenApiService ?? throw new ArgumentNullException(nameof(krakenApiService));
         _userSessionService = userSessionService ?? throw new ArgumentNullException(nameof(userSessionService));
         _symbolService = symbolService ?? throw new ArgumentNullException(nameof(symbolService));
+        _portfolioService = portfolioService ?? throw new ArgumentNullException(nameof(portfolioService));
 
         _logger.LogInformation("DashboardViewModel initialized");
 
         _ = InitializeAsync();
-        _symbolService = symbolService;
     }
 
     private async Task InitializeAsync()
     {
-        // Load portfolios and trades immediately (synchronous/fast)
-        InitializePortfolios();
         InitializeRecentTrades();
 
         // Load market overview cards asynchronously without blocking
         _ = LoadMarketOverviewCardsAsync();
+        _ = LoadPortfoliosAsync();
     }
 
     private async Task LoadMarketOverviewCardsAsync()
     {
-        IsLoading = true;
+        IsLoadingMarketOverview = true;
 
         try
         {
@@ -70,7 +76,7 @@ public partial class DashboardViewModel : ObservableObject
         }
         finally
         {
-            IsLoading = false;
+            IsLoadingMarketOverview = false;
         }
     }
 
@@ -115,6 +121,7 @@ public partial class DashboardViewModel : ObservableObject
 
         return cryptoCards;
     }
+    
     private async Task<CryptoCardViewModel?> FetchCardForSymbolAsync(string symbol)
     {
         try
@@ -159,34 +166,39 @@ public partial class DashboardViewModel : ObservableObject
             return null;
         }
     }
+   
+    private async Task LoadPortfoliosAsync()
+    {
+        IsLoadingPortfolios = true;
+
+        try
+        {
+            var userId = _userSessionService.CurrentUserId;
+            _logger.LogInformation("Loading portfolios for user: {UserId}", userId);
+
+            var portfolios = await _portfolioService.GetPortfoliosByUserIdAsync(userId);
+
+            Portfolios = portfolios.Select(p => new PortfolioCardViewModel(p)).OrderBy(_ => _.ModeBadgeText).ToList();
+
+            HasNoPortfolios = Portfolios.Count == 0;
+            _logger.LogInformation("Loaded {Count} portfolios for dashboard", Portfolios.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading portfolios for dashboard");
+            Portfolios = new List<PortfolioCardViewModel>();
+            HasNoPortfolios = true;
+        }
+        finally
+        {
+            IsLoadingPortfolios = false;
+        }
+    }
 
     private void SetEmptyState()
     {
         CryptoCards = new List<CryptoCardViewModel>();
         HasNoSymbols = true;
-    }
-
-    private string GetCryptoName(string symbol)
-    {
-        return symbol switch
-        {
-            "BTC" => "Bitcoin",
-            "ETH" => "Ethereum",
-            "ADA" => "Cardano",
-            "SOL" => "Solana",
-            "DOT" => "Polkadot",
-            _ => symbol
-        };
-    }
-
-    private void InitializePortfolios()
-    {
-        Portfolios = new List<PortfolioCardViewModel>
-        {
-            new PortfolioCardViewModel("Main Trading", true, "Kraken", 127384.52, 100000.00, 8),
-            new PortfolioCardViewModel("Strategy Testing", false, "Kraken", 15847.32, 10000.00, 3),
-            new PortfolioCardViewModel("Conservative", true, "KuCoin", 52847.12, 50000.00, 4)
-        };
     }
 
     private void InitializeRecentTrades()

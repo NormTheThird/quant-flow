@@ -49,7 +49,13 @@ public partial class MainWindowViewModel : ObservableObject
     public void NavigateToPortfolios()
     {
         _logger.LogInformation("Navigating to Portfolios");
-        // TODO: Create PortfoliosViewModel and PortfoliosView
+
+        // Create a scope for scoped services
+        var scope = _serviceProvider.CreateScope();
+        var portfoliosViewModel = scope.ServiceProvider.GetRequiredService<PortfoliosViewModel>();
+        var portfoliosView = scope.ServiceProvider.GetRequiredService<PortfoliosView>();
+        portfoliosView.DataContext = portfoliosViewModel;
+        CurrentView = portfoliosView;
     }
 
     [RelayCommand]

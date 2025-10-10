@@ -37,6 +37,10 @@ public static class ConfigurationService
         services.AddTransient<IUserService, UserService>();
         services.AddTransient<IKrakenApiService, KrakenApiService>();
         services.AddTransient<ISymbolService, SymbolService>();
+        services.AddTransient<IPortfolioService, PortfolioService>();
+        services.AddTransient<IEncryptionService, EncryptionService>();
+        services.AddTransient<IUserExchangeDetailsService, UserExchangeDetailsService>(); 
+
 
         // HttpClient configuration
         services.AddHttpClient<IAuthenticationApiService, AuthenticationApiService>(client =>
@@ -61,10 +65,13 @@ public static class ConfigurationService
         services.AddTransient<LoginViewModel>();
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<PortfoliosViewModel>();
+        services.AddTransient<ExchangeSettingsViewModel>();
 
         // Views
         services.AddTransient<DashboardView>();
         services.AddTransient<SettingsView>();
+        services.AddTransient<PortfoliosView>();
 
         // Windows
         services.AddTransient<LoginWindow>();

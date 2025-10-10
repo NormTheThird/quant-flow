@@ -41,7 +41,7 @@ public static class BacktestRunModelFixture
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             CreatedBy = "test",
             User = UserModelFixture.CreateDefault(),
-            Portfolio = PortfolioModelFixture.CreateDefault(),
+            //Portfolio = PortfolioModelFixture.CreateDefault(),
             //Trades = new List<TradeModel> { TradeModelFixture.CreateDefault() }
         };
     }
