@@ -9,7 +9,6 @@ global using QuantFlow.Data.SQLServer.Context;
 global using QuantFlow.Data.SQLServer.Extensions;
 global using QuantFlow.Data.SQLServer.Models;
 global using QuantFlow.Data.SQLServer.Repositories;
-global using QuantFlow.Test.Shared.Fixtures;
 global using System;
 global using System.Collections.Generic;
 global using System.Linq;

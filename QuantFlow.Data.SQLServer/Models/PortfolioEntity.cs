@@ -21,35 +21,31 @@ public class PortfolioEntity
 
     [Required]
     [Precision(18, 2)]
-    public decimal InitialBalance { get; set; } = 10000.0m;
+    public decimal InitialBalance { get; set; } = 0.0m;
 
     [Required]
     [Precision(18, 2)]
-    public decimal CurrentBalance { get; set; } = 10000.0m;
+    public decimal CurrentBalance { get; set; } = 0.0m;
 
     [Required]
     [MaxLength(50)]
-    public string Status { get; set; } = "Inactive"; // PortfolioStatus enum as string
+    public string Status { get; set; } = "Inactive";
 
     [Required]
     [MaxLength(50)]
-    public string Mode { get; set; } = "TestMode"; // PortfolioMode enum as string
+    public string Mode { get; set; } = "TestMode";
 
+    [Required]
     [MaxLength(50)]
-    public string? Exchange { get; set; } = null; // Exchange enum as string (nullable)
+    public string Exchange { get; set; } = "Unknown"; // Exchange enum as string (Unknown for test mode)
+
+    [Required]
+    [MaxLength(10)]
+    public string BaseCurrency { get; set; } = "USDT";
 
     public Guid? UserExchangeDetailsId { get; set; } = null;
 
-    [Precision(5, 2)]
-    public decimal MaxPositionSizePercent { get; set; } = 10.0m;
-
-    [Precision(8, 6)]
-    public decimal CommissionRate { get; set; } = 0.001m;
-
-    public bool AllowShortSelling { get; set; } = false;
-
     public bool IsDeleted { get; set; } = false;
-
     public DateTime CreatedAt { get; set; } = new();
 
     [MaxLength(100)]
@@ -66,4 +62,6 @@ public class PortfolioEntity
 
     [ForeignKey(nameof(UserExchangeDetailsId))]
     public virtual UserExchangeDetailsEntity? UserExchangeDetails { get; set; } = null;
+
+    public virtual ICollection<AlgorithmPositionEntity> AlgorithmPositions { get; set; } = [];
 }

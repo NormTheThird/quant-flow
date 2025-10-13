@@ -3,7 +3,6 @@
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly ILogger<SettingsViewModel> _logger;
-    private readonly ILogger<ExchangeSettingsViewModel> _exchangeSettingsLogger;
     private readonly ISymbolService _symbolService;
     private readonly IUserPreferencesRepository _userPreferencesRepository;
     private readonly IUserSessionService _userSessionService;
@@ -54,6 +53,8 @@ public partial class SettingsViewModel : ObservableObject
         {
             await LoadAvailableSymbolsAsync();
             await LoadUserSymbolsAsync();
+            await ExchangeSettingsViewModel.LoadExchangeDetailsAsync();
+
         }
         catch (Exception ex)
         {
@@ -77,7 +78,7 @@ public partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading available symbols");
-            AvailableSymbols = new List<SymbolModel>();
+            AvailableSymbols = [];
         }
     }
 
@@ -90,26 +91,28 @@ public partial class SettingsViewModel : ObservableObject
 
             if (preferences == null)
             {
-                SelectedSymbols = new List<string>();
+                SelectedSymbols = [];
                 return;
             }
 
             var marketOverviewCards = preferences.MarketOverviewCards as Dictionary<string, object>;
             if (marketOverviewCards == null || !marketOverviewCards.ContainsKey("Kraken"))
             {
-                SelectedSymbols = new List<string>();
+                SelectedSymbols = [];
                 return;
             }
 
             var krakenSymbols = marketOverviewCards["Kraken"] as List<object>;
-            SelectedSymbols = krakenSymbols?.Select(s => s.ToString()).Where(s => !string.IsNullOrEmpty(s)).ToList() ?? new List<string>();
-
+            SelectedSymbols = krakenSymbols?.Select(s => s.ToString())
+                                            .Where(s => !string.IsNullOrEmpty(s))
+                                            .Select(_ => _!)
+                                            .ToList() ?? [];
             _logger.LogInformation("Loaded {Count} user symbols", SelectedSymbols.Count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading user symbols");
-            SelectedSymbols = new List<string>();
+            SelectedSymbols = [];
         }
     }
 

@@ -19,6 +19,7 @@ public class PortfolioRepository : IPortfolioRepository
         _logger.LogInformation("Getting portfolio with ID: {PortfolioId}", id);
 
         var entity = await _context.Portfolios
+            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
         return entity?.ToBusinessModel();
@@ -29,6 +30,7 @@ public class PortfolioRepository : IPortfolioRepository
         _logger.LogInformation("Getting portfolios for user: {UserId}", userId);
 
         var entities = await _context.Portfolios
+            .AsNoTracking()
             .Where(p => p.UserId == userId && !p.IsDeleted)
             .ToListAsync();
 
@@ -50,24 +52,14 @@ public class PortfolioRepository : IPortfolioRepository
     {
         _logger.LogInformation("Creating portfolio: {Name} for user: {UserId}", portfolio.Name, portfolio.UserId);
 
-        try
-        {
-            var entity = portfolio.ToEntity();
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
+        var entity = portfolio.ToEntity();
+        entity.CreatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = DateTime.UtcNow;
 
-            _context.Portfolios.Add(entity);
-            await _context.SaveChangesAsync();
+        _context.Portfolios.Add(entity);
+        await _context.SaveChangesAsync();
 
-            return entity.ToBusinessModel();
-        }
-        catch (Exception ex)
-        {
-            // Clear the change tracker to remove any failed entities
-            _context.ChangeTracker.Clear();
-            _logger.LogError(ex, "Failed to create portfolio: {Name}", portfolio.Name);
-            throw;
-        }
+        return entity.ToBusinessModel();
     }
 
     public async Task<PortfolioModel> UpdateAsync(PortfolioModel portfolio)
@@ -83,11 +75,8 @@ public class PortfolioRepository : IPortfolioRepository
         entity.CurrentBalance = portfolio.CurrentBalance;
         entity.Status = portfolio.Status.ToString();
         entity.Mode = portfolio.Mode.ToString();
-        entity.Exchange = portfolio.Exchange?.ToString();
+        entity.Exchange = portfolio.Exchange.ToString();
         entity.UserExchangeDetailsId = portfolio.UserExchangeDetailsId;
-        entity.MaxPositionSizePercent = portfolio.MaxPositionSizePercent;
-        entity.CommissionRate = portfolio.CommissionRate;
-        entity.AllowShortSelling = portfolio.AllowShortSelling;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.UpdatedBy = portfolio.UpdatedBy;
 

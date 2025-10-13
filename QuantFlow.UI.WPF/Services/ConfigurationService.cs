@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.UI.WPF.Services;
+﻿using QuantFlow.Common.Extensions;
+
+namespace QuantFlow.UI.WPF.Services;
 
 public static class ConfigurationService
 {
@@ -29,18 +31,21 @@ public static class ConfigurationService
         // Configuration
         services.AddSingleton(context.Configuration);
 
+        services.AddRateLimitHandling(context.Configuration);
+
         // Data stores - only what we need
         services.AddSqlServerDataStore(context.Configuration);
+        services.AddInfluxDataStore(context.Configuration);
         services.AddMongoDb(context.Configuration);
 
         // Domain services
-        services.AddTransient<IUserService, UserService>();
-        services.AddTransient<IKrakenApiService, KrakenApiService>();
-        services.AddTransient<ISymbolService, SymbolService>();
-        services.AddTransient<IPortfolioService, PortfolioService>();
-        services.AddTransient<IEncryptionService, EncryptionService>();
-        services.AddTransient<IUserExchangeDetailsService, UserExchangeDetailsService>(); 
-
+        //services.AddScoped<IUserService, UserService>();
+        //services.AddScoped<IKrakenApiService, KrakenApiService>();
+        //services.AddScoped<ISymbolService, SymbolService>();
+        //services.AddScoped<IPortfolioService, PortfolioService>();
+        //services.AddScoped<IEncryptionService, EncryptionService>();
+        //services.AddScoped<IUserExchangeDetailsService, UserExchangeDetailsService>(); 
+        services.AddDomainServices();
 
         // HttpClient configuration
         services.AddHttpClient<IAuthenticationApiService, AuthenticationApiService>(client =>
@@ -66,6 +71,7 @@ public static class ConfigurationService
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<PortfoliosViewModel>();
+        services.AddTransient<PortfolioDetailViewModel>();
         services.AddTransient<ExchangeSettingsViewModel>();
 
         // Views

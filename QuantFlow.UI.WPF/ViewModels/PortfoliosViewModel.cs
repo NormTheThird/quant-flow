@@ -148,4 +148,37 @@ public partial class PortfoliosViewModel : ObservableObject
             }
         }
     }
+
+    [RelayCommand]
+    private void ViewPortfolioDetails(PortfolioItemViewModel portfolioItem)
+    {
+        _logger.LogInformation("View portfolio details clicked: {PortfolioId}", portfolioItem.Id);
+
+        try
+        {
+            // Get the MainWindow to navigate
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            if (mainWindow?.DataContext is MainWindowViewModel mainViewModel)
+            {
+                // Create a scope for the detail view
+                var scope = ((App)Application.Current).Services.CreateScope();
+                var detailViewModel = scope.ServiceProvider.GetRequiredService<PortfolioDetailViewModel>();
+                var detailView = new PortfolioDetailView
+                {
+                    DataContext = detailViewModel
+                };
+
+                // Load the portfolio
+                _ = detailViewModel.LoadPortfolioAsync(portfolioItem.Id);
+
+                // Navigate to the detail view
+                mainViewModel.CurrentView = detailView;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error navigating to portfolio details: {PortfolioId}", portfolioItem.Id);
+            MessageBox.Show($"Error opening portfolio details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 }

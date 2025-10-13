@@ -45,7 +45,7 @@ public partial class PortfolioCardViewModel : ObservableObject
         ModeBadgeColor = portfolio.Mode == PortfolioMode.ExchangeConnected ? "#4cceac" : "#f59e0b";
 
         // Exchange
-        Exchange = portfolio.Exchange?.ToString() ?? "N/A";
+        Exchange = portfolio.Exchange.ToString();
 
         // Total Value = Current Balance
         TotalValue = $"${portfolio.CurrentBalance:N2}";

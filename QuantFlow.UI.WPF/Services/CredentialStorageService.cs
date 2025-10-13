@@ -6,35 +6,30 @@ public class CredentialStorageService : ICredentialStorageService
 
     public void SaveCredentials(string username, string password)
     {
-        using var credential = new Credential
+        var credential = new Credential
         {
             Target = TARGET_NAME,
             Username = username,
-            Password = password,
-            PersistanceType = PersistanceType.LocalComputer
+            Password = password
         };
         credential.Save();
     }
 
     public (string? username, string? password) GetCredentials()
     {
-        using var credential = new Credential { Target = TARGET_NAME };
-        if (credential.Load())
-        {
-            return (credential.Username, credential.Password);
-        }
-        return (null, null);
+        var credential = new Credential { Target = TARGET_NAME };
+        return credential.Load() ? (credential.Username, credential.Password) : (null, null);
     }
 
     public void ClearCredentials()
     {
-        using var credential = new Credential { Target = TARGET_NAME };
+        var credential = new Credential { Target = TARGET_NAME };
         credential.Delete();
     }
 
     public bool HasStoredCredentials()
     {
-        using var credential = new Credential { Target = TARGET_NAME };
+        var credential = new Credential { Target = TARGET_NAME };
         return credential.Load();
     }
 }

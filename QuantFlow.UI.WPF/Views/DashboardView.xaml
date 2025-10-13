@@ -80,8 +80,8 @@
 
             <!-- Section: My Portfolios -->
             <TextBlock Text="My Portfolios" 
-                       FontSize="24" 
-                       FontWeight="Bold" 
+                       FontSize="18" 
+                       FontWeight="SemiBold" 
                        Foreground="{DynamicResource TextPrimaryColor}"
                        Margin="0,40,0,20"/>
 

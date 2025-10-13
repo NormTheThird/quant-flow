@@ -10,4 +10,8 @@
     <ProjectReference Include="..\QuantFlow.Common\QuantFlow.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Fixtures\" />
+  </ItemGroup>
+
 </Project>

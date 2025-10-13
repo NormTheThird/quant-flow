@@ -35,19 +35,16 @@ public partial class PortfolioDialogViewModel : ObservableObject
     private bool _isExchangeConnected = false;
 
     [ObservableProperty]
-    private List<string> _availableExchanges = ["Kraken", "KuCoin", "Binance"];
+    private List<string> _availableExchanges = ["Kraken", "KuCoin"];
 
     [ObservableProperty]
-    private string? _selectedExchange;
+    private string? _selectedExchange = "Kraken";
 
     [ObservableProperty]
-    private string _maxPositionSizePercent = "10";
+    private List<string> _availableCurrencies = ["USDT", "USDC"];
 
     [ObservableProperty]
-    private string _commissionRate = "0.1";
-
-    [ObservableProperty]
-    private bool _allowShortSelling = false;
+    private string _selectedBaseCurrency = "USDT";
 
     [ObservableProperty]
     private string _validationMessage = string.Empty;
@@ -95,14 +92,8 @@ public partial class PortfolioDialogViewModel : ObservableObject
         IsTestMode = portfolio.Mode == PortfolioMode.TestMode;
         IsExchangeConnected = portfolio.Mode == PortfolioMode.ExchangeConnected;
 
-        if (portfolio.Exchange.HasValue)
-        {
-            SelectedExchange = portfolio.Exchange.Value.ToString();
-        }
-
-        MaxPositionSizePercent = portfolio.MaxPositionSizePercent.ToString("F2");
-        CommissionRate = (portfolio.CommissionRate * 100).ToString("F2");
-        AllowShortSelling = portfolio.AllowShortSelling;
+        SelectedExchange = portfolio.Exchange.ToString();
+        SelectedBaseCurrency = portfolio.BaseCurrency.ToString();
     }
 
     [RelayCommand]
@@ -119,17 +110,13 @@ public partial class PortfolioDialogViewModel : ObservableObject
                 Name = PortfolioName,
                 Description = Description,
                 InitialBalance = decimal.Parse(InitialBalance),
-                CurrentBalance = (DialogMode == DialogMode.Edit) ? 0 : decimal.Parse(InitialBalance), // Keep existing balance in edit mode
-                Status = PortfolioStatus.Inactive,
+                CurrentBalance = (DialogMode == DialogMode.Edit) ? 0 : decimal.Parse(InitialBalance),
+                Status = Status.Inactive,
                 Mode = IsTestMode ? PortfolioMode.TestMode : PortfolioMode.ExchangeConnected,
-                Exchange = IsExchangeConnected && !string.IsNullOrEmpty(SelectedExchange)
-                    ? Enum.Parse<Exchange>(SelectedExchange)
-                    : null,
-                UserExchangeDetailsId = null, // TODO: Get from selected exchange details
+                Exchange = Enum.Parse<Exchange>(SelectedExchange ?? "Kraken"),
+                BaseCurrency = Enum.Parse<BaseCurrency>(SelectedBaseCurrency),
+                UserExchangeDetailsId = null, // TODO: Get from selected exchange details when in ExchangeConnected mode
                 UserId = _currentUserId,
-                MaxPositionSizePercent = decimal.Parse(MaxPositionSizePercent),
-                CommissionRate = decimal.Parse(CommissionRate) / 100,
-                AllowShortSelling = AllowShortSelling,
                 CreatedBy = "CurrentUser", // TODO: Get from user session
                 UpdatedBy = "CurrentUser"
             };
@@ -151,7 +138,6 @@ public partial class PortfolioDialogViewModel : ObservableObject
         {
             _logger.LogError(ex, "Error saving portfolio");
 
-            // Get the innermost exception message
             var innerException = ex;
             while (innerException.InnerException != null)
             {
@@ -182,23 +168,16 @@ public partial class PortfolioDialogViewModel : ObservableObject
             return false;
         }
 
-        if (!decimal.TryParse(MaxPositionSizePercent, out var maxPos) || maxPos <= 0 || maxPos > 100)
-        {
-            ValidationMessage = "Max position size must be between 0 and 100";
-            HasValidationError = true;
-            return false;
-        }
-
-        if (!decimal.TryParse(CommissionRate, out var commission) || commission < 0)
-        {
-            ValidationMessage = "Commission rate must be a positive number";
-            HasValidationError = true;
-            return false;
-        }
-
-        if (IsExchangeConnected && string.IsNullOrEmpty(SelectedExchange))
+        if (string.IsNullOrEmpty(SelectedExchange))
         {
             ValidationMessage = "Please select an exchange";
+            HasValidationError = true;
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(SelectedBaseCurrency))
+        {
+            ValidationMessage = "Please select a base currency";
             HasValidationError = true;
             return false;
         }
@@ -211,7 +190,6 @@ public partial class PortfolioDialogViewModel : ObservableObject
         if (value)
         {
             IsExchangeConnected = false;
-            SelectedExchange = null;
         }
     }
 

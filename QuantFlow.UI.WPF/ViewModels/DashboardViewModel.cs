@@ -51,7 +51,7 @@ public partial class DashboardViewModel : ObservableObject
 
         // Load market overview cards asynchronously without blocking
         _ = LoadMarketOverviewCardsAsync();
-        _ = LoadPortfoliosAsync();
+        await LoadPortfoliosAsync();
     }
 
     private async Task LoadMarketOverviewCardsAsync()

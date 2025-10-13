@@ -13,12 +13,19 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining</returns>
     public static IServiceCollection AddSqlServerDataStore(this IServiceCollection services, IConfiguration configuration)
     {
-        // Add Entity Framework DbContext
-        services.AddDbContext<QuantFlowDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        // Register the interceptor
+        services.AddSingleton<ChangeTrackerClearingInterceptor>();
+
+        // Add Entity Framework DbContext with interceptor
+        services.AddDbContext<QuantFlowDbContext>((serviceProvider, options) =>
+        {
+            var interceptor = serviceProvider.GetRequiredService<ChangeTrackerClearingInterceptor>();
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
+                   .AddInterceptors(interceptor);
+        });
 
         // Register repository implementations
-        // Exchange Configuration Repository (NEW)
+        services.AddScoped<IAlgorithmPositionRepository, AlgorithmPositionRepository>();
         services.AddScoped<IMarketDataConfigurationRepository, MarketDataConfigurationRepository>();
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddScoped<ISymbolRepository, SymbolRepository>();
@@ -26,43 +33,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserExchangeDetailsRepository, UserExchangeDetailsRepository>();
         services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
-
-        //services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
-        //services.AddScoped<IConfigurationRepository, SqlConfigurationRepository>();
-        //services.AddScoped<IExchangeConfigurationRepository, ExchangeConfigurationRepository>();
-        //services.AddScoped<IExchangeSymbolRepository, SqlExchangeSymbolRepository>();
-        //services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
-        //services.AddScoped<IUserPreferencesRepository, SqlUserPreferencesRepository>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds SQL Server data store services with custom connection string
-    /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="connectionString">The SQL Server connection string</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddSqlServerDataStore(this IServiceCollection services, string connectionString)
-    {
-        // Add Entity Framework DbContext
-        services.AddDbContext<QuantFlowDbContext>(options =>
-            options.UseSqlServer(connectionString));
-
-        // Register repository implementations
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>();
-        //services.AddScoped<IPortfolioRepository, PortfolioRepository>();
-        //services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
-        services.AddScoped<ITradeRepository, TradeRepository>();
-        services.AddScoped<ISymbolRepository, SymbolRepository>();
-        //services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
-        //services.AddScoped<IExchangeSymbolRepository, SqlExchangeSymbolRepository>();
-        //services.AddScoped<IConfigurationRepository, SqlConfigurationRepository>();
-        //services.AddScoped<IUserPreferencesRepository, SqlUserPreferencesRepository>();
-
-        // Exchange Configuration Repository (NEW)
-        //services.AddScoped<IExchangeConfigurationRepository, ExchangeConfigurationRepository>();
 
         return services;
     }

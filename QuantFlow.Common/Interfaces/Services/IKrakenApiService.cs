@@ -54,4 +54,21 @@ public interface IKrakenApiService
     /// <param name="endTime">Optional end time for data retrieval</param>
     /// <returns>List of kline data</returns>
     Task<List<KlineData>> GetKlinesAsync(string symbol, Timeframe timeframe, DateTime startTime, DateTime? endTime = null);
+
+    /// <summary>
+    /// Validates API credentials by attempting to query account balance
+    /// </summary>
+    /// <param name="apiKey">Kraken API key</param>
+    /// <param name="apiSecret">Kraken API secret</param>
+    /// <returns>True if credentials are valid, false otherwise</returns>
+    Task<bool> ValidateCredentialsAsync(string apiKey, string apiSecret);
+
+    /// <summary>
+    /// Gets the balance for a specific currency from Kraken account
+    /// </summary>
+    /// <param name="apiKey">Kraken API key</param>
+    /// <param name="apiSecret">Kraken API secret</param>
+    /// <param name="currency">Currency symbol (e.g., "USDT", "USDC")</param>
+    /// <returns>Balance amount for the specified currency</returns>
+    Task<decimal> GetCurrencyBalanceAsync(string apiKey, string apiSecret, string currency);
 }

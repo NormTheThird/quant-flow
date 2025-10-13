@@ -37,7 +37,7 @@ public partial class ExchangeSettingsViewModel : ObservableObject
         _exchangeDetailsService = exchangeDetailsService ?? throw new ArgumentNullException(nameof(exchangeDetailsService));
         _userSessionService = userSessionService ?? throw new ArgumentNullException(nameof(userSessionService));
 
-        _ = LoadExchangeDetailsAsync();
+        //_ = LoadExchangeDetailsAsync();
     }
 
     [RelayCommand]
@@ -97,7 +97,7 @@ public partial class ExchangeSettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task LoadExchangeDetailsAsync()
+    public async Task LoadExchangeDetailsAsync()
     {
         try
         {

@@ -8,6 +8,8 @@ public class QuantFlowDbContext : DbContext
     public QuantFlowDbContext(DbContextOptions<QuantFlowDbContext> options) : base(options)
     {
     }
+
+    public DbSet<AlgorithmPositionEntity> AlgorithmPositions { get; set; } = null!;
     public DbSet<MarketDataConfigurationEntity> MarketDataConfigurations { get; set; } = null!;
     public DbSet<PortfolioEntity> Portfolios { get; set; } = null!;
     public DbSet<SymbolEntity> Symbols { get; set; } = null!;
@@ -15,15 +17,6 @@ public class QuantFlowDbContext : DbContext
     public DbSet<UserEntity> Users { get; set; } = null!;
     public DbSet<UserExchangeDetailsEntity> UserExchangeDetails { get; set; } = null!;
     public DbSet<UserRefreshTokenEntity> UserRefreshTokens { get; set; } = null!;
-
-    //public DbSet<SubscriptionEntity> Subscriptions { get; set; } = null!;
-    //public DbSet<BacktestRunEntity> BacktestRuns { get; set; } = null!;
-    //public DbSet<ExchangeSymbolEntity> ExchangeSymbols { get; set; } = null!;
-    //public DbSet<ExchangeConfigurationEntity> ExchangeConfigurations { get; set; } = null!;
-    //public DbSet<FeeTierEntity> FeeTiers { get; set; } = null!;
-    //public DbSet<SymbolFeeOverrideEntity> SymbolFeeOverrides { get; set; } = null!;
-    //public DbSet<ConfigurationEntity> Configurations { get; set; } = null!;
-    //public DbSet<UserPreferencesEntity> UserPreferences { get; set; } = null!;;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -33,9 +33,6 @@ public partial class PortfolioItemViewModel : ObservableObject
     private string _exchangeName = string.Empty;
 
     [ObservableProperty]
-    private bool _hasExchange;
-
-    [ObservableProperty]
     private string _initialBalanceFormatted = string.Empty;
 
     [ObservableProperty]
@@ -59,16 +56,15 @@ public partial class PortfolioItemViewModel : ObservableObject
         StatusText = portfolio.Status.ToString().ToUpper();
         StatusBadgeColor = portfolio.Status switch
         {
-            PortfolioStatus.Active => "#4cceac",
-            PortfolioStatus.Inactive => "#6b7280",
-            PortfolioStatus.Paused => "#f59e0b",
-            PortfolioStatus.Archived => "#94a3b8",
+            Status.Active => "#4cceac",
+            Status.Inactive => "#6b7280",
+            Status.Paused => "#f59e0b",
+            Status.Archived => "#94a3b8",
             _ => "#6b7280"
         };
 
         // Exchange
-        ExchangeName = portfolio.Exchange?.ToString() ?? "N/A";
-        HasExchange = portfolio.Exchange.HasValue;
+        ExchangeName = portfolio.Exchange.ToString();
 
         // Balances
         InitialBalanceFormatted = $"${portfolio.InitialBalance:N2}";

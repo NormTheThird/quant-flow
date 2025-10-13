@@ -1,4 +1,5 @@
 ﻿global using Microsoft.EntityFrameworkCore;
+global using Microsoft.EntityFrameworkCore.Diagnostics;
 global using Microsoft.EntityFrameworkCore.Metadata.Builders;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,7 @@ global using QuantFlow.Common.Exceptions;
 global using QuantFlow.Common.Models;
 global using QuantFlow.Data.SQLServer.Context;
 global using QuantFlow.Data.SQLServer.Extensions;
+global using QuantFlow.Data.SQLServer.Interceptors;
 global using QuantFlow.Data.SQLServer.Models;
 global using QuantFlow.Data.SQLServer.Repositories;
 global using QuantFlow.Common.Interfaces.Repositories;

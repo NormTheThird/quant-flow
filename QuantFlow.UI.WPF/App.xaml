@@ -26,7 +26,7 @@
         <SolidColorBrush x:Key="HoverColor" Color="#EEEEEE"/>
         <SolidColorBrush x:Key="SidebarHoverColor" Color="#F5F5F5"/>
 
-        <!-- Modern Sidebar Button Style -->
+        <!-- Sidebar Button Style -->
         <Style x:Key="SidebarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
@@ -59,28 +59,69 @@
             </Setter>
         </Style>
 
+        <!-- Primary Button Style -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Secondary Button Style -->
         <Style x:Key="SecondaryButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Padding" Value="16,10"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="MinHeight" Value="40"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="8"
-                        Padding="{TemplateBinding Padding}">
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" 
-                                    VerticalAlignment="Center"/>
+                                              VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -99,7 +140,50 @@
             </Setter>
         </Style>
 
-        <!-- Modern TextBox Style -->
+        <!-- Danger Button Style (for delete actions) -->
+        <Style x:Key="DangerButton" TargetType="Button">
+            <Setter Property="Background" Value="#db4f4a"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="6"
+                        Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                    VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#c44440"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TextBox Style -->
         <Style x:Key="ModernTextBox" TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource SurfaceColor}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
@@ -144,7 +228,7 @@
             </Setter>
         </Style>
 
-        <!-- Modern PasswordBox Style -->
+        <!-- PasswordBox Style -->
         <Style x:Key="ModernPasswordBox" TargetType="PasswordBox">
             <Setter Property="Background" Value="{DynamicResource SurfaceColor}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>
@@ -189,47 +273,7 @@
             </Setter>
         </Style>
 
-        <!-- Modern Primary Button Style -->
-        <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="24,10"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter TargetName="border" Property="RenderTransformOrigin" Value="0.5,0.5"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Modern ComboBox Style -->
+        <!-- ComboBox Style -->
         <Style x:Key="ModernComboBox" TargetType="ComboBox">
             <Setter Property="Background" Value="{DynamicResource SurfaceColor}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryColor}"/>

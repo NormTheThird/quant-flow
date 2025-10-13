@@ -162,12 +162,20 @@
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
-
+                                
                                 <!-- Action Buttons -->
                                 <StackPanel Grid.Column="1" 
                                             Orientation="Horizontal" 
                                             VerticalAlignment="Top"
                                             Margin="16,0,0,0">
+                                    <Button Content="View Details"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Command="{Binding DataContext.ViewPortfolioDetailsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Width="130"
+                                            Height="36"
+                                            Margin="0,0,8,0"/>
+
                                     <Button Content="Edit"
                                             Style="{StaticResource SecondaryButton}"
                                             Command="{Binding DataContext.EditPortfolioCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

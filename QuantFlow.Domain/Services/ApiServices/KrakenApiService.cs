@@ -138,6 +138,83 @@ public class KrakenApiService : IKrakenApiService
 
     #endregion
 
+    /// <summary>
+    /// Validates API credentials by attempting to query account balance
+    /// </summary>
+    public async Task<bool> ValidateCredentialsAsync(string apiKey, string apiSecret)
+    {
+        try
+        {
+            _logger.LogInformation("Validating Kraken API credentials");
+
+            // Create a temporary client with the provided credentials
+            var tempClient = new KrakenRestClient(options =>
+            {
+                options.ApiCredentials = new ApiCredentials(apiKey, apiSecret);
+            });
+
+            // Try to get account balance - this requires valid credentials
+            var result = await tempClient.SpotApi.Account.GetBalancesAsync();
+
+            if (result.Success)
+            {
+                _logger.LogInformation("Kraken API credentials are valid");
+                return true;
+            }
+            else
+            {
+                _logger.LogWarning("Kraken API credentials validation failed: {Error}", result.Error?.Message);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating Kraken API credentials");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets the balance for a specific currency from Kraken account
+    /// </summary>
+    public async Task<decimal> GetCurrencyBalanceAsync(string apiKey, string apiSecret, string currency)
+    {
+        try
+        {
+            _logger.LogInformation("Getting {Currency} balance from Kraken", currency);
+
+            // Create a temporary client with the provided credentials
+            var tempClient = new KrakenRestClient(options =>
+            {
+                options.ApiCredentials = new ApiCredentials(apiKey, apiSecret);
+            });
+
+            var result = await tempClient.SpotApi.Account.GetBalancesAsync();
+
+            if (!result.Success)
+            {
+                _logger.LogError("Failed to get Kraken balances: {Error}", result.Error?.Message);
+                throw new InvalidOperationException($"Failed to get Kraken balances: {result.Error?.Message}");
+            }
+
+            // The result.Data is a Dictionary<string, decimal>
+            // Find the balance for the specified currency
+            if (result.Data.TryGetValue(currency, out var balance))
+            {
+                _logger.LogInformation("Kraken {Currency} balance: {Balance}", currency, balance);
+                return balance;
+            }
+
+            _logger.LogWarning("Currency {Currency} not found in Kraken account", currency);
+            return 0m;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting {Currency} balance from Kraken", currency);
+            throw;
+        }
+    }
+
     #region Private Methods
 
     /// <summary>

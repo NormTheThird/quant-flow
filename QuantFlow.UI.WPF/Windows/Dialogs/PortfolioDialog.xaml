@@ -1,0 +1,238 @@
+﻿<Window x:Class="QuantFlow.UI.WPF.Windows.Dialogs.PortfolioDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="{Binding DialogTitle}"
+        Height="750" 
+        Width="500"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="Transparent"
+        AllowsTransparency="True">
+    <Border BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Background="{DynamicResource BackgroundColor}">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="0" Opacity="0.3"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource SurfaceColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="8,8,0,0"
+                    Padding="24,16">
+                <Grid>
+                    <TextBlock Text="{Binding DialogTitle}"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               VerticalAlignment="Center"/>
+
+                    <Button Click="CloseButton_Click"
+                            Width="32"
+                            Height="32"
+                            HorizontalAlignment="Right"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="border"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="4"
+                                        Padding="6">
+                                    <Path x:Name="icon"
+                                          Data="M 0,0 L 10,10 M 10,0 L 0,10"
+                                          Stroke="{DynamicResource TextSecondaryColor}"
+                                          StrokeThickness="2"
+                                          Stretch="Uniform"
+                                          Width="12"
+                                          Height="12"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverColor}"/>
+                                        <Setter TargetName="icon" Property="Stroke" Value="{DynamicResource TextPrimaryColor}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" 
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="24">
+                <StackPanel>
+                    <!-- Portfolio Name -->
+                    <TextBlock Text="Portfolio Name*"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               Margin="0,0,0,8"/>
+                    <TextBox Text="{Binding PortfolioName, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource ModernTextBox}"
+                             Height="40"
+                             Margin="0,0,0,20"/>
+
+                    <!-- Description -->
+                    <TextBlock Text="Description"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               Margin="0,0,0,8"/>
+                    <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource ModernTextBox}"
+                             Height="80"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             Margin="0,0,0,20"/>
+
+                    <!-- Mode Selection -->
+                    <TextBlock Text="Mode*"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               Margin="0,0,0,8"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                        <RadioButton Content="Test Mode"
+                                     IsChecked="{Binding IsTestMode}"
+                                     GroupName="PortfolioMode"
+                                     Style="{StaticResource ModernRadioButton}"
+                                     Margin="0,0,20,0"/>
+                        <RadioButton Content="Exchange Connected"
+                                     IsChecked="{Binding IsExchangeConnected}"
+                                     GroupName="PortfolioMode"
+                                     Style="{StaticResource ModernRadioButton}"/>
+                    </StackPanel>
+
+                    <!-- Initial Balance (only visible for Test Mode) -->
+                    <StackPanel Visibility="{Binding IsTestMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Initial Balance*"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   Margin="0,0,0,8"/>
+
+                        <!-- Editable TextBox for Create Mode -->
+                        <TextBox Text="{Binding InitialBalance, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource ModernTextBox}"
+                                 Height="40"
+                                 Margin="0,0,0,20"
+                                 Visibility="{Binding DialogMode, Converter={StaticResource DialogModeToVisibilityConverter}, ConverterParameter=Create}"/>
+
+                        <!-- Read-only Label for Edit Mode -->
+                        <Border Background="{DynamicResource SurfaceColor}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,0"
+                                Height="40"
+                                Margin="0,0,0,20"
+                                Visibility="{Binding DialogMode, Converter={StaticResource DialogModeToVisibilityConverter}, ConverterParameter=Edit}">
+                            <TextBlock Text="{Binding InitialBalanceFormatted}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextSecondaryColor}"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Exchange Selection (only visible when Exchange Connected) -->
+                    <StackPanel Visibility="{Binding IsExchangeConnected, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Exchange*"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   Margin="0,0,0,8"/>
+                        <ComboBox ItemsSource="{Binding AvailableExchanges}"
+                                  SelectedItem="{Binding SelectedExchange}"
+                                  Style="{StaticResource ModernComboBox}"
+                                  Height="40"
+                                  Margin="0,0,0,20"/>
+
+                        <!-- Base Currency -->
+                        <TextBlock Text="Base Currency*"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   Margin="0,0,0,8"/>
+                        <ComboBox ItemsSource="{Binding AvailableCurrencies}"
+                                  SelectedItem="{Binding SelectedBaseCurrency}"
+                                  Style="{StaticResource ModernComboBox}"
+                                  Height="40"
+                                  Margin="0,0,0,20"/>
+
+                        <!-- Exchange Connected Balance Info (Create Mode Only) -->
+                        <Border Background="{DynamicResource SurfaceColor}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="16,12"
+                                Margin="0,0,0,20"
+                                Visibility="{Binding DialogMode, Converter={StaticResource DialogModeToVisibilityConverter}, ConverterParameter=Create}">
+                            <StackPanel>
+                                <TextBlock Text="💡 Initial Balance" 
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryColor}"
+                                           Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryColor}">
+                                    The initial balance will be automatically fetched from your exchange account when the portfolio is created.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Validation Message -->
+                    <TextBlock Text="{Binding ValidationMessage}"
+                               Foreground="#db4f4a"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,12"
+                               Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource SurfaceColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,8,8"
+                    Padding="24,16">
+                <StackPanel Orientation="Horizontal" 
+                            HorizontalAlignment="Right">
+                    <Button Content="Cancel"
+                            Style="{StaticResource SecondaryButton}"
+                            Click="CancelButton_Click"
+                            Width="100"
+                            Height="40"
+                            Margin="0,0,12,0"/>
+                    <Button Content="{Binding SaveButtonText}"
+                            Style="{StaticResource PrimaryButton}"
+                            Command="{Binding SaveCommand}"
+                            Width="100"
+                            Height="40"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

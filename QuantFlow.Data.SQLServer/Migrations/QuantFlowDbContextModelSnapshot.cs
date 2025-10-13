@@ -17,10 +17,99 @@ namespace QuantFlow.Data.SQLServer.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "9.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.AlgorithmPositionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("AlgorithmId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AllocatedPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("AllowShortSelling")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("CurrentValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ExchangeFees")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(8, 6)
+                        .HasColumnType("decimal(8,6)")
+                        .HasDefaultValue(0.001m);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("MaxPositionSizePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(10.0m);
+
+                    b.Property<Guid>("PortfolioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PositionName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlgorithmId")
+                        .HasDatabaseName("IX_AlgorithmPositions_AlgorithmId");
+
+                    b.HasIndex("PortfolioId")
+                        .HasDatabaseName("IX_AlgorithmPositions_PortfolioId");
+
+                    b.HasIndex("PortfolioId", "PositionName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AlgorithmPositions_PortfolioId_PositionName")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("AlgorithmPositions");
+                });
 
             modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.MarketDataConfigurationEntity", b =>
                 {
@@ -110,16 +199,10 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<bool>("AllowShortSelling")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<decimal>("CommissionRate")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(8, 6)
-                        .HasColumnType("decimal(8,6)")
-                        .HasDefaultValue(0.001m);
+                    b.Property<string>("BaseCurrency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -141,6 +224,7 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Exchange")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -153,18 +237,10 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<decimal>("MaxPositionSizePercent")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)")
-                        .HasDefaultValue(10.0m);
-
                     b.Property<string>("Mode")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("TestMode");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -173,10 +249,8 @@ namespace QuantFlow.Data.SQLServer.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Inactive");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -199,12 +273,10 @@ namespace QuantFlow.Data.SQLServer.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("IX_Portfolios_UserId");
 
-                    b.HasIndex("UserId", "Name")
+                    b.HasIndex("UserId", "Exchange", "BaseCurrency")
                         .IsUnique()
-                        .HasDatabaseName("IX_Portfolios_UserId_Name");
-
-                    b.HasIndex("UserId", "Mode", "Exchange")
-                        .HasDatabaseName("IX_Portfolios_UserId_Mode_Exchange");
+                        .HasDatabaseName("IX_Portfolios_UserId_Exchange_BaseCurrency")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Portfolios");
                 });
@@ -294,6 +366,9 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .HasPrecision(3, 2)
                         .HasColumnType("decimal(3,2)");
 
+                    b.Property<Guid?>("AlgorithmPositionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("AlgorithmReason")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -376,6 +451,8 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AlgorithmPositionId");
 
                     b.HasIndex("BacktestRunId")
                         .HasDatabaseName("IX_Trades_BacktestRunId");
@@ -598,6 +675,17 @@ namespace QuantFlow.Data.SQLServer.Migrations
                     b.ToTable("UserRefreshToken");
                 });
 
+            modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.AlgorithmPositionEntity", b =>
+                {
+                    b.HasOne("QuantFlow.Data.SQLServer.Models.PortfolioEntity", "Portfolio")
+                        .WithMany("AlgorithmPositions")
+                        .HasForeignKey("PortfolioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Portfolio");
+                });
+
             modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.MarketDataConfigurationEntity", b =>
                 {
                     b.HasOne("QuantFlow.Data.SQLServer.Models.SymbolEntity", "Symbol")
@@ -614,7 +702,7 @@ namespace QuantFlow.Data.SQLServer.Migrations
                     b.HasOne("QuantFlow.Data.SQLServer.Models.UserExchangeDetailsEntity", "UserExchangeDetails")
                         .WithMany()
                         .HasForeignKey("UserExchangeDetailsId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuantFlow.Data.SQLServer.Models.UserEntity", "User")
                         .WithMany()
@@ -629,6 +717,11 @@ namespace QuantFlow.Data.SQLServer.Migrations
 
             modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.TradeEntity", b =>
                 {
+                    b.HasOne("QuantFlow.Data.SQLServer.Models.AlgorithmPositionEntity", null)
+                        .WithMany("Trades")
+                        .HasForeignKey("AlgorithmPositionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuantFlow.Data.SQLServer.Models.TradeEntity", "EntryTrade")
                         .WithMany()
                         .HasForeignKey("EntryTradeId")
@@ -657,6 +750,16 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.AlgorithmPositionEntity", b =>
+                {
+                    b.Navigation("Trades");
+                });
+
+            modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.PortfolioEntity", b =>
+                {
+                    b.Navigation("AlgorithmPositions");
                 });
 #pragma warning restore 612, 618
         }

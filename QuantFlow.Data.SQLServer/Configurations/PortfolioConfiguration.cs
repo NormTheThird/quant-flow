@@ -35,41 +35,24 @@ public class PortfolioConfiguration : IEntityTypeConfiguration<PortfolioEntity>
             .HasMaxLength(50);
 
         builder.Property(x => x.Exchange)
+            .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(x => x.MaxPositionSizePercent)
-            .HasPrecision(5, 2);
-
-        builder.Property(x => x.CommissionRate)
-            .HasPrecision(8, 6);
+        builder.Property(x => x.BaseCurrency)
+            .IsRequired()
+            .HasMaxLength(10);
 
         // Indexes
         builder.HasIndex(x => x.UserId)
             .HasDatabaseName("IX_Portfolios_UserId");
 
-        builder.HasIndex(x => new { x.UserId, x.Name })
+        // UNIQUE CONSTRAINT: UserId + Exchange + BaseCurrency
+        builder.HasIndex(x => new { x.UserId, x.Exchange, x.BaseCurrency })
             .IsUnique()
-            .HasDatabaseName("IX_Portfolios_UserId_Name");
-
-        builder.HasIndex(x => new { x.UserId, x.Mode, x.Exchange })
-            .HasDatabaseName("IX_Portfolios_UserId_Mode_Exchange");
+            .HasFilter("[IsDeleted] = 0")
+            .HasDatabaseName("IX_Portfolios_UserId_Exchange_BaseCurrency");
 
         // Default values
-        builder.Property(x => x.Status)
-            .HasDefaultValue("Inactive");
-
-        builder.Property(x => x.Mode)
-            .HasDefaultValue("TestMode");
-
-        builder.Property(x => x.MaxPositionSizePercent)
-            .HasDefaultValue(10.0m);
-
-        builder.Property(x => x.CommissionRate)
-            .HasDefaultValue(0.001m);
-
-        builder.Property(x => x.AllowShortSelling)
-            .HasDefaultValue(false);
-
         builder.Property(x => x.IsDeleted)
             .HasDefaultValue(false);
 
@@ -88,6 +71,11 @@ public class PortfolioConfiguration : IEntityTypeConfiguration<PortfolioEntity>
         builder.HasOne(x => x.UserExchangeDetails)
             .WithMany()
             .HasForeignKey(x => x.UserExchangeDetailsId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(x => x.AlgorithmPositions)
+            .WithOne(x => x.Portfolio)
+            .HasForeignKey(x => x.PortfolioId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
