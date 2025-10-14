@@ -8,9 +8,7 @@ public class AlgorithmPositionService : IAlgorithmPositionService
     private readonly ILogger<AlgorithmPositionService> _logger;
     private readonly IAlgorithmPositionRepository _algorithmPositionRepository;
 
-    public AlgorithmPositionService(
-        ILogger<AlgorithmPositionService> logger,
-        IAlgorithmPositionRepository algorithmPositionRepository)
+    public AlgorithmPositionService(ILogger<AlgorithmPositionService> logger, IAlgorithmPositionRepository algorithmPositionRepository)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _algorithmPositionRepository = algorithmPositionRepository ?? throw new ArgumentNullException(nameof(algorithmPositionRepository));
@@ -26,6 +24,20 @@ public class AlgorithmPositionService : IAlgorithmPositionService
     {
         _logger.LogInformation("Getting algorithm positions for portfolio: {PortfolioId}", portfolioId);
         return await _algorithmPositionRepository.GetByPortfolioIdAsync(portfolioId);
+    }
+
+    /// <summary>
+    /// Gets all unassigned positions (not linked to any portfolio) for a user
+    /// </summary>
+    /// <param name="userId">The user's unique identifier</param>
+    /// <returns>Collection of unassigned positions</returns>
+    public async Task<IEnumerable<AlgorithmPositionModel>> GetUnassignedPositionsByUserIdAsync(Guid userId)
+    {
+        _logger.LogInformation("Getting unassigned positions for user: {UserId}", userId);
+
+        var positions = await _algorithmPositionRepository.GetByUserIdAsync(userId);
+
+        return positions.Where(_ => _.PortfolioId == null);
     }
 
     public async Task<AlgorithmPositionModel> CreatePositionAsync(AlgorithmPositionModel position)

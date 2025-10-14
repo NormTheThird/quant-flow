@@ -59,10 +59,27 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void NavigateToPositionsLibrary()
+    {
+        _logger.LogInformation("Navigating to Positions Library");
+        var scope = _serviceProvider.CreateScope();
+        var positionsLibraryViewModel = scope.ServiceProvider.GetRequiredService<PositionsLibraryViewModel>();
+        var positionsLibraryView = scope.ServiceProvider.GetRequiredService<PositionsLibraryView>();
+        positionsLibraryView.DataContext = positionsLibraryViewModel;
+        CurrentView = positionsLibraryView;
+    }
+
+    [RelayCommand]
     public void NavigateToAlgorithms()
     {
         _logger.LogInformation("Navigating to Algorithms");
-        // TODO: Create AlgorithmsViewModel and AlgorithmsView
+
+        // Create a scope for scoped services
+        var scope = _serviceProvider.CreateScope();
+        var algorithmsViewModel = scope.ServiceProvider.GetRequiredService<AlgorithmsViewModel>();
+        var algorithmsView = scope.ServiceProvider.GetRequiredService<AlgorithmsView>();
+        algorithmsView.DataContext = algorithmsViewModel;
+        CurrentView = algorithmsView;
     }
 
     [RelayCommand]

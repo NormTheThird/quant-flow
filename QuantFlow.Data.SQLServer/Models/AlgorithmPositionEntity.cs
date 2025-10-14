@@ -10,14 +10,20 @@ public class AlgorithmPositionEntity
     public Guid Id { get; set; } = Guid.Empty;
 
     [Required]
-    public Guid PortfolioId { get; set; } = Guid.Empty;
+    public Guid AlgorithmId { get; set; } = Guid.Empty;
 
     [Required]
-    public Guid AlgorithmId { get; set; } = Guid.Empty;
+    public Guid UserId { get; set; } = Guid.Empty;
+
+    public Guid? PortfolioId { get; set; } = null;
 
     [Required]
     [MaxLength(200)]
     public string PositionName { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(10)]
+    public string Symbol { get; set; } = string.Empty;
 
     [Required]
     [Precision(5, 2)]

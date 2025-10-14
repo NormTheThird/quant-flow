@@ -142,20 +142,14 @@
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
                 CornerRadius="8"
-                Margin="24,20,24,24">
+                Margin="24,20,24,24"
+                ClipToBounds="True">
             <Grid>
                 <DataGrid ItemsSource="{Binding Positions}"
-                          AutoGenerateColumns="False"
-                          CanUserAddRows="False"
-                          CanUserDeleteRows="False"
-                          IsReadOnly="True"
-                          SelectionMode="Single"
-                          GridLinesVisibility="None"
-                          HeadersVisibility="Column"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          RowBackground="{DynamicResource SurfaceColor}"
-                          AlternatingRowBackground="{DynamicResource BackgroundColor}">
+                          Style="{StaticResource DataGridStyle}"
+                          ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                          CellStyle="{StaticResource DataGridCellStyle}"
+                          RowStyle="{StaticResource DataGridRowStyle}">
 
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Position Name" 
@@ -183,23 +177,86 @@
                                             Binding="{Binding ExchangeFees, StringFormat='{}{0:F3}%'}" 
                                             Width="140"/>
 
-                        <DataGridTemplateColumn Header="Actions" Width="170">
+                        <DataGridTemplateColumn Header="Actions" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Edit"
-                                                Style="{StaticResource SecondaryButton}"
-                                                Command="{Binding DataContext.EditPositionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    <StackPanel Orientation="Horizontal" 
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <!-- Edit Icon Button -->
+                                        <Button Command="{Binding DataContext.EditPositionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Width="60"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Cursor="Hand"
+                                                Width="32"
                                                 Height="32"
-                                                Margin="0,0,8,0"/>
-                                        <Button Content="Delete"
-                                                Style="{StaticResource DangerButton}"
-                                                Command="{Binding DataContext.DeletePositionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Padding="0"
+                                                Margin="0,0,8,0"
+                                                ToolTip="Edit Position">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                        CornerRadius="4"
+                                                                        Padding="4">
+                                                                    <TextBlock Text="&#xE70F;" 
+                                                                               FontFamily="Segoe MDL2 Assets"
+                                                                               FontSize="16"
+                                                                               Foreground="{DynamicResource AccentColor}"
+                                                                               HorizontalAlignment="Center"
+                                                                               VerticalAlignment="Center"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+
+                                        <!-- Delete Icon Button -->
+                                        <Button Command="{Binding DataContext.DeletePositionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Width="80"
-                                                Height="32"/>
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Cursor="Hand"
+                                                Width="32"
+                                                Height="32"
+                                                Padding="0"
+                                                ToolTip="Delete Position">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                        CornerRadius="4"
+                                                                        Padding="4">
+                                                                    <TextBlock Text="&#xE74D;" 
+                                                                               FontFamily="Segoe MDL2 Assets"
+                                                                               FontSize="16"
+                                                                               Foreground="#E74C3C"
+                                                                               HorizontalAlignment="Center"
+                                                                               VerticalAlignment="Center"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -231,14 +288,14 @@
 
         <!-- Loading Overlay -->
         <Border Grid.Row="0" Grid.RowSpan="3"
-        Background="#80000000"
-        Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                Background="#80000000"
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <controls:LoadingSpinner SpinnerSize="48" Margin="0,0,0,16"/>
                 <TextBlock Text="Loading..." 
-                   FontSize="16"
-                   Foreground="White"
-                   HorizontalAlignment="Center"/>
+                           FontSize="16"
+                           Foreground="White"
+                           HorizontalAlignment="Center"/>
             </StackPanel>
         </Border>
     </Grid>

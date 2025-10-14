@@ -8,6 +8,7 @@ public partial class DashboardViewModel : ObservableObject
     private readonly IUserSessionService _userSessionService;
     private readonly ISymbolService _symbolService;
     private readonly IPortfolioService _portfolioService;
+    private readonly IHoldingsService _holdingsService;
 
     [ObservableProperty]
     private List<CryptoCardViewModel> _cryptoCards = new();
@@ -19,10 +20,16 @@ public partial class DashboardViewModel : ObservableObject
     private List<RecentTradeViewModel> _recentTrades = new();
 
     [ObservableProperty]
-    private bool _isLoadingMarketOverview = false;
+    private HoldingsSummary? _holdingsSummary;
 
     [ObservableProperty]
-    private bool _isLoadingPortfolios = false;
+    private bool _isLoadingMarketOverview = true;
+
+    [ObservableProperty]
+    private bool _isLoadingPortfolios = true;
+
+    [ObservableProperty]
+    private bool _isLoadingHoldings = true;
 
     [ObservableProperty]
     private bool _hasNoSymbols = false;
@@ -30,8 +37,17 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasNoPortfolios;
 
-    public DashboardViewModel(ILogger<DashboardViewModel> logger, IUserPreferencesRepository userPreferencesRepository, IKrakenApiService krakenApiService,
-                                      IUserSessionService userSessionService, ISymbolService symbolService, IPortfolioService portfolioService)
+    [ObservableProperty]
+    private bool _hasHoldings;
+
+    public DashboardViewModel(
+        ILogger<DashboardViewModel> logger,
+        IUserPreferencesRepository userPreferencesRepository,
+        IKrakenApiService krakenApiService,
+        IUserSessionService userSessionService,
+        ISymbolService symbolService,
+        IPortfolioService portfolioService,
+        IHoldingsService holdingsService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _userPreferencesRepository = userPreferencesRepository ?? throw new ArgumentNullException(nameof(userPreferencesRepository));
@@ -39,6 +55,7 @@ public partial class DashboardViewModel : ObservableObject
         _userSessionService = userSessionService ?? throw new ArgumentNullException(nameof(userSessionService));
         _symbolService = symbolService ?? throw new ArgumentNullException(nameof(symbolService));
         _portfolioService = portfolioService ?? throw new ArgumentNullException(nameof(portfolioService));
+        _holdingsService = holdingsService ?? throw new ArgumentNullException(nameof(holdingsService));
 
         _logger.LogInformation("DashboardViewModel initialized");
 
@@ -49,8 +66,9 @@ public partial class DashboardViewModel : ObservableObject
     {
         InitializeRecentTrades();
 
-        // Load market overview cards asynchronously without blocking
-        _ = LoadMarketOverviewCardsAsync();
+        // Load data asynchronously
+        await LoadMarketOverviewCardsAsync();
+        await LoadHoldingsAsync();
         await LoadPortfoliosAsync();
     }
 
@@ -121,7 +139,7 @@ public partial class DashboardViewModel : ObservableObject
 
         return cryptoCards;
     }
-    
+
     private async Task<CryptoCardViewModel?> FetchCardForSymbolAsync(string symbol)
     {
         try
@@ -166,7 +184,38 @@ public partial class DashboardViewModel : ObservableObject
             return null;
         }
     }
-   
+
+    private async Task LoadHoldingsAsync()
+    {
+        IsLoadingHoldings = true;
+
+        try
+        {
+            var userId = _userSessionService.CurrentUserId;
+            _logger.LogInformation("Loading Kraken holdings for user: {UserId}", userId);
+
+            HoldingsSummary = await _holdingsService.GetKrakenHoldingsAsync(userId);
+            HasHoldings = HoldingsSummary?.Holdings?.Any() == true;
+
+            _logger.LogInformation("Loaded {Count} holdings with total value ${TotalValue}",
+                HoldingsSummary?.Holdings?.Count ?? 0,
+                HoldingsSummary?.TotalUsdValue ?? 0);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading Kraken holdings");
+            HoldingsSummary = new HoldingsSummary
+            {
+                HasCredentials = true,
+                ErrorMessage = $"Error loading holdings: {ex.Message}"
+            };
+        }
+        finally
+        {
+            IsLoadingHoldings = false;
+        }
+    }
+
     private async Task LoadPortfoliosAsync()
     {
         IsLoadingPortfolios = true;

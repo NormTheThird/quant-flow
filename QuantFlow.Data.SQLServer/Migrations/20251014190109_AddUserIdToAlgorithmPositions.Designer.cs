@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QuantFlow.Data.SQLServer.Context;
 
@@ -11,9 +12,11 @@ using QuantFlow.Data.SQLServer.Context;
 namespace QuantFlow.Data.SQLServer.Migrations
 {
     [DbContext(typeof(QuantFlowDbContext))]
-    partial class QuantFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251014190109_AddUserIdToAlgorithmPositions")]
+    partial class AddUserIdToAlgorithmPositions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -86,11 +89,6 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Symbol")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");

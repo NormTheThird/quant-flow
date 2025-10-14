@@ -73,11 +73,15 @@ public static class ConfigurationService
         services.AddTransient<PortfoliosViewModel>();
         services.AddTransient<PortfolioDetailViewModel>();
         services.AddTransient<ExchangeSettingsViewModel>();
+        services.AddTransient<AlgorithmsViewModel>();
+        services.AddTransient<PositionsLibraryViewModel>();
 
         // Views
         services.AddTransient<DashboardView>();
         services.AddTransient<SettingsView>();
         services.AddTransient<PortfoliosView>();
+        services.AddTransient<AlgorithmsView>();
+        services.AddTransient<PositionsLibraryView>();
 
         // Windows
         services.AddTransient<LoginWindow>();

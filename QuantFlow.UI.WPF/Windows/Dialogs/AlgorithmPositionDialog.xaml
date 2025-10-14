@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         mc:Ignorable="d"
         Title="{Binding DialogTitle}"
-        Height="650" 
+        Height="700" 
         Width="500"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -89,20 +89,74 @@
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- Allocated Percent -->
-                    <TextBlock Text="Allocated Percent (%)*"
-                               FontSize="13"
-                               FontWeight="SemiBold"
+                    <!-- Algorithm Selection -->
+                    <TextBlock Text="Algorithm *" 
+                               FontSize="14" 
+                               FontWeight="Medium"
                                Foreground="{DynamicResource TextPrimaryColor}"
                                Margin="0,0,0,8"/>
-                    <TextBox Text="{Binding AllocatedPercent, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource ModernTextBox}"
-                             Height="40"
-                             Margin="0,0,0,4"/>
-                    <TextBlock Text="Percentage of portfolio allocated to this position (0-100)"
-                               FontSize="11"
+                    <ComboBox ItemsSource="{Binding AvailableAlgorithms}"
+                              SelectedItem="{Binding SelectedAlgorithm}"
+                              Style="{StaticResource ModernComboBox}"
+                              Height="40"
+                              Margin="0,0,0,4"
+                              IsEnabled="{Binding IsLoadingAlgorithms, Converter={StaticResource InverseBooleanConverter}}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" 
+                                               FontWeight="Medium"
+                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                    <TextBlock Text="{Binding Description}" 
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryColor}"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="400"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="Loading algorithms..." 
+                               FontSize="12"
                                Foreground="{DynamicResource TextSecondaryColor}"
-                               Margin="0,0,0,20"/>
+                               Margin="0,4,0,20"
+                               Visibility="{Binding IsLoadingAlgorithms, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                    <!-- Symbol Selection -->
+                    <TextBlock Text="Symbol *" 
+                               FontSize="14" 
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               Margin="0,0,0,8"/>
+                    <ComboBox ItemsSource="{Binding AvailableSymbols}"
+                              SelectedItem="{Binding SelectedSymbol}"
+                              DisplayMemberPath="Symbol"
+                              Style="{StaticResource ModernComboBox}"
+                              Height="40"
+                              Margin="0,0,0,4"
+                              IsEnabled="{Binding IsLoadingSymbols, Converter={StaticResource InverseBooleanConverter}}"/>
+                    <TextBlock Text="Loading symbols..." 
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               Margin="0,4,0,20"
+                               Visibility="{Binding IsLoadingSymbols, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                    <!-- Allocated Percent (only for portfolio assignments) -->
+                    <StackPanel Visibility="{Binding ShowAllocatedPercent, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="Allocated Percent (%)*"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   Margin="0,0,0,8"/>
+                        <TextBox Text="{Binding AllocatedPercent, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource ModernTextBox}"
+                                 Height="40"
+                                 Margin="0,0,0,4"/>
+                        <TextBlock Text="Percentage of portfolio allocated to this position (0-100)"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   Margin="0,0,0,20"/>
+                    </StackPanel>
 
                     <!-- Max Position Size Percent -->
                     <TextBlock Text="Max Position Size (%)*"

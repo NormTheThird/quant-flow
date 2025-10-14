@@ -23,14 +23,14 @@ public class AlgorithmDocument
     [BsonElement("code")]
     public string Code { get; set; } = string.Empty;
 
-    [BsonElement("language")]
-    public string Language { get; set; } = "csharp";
+    [BsonElement("programmingLanguage")]
+    public string ProgrammingLanguage { get; set; } = "csharp";
 
     [BsonElement("version")]
     public string Version { get; set; } = "1.0.0";
 
     [BsonElement("status")]
-    public int Status { get; set; } = 1; // AlgorithmStatus enum
+    public int Status { get; set; } = 1;
 
     [BsonElement("tags")]
     public List<string> Tags { get; set; } = [];

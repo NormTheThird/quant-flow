@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:QuantFlow.UI.WPF.Views"
         Title="QuantFlow - Dashboard" 
-        Height="1200" 
+        Height="1340" 
         Width="1550"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -54,6 +54,15 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE7C5;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,0,12,0"/>
                             <TextBlock Text="Portfolios" FontSize="14"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Style="{StaticResource SidebarButtonStyle}" 
+                            Margin="8,4"
+                            Command="{Binding NavigateToPositionsLibraryCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Positions" FontSize="14"/>
                         </StackPanel>
                     </Button>
 

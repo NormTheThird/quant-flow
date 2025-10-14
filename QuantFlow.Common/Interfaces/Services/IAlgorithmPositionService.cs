@@ -20,6 +20,13 @@ public interface IAlgorithmPositionService
     Task<IEnumerable<AlgorithmPositionModel>> GetPositionsByPortfolioIdAsync(Guid portfolioId);
 
     /// <summary>
+    /// Gets all unassigned positions (not linked to any portfolio) for a user
+    /// </summary>
+    /// <param name="userId">The user's unique identifier</param>
+    /// <returns>Collection of unassigned positions</returns>
+    Task<IEnumerable<AlgorithmPositionModel>> GetUnassignedPositionsByUserIdAsync(Guid userId);
+
+    /// <summary>
     /// Creates a new algorithm position
     /// </summary>
     /// <param name="position">AlgorithmPosition to create</param>

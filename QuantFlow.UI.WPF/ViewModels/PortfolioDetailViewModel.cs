@@ -18,10 +18,7 @@ public partial class PortfolioDetailViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLoading;
 
-    public PortfolioDetailViewModel(
-        ILogger<PortfolioDetailViewModel> logger,
-        IPortfolioService portfolioService,
-        IAlgorithmPositionService algorithmPositionService)
+    public PortfolioDetailViewModel(ILogger<PortfolioDetailViewModel> logger, IPortfolioService portfolioService, IAlgorithmPositionService algorithmPositionService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _portfolioService = portfolioService ?? throw new ArgumentNullException(nameof(portfolioService));
@@ -93,11 +90,25 @@ public partial class PortfolioDetailViewModel : ObservableObject
         try
         {
             var dialog = new AlgorithmPositionDialog();
-            var dialogLogger = ((App)Application.Current).Services.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
+            var app = (App)Application.Current;
+
+            // Create a scope to resolve scoped services
+            var scope = app.Services.CreateScope();
+            var scopedProvider = scope.ServiceProvider;
+
+            var dialogLogger = scopedProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
+            var algorithmService = scopedProvider.GetRequiredService<IAlgorithmService>();
+            var symbolService = scopedProvider.GetRequiredService<ISymbolService>();
+            var userSessionService = scopedProvider.GetRequiredService<IUserSessionService>();
+
             var viewModel = new AlgorithmPositionDialogViewModel(
                 dialogLogger,
                 _algorithmPositionService,
-                Portfolio.Id);
+                algorithmService,
+                symbolService,
+                userSessionService,
+                portfolioId: Portfolio.Id,
+                existingPosition: null);
 
             viewModel.SaveCompleted += async (s, success) =>
             {
@@ -107,6 +118,7 @@ public partial class PortfolioDetailViewModel : ObservableObject
                     dialog.Close();
                     await LoadPositionsAsync();
                 }
+                scope.Dispose(); // Clean up the scope
             };
 
             dialog.DataContext = viewModel;
@@ -129,12 +141,25 @@ public partial class PortfolioDetailViewModel : ObservableObject
         try
         {
             var dialog = new AlgorithmPositionDialog();
-            var dialogLogger = ((App)Application.Current).Services.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
+            var app = (App)Application.Current;
+
+            // Create a scope to resolve scoped services
+            var scope = app.Services.CreateScope();
+            var scopedProvider = scope.ServiceProvider;
+
+            var dialogLogger = scopedProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
+            var algorithmService = scopedProvider.GetRequiredService<IAlgorithmService>();
+            var symbolService = scopedProvider.GetRequiredService<ISymbolService>();
+            var userSessionService = scopedProvider.GetRequiredService<IUserSessionService>();
+
             var viewModel = new AlgorithmPositionDialogViewModel(
                 dialogLogger,
                 _algorithmPositionService,
-                Portfolio.Id,
-                position);
+                algorithmService,
+                symbolService,
+                userSessionService,
+                portfolioId: Portfolio.Id,
+                existingPosition: position);
 
             viewModel.SaveCompleted += async (s, success) =>
             {
@@ -144,6 +169,7 @@ public partial class PortfolioDetailViewModel : ObservableObject
                     dialog.Close();
                     await LoadPositionsAsync();
                 }
+                scope.Dispose(); // Clean up the scope
             };
 
             dialog.DataContext = viewModel;
@@ -151,7 +177,7 @@ public partial class PortfolioDetailViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error opening edit position dialog");
+            _logger.LogError(ex, "Error opening edit position dialog: {PositionId}", position.Id);
             MessageBox.Show($"Error opening dialog: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

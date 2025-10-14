@@ -18,7 +18,7 @@ public interface IUserExchangeDetailsService
     /// <param name="userId">The user's unique identifier</param>
     /// <param name="exchange">The exchange name</param>
     /// <returns>Collection of UserExchangeDetailsModel with decrypted values</returns>
-    Task<IEnumerable<UserExchangeDetailsModel>> GetByUserAndExchangeAsync(Guid userId, string exchange);
+    Task<IEnumerable<UserExchangeDetailsModel>> GetByUserIdAndExchangeAsync(Guid userId, Exchange exchange);
 
     /// <summary>
     /// Gets all exchange details for a specific user

@@ -35,6 +35,27 @@ public class AlgorithmRepository : IAlgorithmRepository
     }
 
     /// <summary>
+    /// Gets an algorithm by name for a specific user
+    /// </summary>
+    /// <param name="userId">The user's unique identifier</param>
+    /// <param name="name">The algorithm name</param>
+    /// <returns>Algorithm if found, null otherwise</returns>
+    public async Task<AlgorithmModel?> GetByNameAsync(Guid userId, string name)
+    {
+        _logger.LogInformation("Getting algorithm by name: {Name} for user: {UserId}", name, userId);
+
+        var filter = Builders<AlgorithmDocument>.Filter.And(
+            Builders<AlgorithmDocument>.Filter.Eq(x => x.UserId, userId),
+            Builders<AlgorithmDocument>.Filter.Eq(x => x.Name, name),
+            Builders<AlgorithmDocument>.Filter.Eq(x => x.IsDeleted, false)
+        );
+
+        var document = await _collection.Find(filter).FirstOrDefaultAsync();
+
+        return document?.ToBusinessModel();
+    }
+
+    /// <summary>
     /// Gets all algorithms for a specific user
     /// </summary>
     /// <param name="userId">The user's unique identifier</param>

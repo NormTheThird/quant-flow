@@ -40,6 +40,22 @@ public class AlgorithmPositionRepository : IAlgorithmPositionRepository
         return entities.ToBusinessModels();
     }
 
+    /// <summary>
+    /// Gets all positions for a specific user
+    /// </summary>
+    /// <param name="userId">The user's unique identifier</param>
+    /// <returns>Collection of positions for the user</returns>
+    public async Task<IEnumerable<AlgorithmPositionModel>> GetByUserIdAsync(Guid userId)
+    {
+        _logger.LogInformation("Getting all positions for user: {UserId}", userId);
+
+        var entities = await _context.AlgorithmPositions
+            .Where(_ => _.UserId == userId)
+            .ToListAsync();
+
+        return entities.Select(_ => _.ToBusinessModel());
+    }
+
     public async Task<AlgorithmPositionModel> CreateAsync(AlgorithmPositionModel position)
     {
         _logger.LogInformation("Creating algorithm position for portfolio: {PortfolioId}", position.PortfolioId);

@@ -78,69 +78,395 @@
                 </ItemsControl>
             </Grid>
 
+            <!-- Section: My Kraken Holdings -->
+            <TextBlock Text="My Kraken Holdings" 
+                       FontSize="18" 
+                       FontWeight="SemiBold" 
+                       Foreground="{DynamicResource TextPrimaryColor}"
+                       FontFamily="Segoe UI"
+                       Margin="0,0,0,16"/>
+
+            <!-- Holdings Content -->
+            <Grid Margin="0,0,0,40">
+                <!-- Loading Spinner -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="40"
+                        MinHeight="200"
+                        Visibility="{Binding IsLoadingHoldings, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <controls:LoadingSpinner SpinnerSize="45" Margin="0,0,0,16"/>
+                        <TextBlock Text="Loading holdings..." 
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- No Credentials Message -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="40"
+                        MinHeight="200">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsLoadingHoldings}" Value="False"/>
+                                        <Condition Binding="{Binding HoldingsSummary.HasCredentials}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                                <!-- Only show if HoldingsSummary is not null -->
+                                <DataTrigger Binding="{Binding HoldingsSummary}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="🔑" 
+                                   FontSize="48" 
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,16"/>
+                        <TextBlock Text="No Kraken Credentials Found" 
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Please add your Kraken API credentials in Settings to view your holdings" 
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   MaxWidth="400"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Error Message -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="40"
+                        MinHeight="200">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsLoadingHoldings}" Value="False"/>
+                                        <Condition Binding="{Binding HoldingsSummary.HasCredentials}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="{Binding HoldingsSummary.ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="⚠️" 
+                                   FontSize="48" 
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,16"/>
+                        <TextBlock Text="Error Loading Holdings" 
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding HoldingsSummary.ErrorMessage}" 
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   MaxWidth="500"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Holdings Display -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="28">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsLoadingHoldings}" Value="False"/>
+                                        <Condition Binding="{Binding HasHoldings}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header with Total Value -->
+                        <Grid Grid.Row="0" Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="💰 Total Portfolio Value" 
+                                           FontSize="13"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource TextSecondaryColor}"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock Text="{Binding HoldingsSummary.TotalUsdValue, StringFormat='{}{0:C}'}" 
+                                           FontSize="32" 
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AccentColor}"/>
+                            </StackPanel>
+
+                            <Border Grid.Column="1"
+                                    Background="{DynamicResource AccentColor}"
+                                    CornerRadius="35"
+                                    Width="70"
+                                    Height="70"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="💎" 
+                                           FontSize="36"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Divider -->
+                        <Border Grid.Row="1" 
+                                Height="1" 
+                                Background="{DynamicResource BorderColor}"
+                                Margin="0,0,0,20"/>
+
+                        <!-- Holdings List -->
+                        <ScrollViewer Grid.Row="2" 
+                                      VerticalScrollBarVisibility="Auto"
+                                      MaxHeight="400">
+                            <ItemsControl ItemsSource="{Binding HoldingsSummary.Holdings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="Transparent"
+                                                Padding="12,10"
+                                                Margin="0,0,0,6"
+                                                CornerRadius="8">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Asset Icon/Circle -->
+                                                <Border Grid.Column="0"
+                                                        Background="{DynamicResource AccentColor}"
+                                                        Width="40"
+                                                        Height="40"
+                                                        CornerRadius="20"
+                                                        Margin="0,0,12,0">
+                                                    <TextBlock Text="{Binding Asset, Converter={StaticResource FirstLetterConverter}}" 
+                                                               FontSize="16"
+                                                               FontWeight="Bold"
+                                                               Foreground="White"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+
+                                                <!-- Asset Name & Quantity -->
+                                                <StackPanel Grid.Column="1" 
+                                                            VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Asset}" 
+                                                               FontSize="15" 
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                                    <TextBlock Margin="0,2,0,0">
+                                                        <Run Text="{Binding Quantity, StringFormat='{}{0:N8}'}" 
+                                                             FontSize="12"
+                                                             Foreground="{DynamicResource TextSecondaryColor}"/>
+                                                        <Run Text=" " />
+                                                        <Run Text="{Binding Asset}" 
+                                                             FontSize="12"
+                                                             Foreground="{DynamicResource TextSecondaryColor}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+
+                                                <!-- Price per unit -->
+                                                <StackPanel Grid.Column="2" 
+                                                            VerticalAlignment="Center"
+                                                            Margin="16,0">
+                                                    <TextBlock Text="Price" 
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource TextSecondaryColor}"
+                                                               Margin="0,0,0,2"/>
+                                                    <TextBlock Text="{Binding UsdPrice, StringFormat='{}{0:C}'}" 
+                                                               FontSize="13"
+                                                               FontWeight="Medium"
+                                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                                </StackPanel>
+
+                                                <!-- Percentage Badge -->
+                                                <Border Grid.Column="3"
+                                                        Background="{DynamicResource BackgroundColor}"
+                                                        BorderBrush="{DynamicResource BorderColor}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="5"
+                                                        Padding="10,5"
+                                                        Margin="16,0"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock>
+                                                        <Run Text="{Binding PercentageOfTotal, StringFormat='{}{0:F1}%'}" 
+                                                             FontSize="12"
+                                                             FontWeight="SemiBold"
+                                                             Foreground="{DynamicResource AccentColor}"/>
+                                                    </TextBlock>
+                                                </Border>
+
+                                                <!-- USD Value -->
+                                                <StackPanel Grid.Column="4" 
+                                                            VerticalAlignment="Center"
+                                                            HorizontalAlignment="Right"
+                                                            MinWidth="110">
+                                                    <TextBlock Text="Value" 
+                                                               FontSize="10"
+                                                               Foreground="{DynamicResource TextSecondaryColor}"
+                                                               Margin="0,0,0,2"
+                                                               HorizontalAlignment="Right"/>
+                                                    <TextBlock Text="{Binding UsdValue, StringFormat='{}{0:C}'}" 
+                                                               FontSize="15" 
+                                                               FontWeight="Bold"
+                                                               Foreground="{DynamicResource TextPrimaryColor}"
+                                                               HorizontalAlignment="Right"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
             <!-- Section: My Portfolios -->
             <TextBlock Text="My Portfolios" 
                        FontSize="18" 
                        FontWeight="SemiBold" 
                        Foreground="{DynamicResource TextPrimaryColor}"
-                       Margin="0,40,0,20"/>
+                       Margin="0,0,0,20"/>
 
-            <!-- Loading State for Portfolios -->
-            <Border Background="{DynamicResource SurfaceColor}"
-                    BorderBrush="{DynamicResource BorderColor}"
-                    BorderThickness="1"
-                    CornerRadius="12"
-                    Padding="40"
-                    MinHeight="200"
-                    Visibility="{Binding IsLoadingPortfolios, Converter={StaticResource BoolToVisibilityConverter}}">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="⏳" 
-                               FontSize="48" 
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,16"/>
-                    <TextBlock Text="Loading portfolios..." 
-                               FontSize="16"
-                               Foreground="{DynamicResource TextSecondaryColor}"
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+            <!-- Portfolios Content -->
+            <Grid Margin="0,0,0,40">
+                <!-- Loading Spinner -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="40"
+                        MinHeight="200"
+                        Visibility="{Binding IsLoadingPortfolios, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <controls:LoadingSpinner SpinnerSize="45" Margin="0,0,0,16"/>
+                        <TextBlock Text="Loading portfolios..." 
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
 
-            <!-- Empty State for Portfolios -->
-            <Border Background="{DynamicResource SurfaceColor}"
-                    BorderBrush="{DynamicResource BorderColor}"
-                    BorderThickness="1"
-                    CornerRadius="12"
-                    Padding="40"
-                    MinHeight="200"
-                    Margin="0,0,0,40"
-                    Visibility="{Binding HasNoPortfolios, Converter={StaticResource BoolToVisibilityConverter}}">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="💼" 
-                               FontSize="48" 
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,16"/>
-                    <TextBlock Text="No portfolios yet" 
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryColor}"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,8"/>
-                    <TextBlock Text="Create your first portfolio to start trading" 
-                               FontSize="14"
-                               Foreground="{DynamicResource TextSecondaryColor}"
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+                <!-- Empty State for Portfolios -->
+                <Border Background="{DynamicResource SurfaceColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="40"
+                        MinHeight="200">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsLoadingPortfolios}" Value="False"/>
+                                        <Condition Binding="{Binding HasNoPortfolios}" Value="True"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="💼" 
+                                   FontSize="48" 
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,16"/>
+                        <TextBlock Text="No portfolios yet" 
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Create your first portfolio to start trading" 
+                                   FontSize="14"
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
 
-            <!-- Portfolio Cards -->
-            <ItemsControl ItemsSource="{Binding Portfolios}"
-              ItemTemplate="{StaticResource PortfolioCardTemplate}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
+                <!-- Portfolio Cards -->
+                <ItemsControl ItemsSource="{Binding Portfolios}"
+                              ItemTemplate="{StaticResource PortfolioCardTemplate}">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsLoadingPortfolios}" Value="False"/>
+                                        <Condition Binding="{Binding HasNoPortfolios}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </Grid>
 
             <!-- Section: Recent Trades -->
             <Grid Margin="0,0,0,20">

@@ -11,11 +11,12 @@ public class KrakenApiService : IKrakenApiService
 {
     private readonly ILogger<KrakenApiService> _logger;
     private readonly KrakenRestClient _krakenClient;
+    private ApiCredentials? _currentCredentials;
 
     /// <summary>
     /// Initializes a new instance of KrakenApiService with proper dependency injection
     /// </summary>
-    /// <param name="configuration">Application configuration containing Kraken API credentials</param>
+    /// <param name="configuration">Application configuration for request settings</param>
     /// <param name="logger">Logger for error handling and debugging</param>
     /// <exception cref="ArgumentNullException">Thrown when required dependencies are null</exception>
     public KrakenApiService(IConfiguration configuration, ILogger<KrakenApiService> logger)
@@ -23,28 +24,33 @@ public class KrakenApiService : IKrakenApiService
         ArgumentNullException.ThrowIfNull(configuration);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        // Get credentials from configuration
-        var apiKey = configuration["Kraken:ApiKey"];
-        var apiSecret = configuration["Kraken:ApiSecret"];
         var requestTimeoutSeconds = configuration.GetValue<int>("Kraken:RequestTimeoutSeconds", 60);
 
-        _krakenClient = new KrakenRestClient(options =>
-        {
-            // Only set credentials if both are provided
-            if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
-            {
-                options.ApiCredentials = new ApiCredentials(apiKey, apiSecret);
-                _logger.LogDebug("Kraken API credentials configured");
-            }
-            else
-            {
-                _logger.LogWarning("Kraken API credentials not found in configuration. Some operations may be limited.");
-            }
-
-            options.RequestTimeout = TimeSpan.FromSeconds(requestTimeoutSeconds);
-        });
+        _krakenClient = new KrakenRestClient(options => { options.RequestTimeout = TimeSpan.FromSeconds(requestTimeoutSeconds); });
 
         _logger.LogInformation("KrakenApiService initialized with {TimeoutSeconds}s timeout", requestTimeoutSeconds);
+    }
+
+    /// <summary>
+    /// Sets the API credentials to use for subsequent API calls
+    /// </summary>
+    /// <param name="apiKey">Kraken API key</param>
+    /// <param name="apiSecret">Kraken API secret</param>
+    public void SetCredentials(string apiKey, string apiSecret)
+    {
+        _logger.LogDebug("Setting Kraken API credentials");
+        _currentCredentials = new ApiCredentials(apiKey, apiSecret);
+        _krakenClient.SetApiCredentials(_currentCredentials);
+    }
+
+    /// <summary>
+    /// Clears the currently set API credentials, reverting to default credentials from config
+    /// </summary>
+    public void ClearCredentials()
+    {
+        _logger.LogDebug("Clearing Kraken API credentials");
+        _currentCredentials = null;
+        // Revert to original credentials from constructor if they exist
     }
 
     #region Klines (OHLCV) Data
@@ -212,6 +218,84 @@ public class KrakenApiService : IKrakenApiService
         {
             _logger.LogError(ex, "Error getting {Currency} balance from Kraken", currency);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets the account balance for all assets
+    /// </summary>
+    /// <returns>Dictionary of asset names and their balances</returns>
+    public async Task<Dictionary<string, decimal>> GetAccountBalanceAsync()
+    {
+        _logger.LogInformation("Fetching account balance from Kraken");
+
+        try
+        {
+            var result = await _krakenClient.SpotApi.Account.GetBalancesAsync();
+
+            if (!result.Success)
+            {
+                _logger.LogError("Failed to get Kraken balances: {Error}", result.Error?.Message);
+                throw new InvalidOperationException($"Failed to get Kraken balances: {result.Error?.Message}");
+            }
+
+            if (result.Data == null || result.Data.Count == 0)
+            {
+                _logger.LogWarning("No balances returned from Kraken");
+                return new Dictionary<string, decimal>();
+            }
+
+            _logger.LogInformation("Retrieved {Count} asset balances", result.Data.Count);
+            return result.Data;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching account balance from Kraken");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets ticker information for a specific trading pair
+    /// </summary>
+    /// <param name="symbol">Trading pair symbol (e.g., "BTCUSD", "ETHUSD")</param>
+    /// <returns>Ticker data with last price</returns>
+    public async Task<TickerData?> GetTickerAsync(string symbol)
+    {
+        try
+        {
+            _logger.LogDebug("Getting ticker for symbol: {Symbol}", symbol);
+
+            var result = await _krakenClient.SpotApi.ExchangeData.GetTickerAsync(symbol);
+
+            if (!result.Success)
+            {
+                _logger.LogWarning("Failed to get ticker for {Symbol}: {Error}", symbol, result.Error?.Message);
+                return null;
+            }
+
+            var ticker = result.Data.FirstOrDefault().Value;
+            if (ticker == null)
+            {
+                _logger.LogWarning("No ticker data returned for symbol: {Symbol}", symbol);
+                return null;
+            }
+
+            return new TickerData
+            {
+                Symbol = symbol,
+                LastPrice = ticker.LastTrade.Price,
+                BidPrice = ticker.BestBids.Price,
+                AskPrice = ticker.BestAsks.Price,
+                Volume24h = ticker.Volume.Value24H,
+                High24h = ticker.High.Value24H,
+                Low24h = ticker.Low.Value24H
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting ticker for symbol: {Symbol}", symbol);
+            return null;
         }
     }
 

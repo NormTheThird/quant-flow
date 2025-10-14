@@ -10,7 +10,7 @@ public partial class ExchangeSettingsViewModel : ObservableObject
     private readonly ILogger<ExchangeSettingsViewModel> _logger;
 
     [ObservableProperty]
-    private string _selectedExchange = "Kraken";
+    private Exchange _selectedExchange = Exchange.Unknown;
 
     [ObservableProperty]
     private string _keyName = string.Empty;
@@ -54,7 +54,7 @@ public partial class ExchangeSettingsViewModel : ObservableObject
             var model = new UserExchangeDetailsModel
             {
                 UserId = _userSessionService.CurrentUserId,
-                Exchange = SelectedExchange,
+                Exchange = SelectedExchange.ToString(),
                 KeyName = KeyName,
                 KeyValue = KeyValue,
                 IsEncrypted = ShouldEncrypt,
@@ -102,7 +102,7 @@ public partial class ExchangeSettingsViewModel : ObservableObject
         try
         {
             var userId = _userSessionService.CurrentUserId;
-            var details = await _exchangeDetailsService.GetByUserAndExchangeAsync(userId, SelectedExchange);
+            var details = await _exchangeDetailsService.GetByUserIdAndExchangeAsync(userId, SelectedExchange);
 
             ExchangeDetails = new ObservableCollection<ExchangeDetailItemViewModel>(
                 details.Select(d => new ExchangeDetailItemViewModel(d)));
@@ -116,13 +116,13 @@ public partial class ExchangeSettingsViewModel : ObservableObject
         }
     }
 
-    partial void OnSelectedExchangeChanged(string value)
+    partial void OnSelectedExchangeChanged(Exchange value)
     {
         _ = LoadExchangeDetailsAsync();
     }
 
     partial void OnSelectedTabIndexChanged(int value)
     {
-        SelectedExchange = value == 0 ? "Kraken" : "KuCoin";
+        SelectedExchange = value == 0 ? Exchange.Kraken : Exchange.KuCoin;
     }
 }

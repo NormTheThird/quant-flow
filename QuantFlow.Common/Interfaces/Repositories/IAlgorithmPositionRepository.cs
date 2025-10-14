@@ -20,6 +20,13 @@ public interface IAlgorithmPositionRepository
     Task<IEnumerable<AlgorithmPositionModel>> GetByPortfolioIdAsync(Guid portfolioId);
 
     /// <summary>
+    /// Gets all positions for a specific user
+    /// </summary>
+    /// <param name="userId">The user's unique identifier</param>
+    /// <returns>Collection of positions for the user</returns>
+    Task<IEnumerable<AlgorithmPositionModel>> GetByUserIdAsync(Guid userId);
+
+    /// <summary>
     /// Creates a new algorithm position
     /// </summary>
     /// <param name="position">AlgorithmPosition to create</param>

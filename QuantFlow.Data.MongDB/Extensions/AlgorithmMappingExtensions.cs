@@ -21,7 +21,7 @@ public static class AlgorithmMappingExtensions
             Name = document.Name,
             Description = document.Description,
             Code = document.Code,
-            Language = document.Language,
+            ProgrammingLanguage = document.ProgrammingLanguage,
             Version = document.Version,
             Status = (AlgorithmStatus)document.Status,
             Tags = document.Tags ?? [],
@@ -55,7 +55,7 @@ public static class AlgorithmMappingExtensions
             Name = model.Name,
             Description = model.Description,
             Code = model.Code,
-            Language = model.Language,
+            ProgrammingLanguage = model.ProgrammingLanguage,
             Version = model.Version,
             Status = (int)model.Status,
             Tags = model.Tags?.ToList() ?? [],
@@ -107,7 +107,7 @@ public static class AlgorithmMappingExtensions
         document.Name = model.Name;
         document.Description = model.Description;
         document.Code = model.Code;
-        document.Language = model.Language;
+        document.ProgrammingLanguage = model.ProgrammingLanguage;
         document.Version = model.Version;
         document.Status = (int)model.Status;
         document.Tags = model.Tags?.ToList() ?? [];

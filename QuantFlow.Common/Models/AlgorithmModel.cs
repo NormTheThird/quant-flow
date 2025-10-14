@@ -1,15 +1,10 @@
-﻿namespace QuantFlow.Common.Models;
-
-/// <summary>
-/// Business model representing a trading algorithm
-/// </summary>
-public class AlgorithmModel : BaseModel
+﻿public class AlgorithmModel : BaseModel
 {
     public Guid UserId { get; set; } = Guid.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
-    public string Language { get; set; } = "csharp";
+    public string ProgrammingLanguage { get; set; } = "csharp";
     public string Version { get; set; } = "1.0.0";
     public AlgorithmStatus Status { get; set; } = AlgorithmStatus.Draft;
     public IEnumerable<string> Tags { get; set; } = [];

@@ -13,9 +13,11 @@ public static class AlgorithmPositionMappingExtensions
         return new AlgorithmPositionModel
         {
             Id = entity.Id,
+            UserId = entity.UserId,
             PortfolioId = entity.PortfolioId,
             AlgorithmId = entity.AlgorithmId,
             PositionName = entity.PositionName,
+            Symbol = entity.Symbol,
             AllocatedPercent = entity.AllocatedPercent,
             Status = Enum.Parse<Status>(entity.Status),
             MaxPositionSizePercent = entity.MaxPositionSizePercent,
@@ -39,9 +41,11 @@ public static class AlgorithmPositionMappingExtensions
         return new AlgorithmPositionEntity
         {
             Id = model.Id,
+            UserId = model.UserId,
             PortfolioId = model.PortfolioId,
             AlgorithmId = model.AlgorithmId,
             PositionName = model.PositionName,
+            Symbol = model.Symbol,
             AllocatedPercent = model.AllocatedPercent,
             Status = model.Status.ToString(),
             MaxPositionSizePercent = model.MaxPositionSizePercent,

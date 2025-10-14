@@ -32,12 +32,13 @@ public class UserExchangeDetailsService : IUserExchangeDetailsService
         return model;
     }
 
-    public async Task<IEnumerable<UserExchangeDetailsModel>> GetByUserAndExchangeAsync(Guid userId, string exchange)
+    public async Task<IEnumerable<UserExchangeDetailsModel>> GetByUserIdAndExchangeAsync(Guid userId, Exchange exchange)
     {
-        _logger.LogInformation("Getting exchange details for user: {UserId}, exchange: {Exchange}", userId, exchange);
-        var models = await _repository.GetByUserAndExchangeAsync(userId, exchange);
+        _logger.LogInformation("Getting exchange details for user {UserId} and exchange {Exchange}", userId, exchange);
 
-        return models.Select(DecryptIfNeeded).ToList();
+        var allDetails = await _repository.GetByUserIdAsync(userId);
+
+        return allDetails.Where(d => d.Exchange == exchange.ToString());
     }
 
     public async Task<IEnumerable<UserExchangeDetailsModel>> GetByUserIdAsync(Guid userId)

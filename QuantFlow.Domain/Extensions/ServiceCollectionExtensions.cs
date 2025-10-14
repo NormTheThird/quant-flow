@@ -16,8 +16,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IKrakenApiService, KrakenApiService>();
 
         // Register Domain services
-        services.AddScoped<IAlgorithmPositionService, AlgorithmPositionService>(); // ADD THIS LINE
+        services.AddScoped<IAlgorithmPositionService, AlgorithmPositionService>();
+        services.AddScoped<IAlgorithmService, AlgorithmService>(); 
         services.AddScoped<IEncryptionService, EncryptionService>();
+        services.AddScoped<IHoldingsService, HoldingsService>();
         services.AddScoped<IKrakenMarketDataCollectionService, KrakenMarketDataCollectionService>();
         services.AddScoped<IMarketDataConfigurationService, MarketDataConfigurationService>();
         services.AddScoped<IMarketDataService, MarketDataService>();

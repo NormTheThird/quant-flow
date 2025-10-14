@@ -6,6 +6,18 @@
 public interface IKrakenApiService
 {
     /// <summary>
+    /// Sets the API credentials to use for subsequent API calls
+    /// </summary>
+    /// <param name="apiKey">Kraken API key</param>
+    /// <param name="apiSecret">Kraken API secret</param>
+    void SetCredentials(string apiKey, string apiSecret);
+
+    /// <summary>
+    /// Clears the currently set API credentials
+    /// </summary>
+    void ClearCredentials();
+
+    /// <summary>
     /// Gets 1-minute kline data for the specified symbol
     /// </summary>
     /// <param name="symbol">Trading pair symbol (e.g., "BTCUSDT")</param>
@@ -71,4 +83,17 @@ public interface IKrakenApiService
     /// <param name="currency">Currency symbol (e.g., "USDT", "USDC")</param>
     /// <returns>Balance amount for the specified currency</returns>
     Task<decimal> GetCurrencyBalanceAsync(string apiKey, string apiSecret, string currency);
+
+    /// <summary>
+    /// Gets the account balance for all assets
+    /// </summary>
+    /// <returns>Dictionary of asset names and their balances</returns>
+    Task<Dictionary<string, decimal>> GetAccountBalanceAsync();
+
+    /// <summary>
+    /// Gets ticker information for a specific trading pair
+    /// </summary>
+    /// <param name="symbol">Trading pair symbol (e.g., "BTCUSD", "ETHUSD")</param>
+    /// <returns>Ticker data with last price</returns>
+    Task<TickerData?> GetTickerAsync(string symbol);
 }
