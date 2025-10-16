@@ -39,23 +39,23 @@ public partial class SymbolDetailViewModel : ObservableObject
     {
         try
         {
-            _logger.LogInformation("Loading timeframe summaries for {Symbol} on {Exchange}", _symbol, _exchange);
+            _logger.LogInformation("Loading timeframe summaries for {Symbol} on {Exchange}", Symbol, _exchange);
 
             var allSummaries = await _marketDataService.GetDataAvailabilitySummaryAsync();
 
             var symbolSummaries = allSummaries
-                .Where(_ => _.Symbol.Equals(_symbol, StringComparison.OrdinalIgnoreCase) &&
+                .Where(_ => _.Symbol.Equals(Symbol, StringComparison.OrdinalIgnoreCase) &&
                            _.Exchange.Equals(_exchange.ToString(), StringComparison.OrdinalIgnoreCase))
                 .OrderBy(_ => GetTimeframeOrder(_.Timeframe))
                 .ToList();
 
             TimeframeSummaries = new ObservableCollection<MarketDataSummary>(symbolSummaries);
 
-            _logger.LogInformation("Loaded {Count} timeframe summaries for {Symbol}", TimeframeSummaries.Count, _symbol);
+            _logger.LogInformation("Loaded {Count} timeframe summaries for {Symbol}", TimeframeSummaries.Count, Symbol);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading timeframe summaries for {Symbol}", _symbol);
+            _logger.LogError(ex, "Error loading timeframe summaries for {Symbol}", Symbol);
             MessageBox.Show($"Error loading timeframes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         // Register Domain services
         services.AddScoped<IAlgorithmPositionService, AlgorithmPositionService>();
         services.AddScoped<IAlgorithmService, AlgorithmService>();
+        services.AddScoped<IAlgorithmExecutionService, AlgorithmExecutionService>();
         services.AddScoped<IBacktestService, BacktestService>();
         services.AddScoped<IBacktestExecutionService, BacktestExecutionService>();
         services.AddScoped<IEncryptionService, EncryptionService>();
@@ -29,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISymbolService, SymbolService>();
         services.AddScoped<IUserExchangeDetailsService, UserExchangeDetailsService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ITradeService, TradeService>();
 
         return services;
     }

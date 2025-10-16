@@ -1,4 +1,6 @@
 ﻿global using CryptoExchange.Net.Authentication;
+global using Microsoft.CodeAnalysis.CSharp.Scripting;
+global using Microsoft.CodeAnalysis.Scripting;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
@@ -14,4 +16,5 @@ global using QuantFlow.Domain.Services;
 global using QuantFlow.Domain.Services.ApiServices;
 global using System.Security.Cryptography;
 global using System.Text;
+global using System.Text.Json;
 global using System.Text.RegularExpressions;

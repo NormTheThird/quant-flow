@@ -1,5 +1,14 @@
 ﻿namespace QuantFlow.Common.Models;
 
+public class PositionModel
+{
+    public decimal Quantity { get; set; }
+    public decimal EntryPrice { get; set; }
+    public DateTime EntryTime { get; set; }
+    public decimal CurrentValue { get; set; }
+    public decimal UnrealizedPnL { get; set; }
+}
+
 /// <summary>
 /// Represents an algorithm position within a portfolio.
 /// Each position allocates a percentage of the portfolio to a specific trading algorithm.

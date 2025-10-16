@@ -1,8 +1,21 @@
-﻿namespace QuantFlow.Common.Models;
+﻿public class AlgorithmModel : BaseModel
+{
+    public Guid UserId { get; set; } = Guid.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string ProgrammingLanguage { get; set; } = "csharp";
+    public string Version { get; set; } = "1.0.0";
+    public AlgorithmStatus Status { get; set; } = AlgorithmStatus.Draft;
+    public IEnumerable<string> Tags { get; set; } = [];
+    public IDictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
+    public object RiskSettings { get; set; } = new();
+    public object PerformanceMetrics { get; set; } = new();
+    public bool IsPublic { get; set; } = false;
+    public bool IsTemplate { get; set; } = false;
+    public string? TemplateCategory { get; set; } = null;
+}
 
-/// <summary>
-/// Business model representing algorithm performance metrics
-/// </summary>
 public class AlgorithmPerformanceModel
 {
     public Guid AlgorithmId { get; set; } = Guid.Empty;
@@ -30,4 +43,11 @@ public class AlgorithmPerformanceModel
     public decimal? Volatility { get; set; } = null;
     public int ExecutionTimeMs { get; set; } = 0;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+}
+
+public class AlgorithmGlobalsModel
+{
+    public List<decimal> closePrices { get; set; } = [];
+    public PositionModel? currentPosition { get; set; }
+    public decimal currentPrice { get; set; }
 }
