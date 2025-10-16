@@ -24,7 +24,7 @@ public interface IAlgorithmPositionService
     /// </summary>
     /// <param name="userId">The user's unique identifier</param>
     /// <returns>Collection of unassigned positions</returns>
-    Task<IEnumerable<AlgorithmPositionModel>> GetUnassignedPositionsByUserIdAsync(Guid userId);
+    Task<IEnumerable<AlgorithmPositionModel>> GetPositionsByUserIdAsync(Guid userId);
 
     /// <summary>
     /// Creates a new algorithm position

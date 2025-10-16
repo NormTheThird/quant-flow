@@ -1,12 +1,9 @@
-﻿using QuantFlow.Common.Interfaces.Infrastructure;
-
-namespace QuantFlow.Domain.Services;
+﻿namespace QuantFlow.Domain.Services;
 
 public class KrakenMarketDataCollectionService : IKrakenMarketDataCollectionService
 {
     private readonly ILogger<KrakenMarketDataCollectionService> _logger;
     private readonly IKrakenApiService _krakenApiService;
-    //rivate readonly KrakenCredentials _credentials;
     private readonly IMarketDataRepository _marketDataRepository;
     private readonly IApiRateLimitHandler _apiRateLimitHandler;
 
@@ -232,6 +229,7 @@ public class KrakenMarketDataCollectionService : IKrakenMarketDataCollectionServ
             throw;
         }
     }
+
 
     #region Private Helper Methods
 

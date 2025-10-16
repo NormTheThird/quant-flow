@@ -42,4 +42,6 @@ public class UserEntity
 
     [MaxLength(100)]
     public string UpdatedBy { get; set; } = string.Empty;
+
+    public virtual ICollection<BacktestRunEntity> BacktestRuns { get; set; } = [];
 }

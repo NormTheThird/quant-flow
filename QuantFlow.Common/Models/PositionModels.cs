@@ -36,4 +36,5 @@ public class PositionDisplayModel
 {
     public AlgorithmPositionModel Position { get; set; } = null!;
     public string AlgorithmName { get; set; } = string.Empty;
+    public string PortfolioName { get; set; } = string.Empty;
 }

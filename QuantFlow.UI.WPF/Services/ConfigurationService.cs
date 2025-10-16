@@ -1,6 +1,4 @@
-﻿using QuantFlow.Common.Extensions;
-
-namespace QuantFlow.UI.WPF.Services;
+﻿namespace QuantFlow.UI.WPF.Services;
 
 public static class ConfigurationService
 {
@@ -39,12 +37,6 @@ public static class ConfigurationService
         services.AddMongoDb(context.Configuration);
 
         // Domain services
-        //services.AddScoped<IUserService, UserService>();
-        //services.AddScoped<IKrakenApiService, KrakenApiService>();
-        //services.AddScoped<ISymbolService, SymbolService>();
-        //services.AddScoped<IPortfolioService, PortfolioService>();
-        //services.AddScoped<IEncryptionService, EncryptionService>();
-        //services.AddScoped<IUserExchangeDetailsService, UserExchangeDetailsService>(); 
         services.AddDomainServices();
 
         // HttpClient configuration
@@ -74,14 +66,19 @@ public static class ConfigurationService
         services.AddTransient<PortfolioDetailViewModel>();
         services.AddTransient<ExchangeSettingsViewModel>();
         services.AddTransient<AlgorithmsViewModel>();
-        services.AddTransient<PositionsLibraryViewModel>();
+        services.AddTransient<PositionsViewModel>();
+        services.AddTransient<MarketDataViewModel>();
 
         // Views
         services.AddTransient<DashboardView>();
         services.AddTransient<SettingsView>();
         services.AddTransient<PortfoliosView>();
         services.AddTransient<AlgorithmsView>();
-        services.AddTransient<PositionsLibraryView>();
+        services.AddTransient<PositionsView>();
+        services.AddTransient<MarketDataView>();
+        services.AddTransient<ExchangeSymbolsView>();
+        services.AddTransient<SymbolDetailView>();
+        services.AddTransient<TimeframeDataView>();
 
         // Windows
         services.AddTransient<LoginWindow>();

@@ -26,18 +26,10 @@ public class AlgorithmPositionService : IAlgorithmPositionService
         return await _algorithmPositionRepository.GetByPortfolioIdAsync(portfolioId);
     }
 
-    /// <summary>
-    /// Gets all unassigned positions (not linked to any portfolio) for a user
-    /// </summary>
-    /// <param name="userId">The user's unique identifier</param>
-    /// <returns>Collection of unassigned positions</returns>
-    public async Task<IEnumerable<AlgorithmPositionModel>> GetUnassignedPositionsByUserIdAsync(Guid userId)
+    public async Task<IEnumerable<AlgorithmPositionModel>> GetPositionsByUserIdAsync(Guid userId)
     {
-        _logger.LogInformation("Getting unassigned positions for user: {UserId}", userId);
-
-        var positions = await _algorithmPositionRepository.GetByUserIdAsync(userId);
-
-        return positions.Where(_ => _.PortfolioId == null);
+        _logger.LogInformation("Getting all positions for user: {UserId}", userId);
+        return await _algorithmPositionRepository.GetByUserIdAsync(userId);
     }
 
     public async Task<AlgorithmPositionModel> CreatePositionAsync(AlgorithmPositionModel position)

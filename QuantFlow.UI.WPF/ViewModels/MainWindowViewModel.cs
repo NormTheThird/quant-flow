@@ -63,8 +63,8 @@ public partial class MainWindowViewModel : ObservableObject
     {
         _logger.LogInformation("Navigating to Positions Library");
         var scope = _serviceProvider.CreateScope();
-        var positionsLibraryViewModel = scope.ServiceProvider.GetRequiredService<PositionsLibraryViewModel>();
-        var positionsLibraryView = scope.ServiceProvider.GetRequiredService<PositionsLibraryView>();
+        var positionsLibraryViewModel = scope.ServiceProvider.GetRequiredService<PositionsViewModel>();
+        var positionsLibraryView = scope.ServiceProvider.GetRequiredService<PositionsView>();
         positionsLibraryView.DataContext = positionsLibraryViewModel;
         CurrentView = positionsLibraryView;
     }
@@ -90,9 +90,103 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void NavigateToKrakenMarketData()
+    {
+        _logger.LogInformation("Navigating to Kraken Market Data");
+
+        var scope = _serviceProvider.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<ExchangeSymbolsViewModel>>();
+        var marketDataService = scope.ServiceProvider.GetRequiredService<IMarketDataService>();
+
+        var viewModel = new ExchangeSymbolsViewModel(logger, marketDataService, Exchange.Kraken);
+        viewModel.SymbolSelected += (sender, symbol) => NavigateToSymbolDetail(Exchange.Kraken, symbol);
+
+        var view = scope.ServiceProvider.GetRequiredService<ExchangeSymbolsView>();
+        view.DataContext = viewModel;
+        CurrentView = view;
+    }
+
+    [RelayCommand]
+    public void NavigateToKuCoinMarketData()
+    {
+        _logger.LogInformation("Navigating to KuCoin Market Data");
+
+        var scope = _serviceProvider.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<ExchangeSymbolsViewModel>>();
+        var marketDataService = scope.ServiceProvider.GetRequiredService<IMarketDataService>();
+
+        var viewModel = new ExchangeSymbolsViewModel(logger, marketDataService, Exchange.KuCoin);
+        viewModel.SymbolSelected += (sender, symbol) => NavigateToSymbolDetail(Exchange.KuCoin, symbol);
+
+        var view = scope.ServiceProvider.GetRequiredService<ExchangeSymbolsView>();
+        view.DataContext = viewModel;
+        CurrentView = view;
+    }
+
+    [RelayCommand]
     public void Logout()
     {
         _logger.LogInformation("Logout requested from MainWindowViewModel");
         LogoutRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void NavigateToSymbolDetail(Exchange exchange, string symbol)
+    {
+        _logger.LogInformation("Navigating to {Symbol} detail for {Exchange}", symbol, exchange);
+
+        var scope = _serviceProvider.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<SymbolDetailViewModel>>();
+        var marketDataService = scope.ServiceProvider.GetRequiredService<IMarketDataService>();
+
+        var viewModel = new SymbolDetailViewModel(logger, marketDataService, exchange, symbol);
+        viewModel.TimeframeSelected += (sender, summary) => NavigateToTimeframeData(summary);
+        viewModel.NavigateBackRequested += (sender, e) =>
+        {
+            if (exchange == Exchange.Kraken)
+                NavigateToKrakenMarketData();
+            else
+                NavigateToKuCoinMarketData();
+        };
+
+        var view = scope.ServiceProvider.GetRequiredService<SymbolDetailView>();
+        view.DataContext = viewModel;
+        CurrentView = view;
+    }
+
+    private void NavigateToTimeframeData(MarketDataSummary summary)
+    {
+        _logger.LogInformation("Navigating to timeframe data: {Symbol} {Timeframe}", summary.Symbol, summary.Timeframe);
+
+        var scope = _serviceProvider.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<TimeframeDataViewModel>>();
+        var marketDataService = scope.ServiceProvider.GetRequiredService<IMarketDataService>();
+
+        // Get the appropriate collection service based on exchange
+        IKrakenMarketDataCollectionService? krakenService = null;
+        var exchange = Enum.Parse<Exchange>(summary.Exchange);
+
+        if (exchange == Exchange.Kraken)
+        {
+            krakenService = scope.ServiceProvider.GetRequiredService<IKrakenMarketDataCollectionService>();
+        }
+
+        var viewModel = new TimeframeDataViewModel(logger, marketDataService, summary, krakenService);
+
+        viewModel.NavigateToExchangeRequested += (sender, e) =>
+        {
+            if (exchange == Exchange.Kraken)
+                NavigateToKrakenMarketData();
+            else
+                NavigateToKuCoinMarketData();
+        };
+
+        viewModel.NavigateToSymbolRequested += (sender, e) =>
+        {
+            NavigateToSymbolDetail(exchange, summary.Symbol);
+        };
+
+        var view = scope.ServiceProvider.GetRequiredService<TimeframeDataView>();
+        view.DataContext = viewModel;
+        CurrentView = view;
     }
 }

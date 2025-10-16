@@ -20,13 +20,6 @@ public interface IBacktestRunRepository
     Task<IEnumerable<BacktestRunModel>> GetByUserIdAsync(Guid userId);
 
     /// <summary>
-    /// Gets all backtest runs for a specific portfolio
-    /// </summary>
-    /// <param name="portfolioId">The portfolio's unique identifier</param>
-    /// <returns>Collection of backtest run business models</returns>
-    Task<IEnumerable<BacktestRunModel>> GetByPortfolioIdAsync(Guid portfolioId);
-
-    /// <summary>
     /// Gets all backtest runs
     /// </summary>
     /// <returns>Collection of backtest run business models</returns>

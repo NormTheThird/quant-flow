@@ -1,0 +1,80 @@
+﻿<Window x:Class="QuantFlow.UI.WPF.Windows.Dialogs.BacktestConfigurationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding DialogTitle}"
+        Height="600"
+        Width="500"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" 
+                   Text="Configure Backtest Parameters"
+                   FontSize="16"
+                   FontWeight="Bold"
+                   Margin="0,0,0,20"/>
+
+        <!-- Configuration Form -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Backtest Name -->
+                <TextBlock Text="Backtest Name" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding BacktestName, UpdateSourceTrigger=PropertyChanged}" 
+                         Margin="0,0,0,15"/>
+
+                <!-- Date Range -->
+                <TextBlock Text="Start Date" Margin="0,0,0,5"/>
+                <DatePicker SelectedDate="{Binding StartDate}" Margin="0,0,0,15"/>
+
+                <TextBlock Text="End Date" Margin="0,0,0,5"/>
+                <DatePicker SelectedDate="{Binding EndDate}" Margin="0,0,0,15"/>
+
+                <!-- Timeframe -->
+                <TextBlock Text="Timeframe" Margin="0,0,0,5"/>
+                <ComboBox ItemsSource="{Binding AvailableTimeframes}"
+                          SelectedItem="{Binding SelectedTimeframe}"
+                          Margin="0,0,0,15"/>
+
+                <!-- Initial Balance -->
+                <TextBlock Text="Initial Balance ($)" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding InitialBalance, UpdateSourceTrigger=PropertyChanged}" 
+                         Margin="0,0,0,15"/>
+
+                <!-- Commission Rate -->
+                <TextBlock Text="Commission Rate (%)" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding CommissionRate, UpdateSourceTrigger=PropertyChanged}" 
+                         Margin="0,0,0,15"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Validation Message -->
+        <TextBlock Grid.Row="2"
+                   Text="{Binding ValidationMessage}"
+                   Foreground="Red"
+                   Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}"
+                   TextWrapping="Wrap"
+                   Margin="0,10,0,10"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Cancel" 
+                    Width="100" 
+                    Height="35"
+                    Margin="0,0,10,0"
+                    Click="CancelButton_Click"/>
+            <Button Content="Run Backtest" 
+                    Width="120" 
+                    Height="35"
+                    Command="{Binding RunBacktestCommand}"/>
+        </StackPanel>
+    </Grid>
+</Window>

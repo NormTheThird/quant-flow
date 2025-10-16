@@ -58,6 +58,12 @@ public interface IMarketDataService
     Task<IEnumerable<MissingDataRange>> GetMissingIntervalsAsync(Exchange exchange, string symbol, Timeframe timeframe,        DateTime startDate, DateTime? endDate = null);
 
     /// <summary>
+    /// Gets a summary of available market data grouped by symbol, exchange, and timeframe
+    /// </summary>
+    /// <returns>Collection of market data availability summaries showing date ranges and record counts</returns>
+    Task<IEnumerable<MarketDataSummary>> GetDataAvailabilitySummaryAsync();
+
+    /// <summary>
     /// Stores market data points to the database
     /// </summary>
     /// <param name="marketData">Market data to store</param>

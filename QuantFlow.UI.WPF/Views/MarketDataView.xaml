@@ -1,0 +1,40 @@
+﻿<UserControl x:Class="QuantFlow.UI.WPF.Views.MarketDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundColor}">
+    <Grid Margin="40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="Market Data" 
+                       FontSize="32" 
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryColor}"/>
+            <TextBlock Text="Browse available historical market data" 
+                       FontSize="14"
+                       Foreground="{DynamicResource TextSecondaryColor}"
+                       Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <!-- Data Grid -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding MarketDataSummaries}"
+                  Style="{StaticResource DataGridStyle}"
+                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                  CellStyle="{StaticResource DataGridCellStyle}"
+                  RowStyle="{StaticResource DataGridRowStyle}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Symbol" Binding="{Binding Symbol}" Width="120"/>
+                <DataGridTextColumn Header="Exchange" Binding="{Binding Exchange}" Width="120"/>
+                <DataGridTextColumn Header="Timeframe" Binding="{Binding Timeframe}" Width="100"/>
+                <DataGridTextColumn Header="Start Date" Binding="{Binding StartDate, StringFormat='yyyy-MM-dd'}" Width="120"/>
+                <DataGridTextColumn Header="End Date" Binding="{Binding EndDate, StringFormat='yyyy-MM-dd'}" Width="120"/>
+                <DataGridTextColumn Header="Data Points" Binding="{Binding RecordCount}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

@@ -22,10 +22,10 @@ public static class SymbolMappingExtensions
             MinTradeAmount = entity.MinTradeAmount,
             PricePrecision = entity.PricePrecision,
             QuantityPrecision = entity.QuantityPrecision,
-            CreatedAt = entity.CreatedAt,
-            UpdatedAt = entity.UpdatedAt,
             IsDeleted = entity.IsDeleted,
+            CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
+            UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };
     }
@@ -47,10 +47,10 @@ public static class SymbolMappingExtensions
             MinTradeAmount = model.MinTradeAmount,
             PricePrecision = model.PricePrecision,
             QuantityPrecision = model.QuantityPrecision,
-            CreatedAt = model.CreatedAt,
-            UpdatedAt = model.UpdatedAt,
             IsDeleted = model.IsDeleted,
-            CreatedBy = model.CreatedBy,
+            CreatedAt = model.CreatedAt,
+            CreatedBy = model.CreatedBy ?? "System",
+            UpdatedAt = model.UpdatedAt,
             UpdatedBy = model.UpdatedBy
         };
     }

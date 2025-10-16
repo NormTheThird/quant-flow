@@ -10,6 +10,7 @@ public class QuantFlowDbContext : DbContext
     }
 
     public DbSet<AlgorithmPositionEntity> AlgorithmPositions { get; set; } = null!;
+    public DbSet<BacktestRunEntity> BacktestRuns { get; set; } = null!;
     public DbSet<MarketDataConfigurationEntity> MarketDataConfigurations { get; set; } = null!;
     public DbSet<PortfolioEntity> Portfolios { get; set; } = null!;
     public DbSet<SymbolEntity> Symbols { get; set; } = null!;

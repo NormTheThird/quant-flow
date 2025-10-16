@@ -20,3 +20,16 @@ public class MarketDataModel
     public decimal? QuoteVolume { get; set; } = null;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// Summary model representing availability of market data for a specific symbol/exchange/timeframe combination
+/// </summary>
+public class MarketDataSummary
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string Exchange { get; set; } = string.Empty;
+    public string Timeframe { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int RecordCount { get; set; }
+}

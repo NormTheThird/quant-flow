@@ -6,16 +6,10 @@
 public interface IMarketDataRepository
 {
     /// <summary>
-    /// Writes market data to the time-series database
+    /// Gets summary of available market data grouped by symbol, exchange, and timeframe
     /// </summary>
-    /// <param name="marketData">Market data to store</param>
-    Task WritePriceDataAsync(MarketDataModel marketData);
-
-    /// <summary>
-    /// Writes multiple market data points in a batch operation
-    /// </summary>
-    /// <param name="marketDataList">Collection of market data to store</param>
-    Task WritePriceDataBatchAsync(IEnumerable<MarketDataModel> marketDataList);
+    /// <returns>Collection of data availability summaries</returns>
+    Task<IEnumerable<MarketDataSummary>> GetDataAvailabilitySummaryAsync();
 
     /// <summary>
     /// Gets price data for a specific exchange and symbol within a time range
@@ -38,20 +32,16 @@ public interface IMarketDataRepository
     Task<MarketDataModel?> GetLatestPriceAsync(Exchange exchange, string symbol, Timeframe timeframe);
 
     /// <summary>
-    /// Writes trade execution data to the time-series database
+    /// Writes market data to the time-series database
     /// </summary>
-    /// <param name="trade">Trade data to store</param>
-    Task WriteTradeDataAsync(TradeModel trade);
+    /// <param name="marketData">Market data to store</param>
+    Task WritePriceDataAsync(MarketDataModel marketData);
 
     /// <summary>
-    /// Gets trade execution data for a specific exchange and symbol within a time range
+    /// Writes multiple market data points in a batch operation
     /// </summary>
-    /// <param name="exchange">Exchange to retrieve trade data from</param>
-    /// <param name="symbol">Trading symbol</param>
-    /// <param name="start">Start date and time for data retrieval</param>
-    /// <param name="end">End date and time for data retrieval</param>
-    /// <returns>Collection of trade models ordered by timestamp</returns>
-    Task<IEnumerable<TradeModel>> GetTradeDataAsync(Exchange exchange, string symbol, DateTime start, DateTime end);
+    /// <param name="marketDataList">Collection of market data to store</param>
+    Task WritePriceDataBatchAsync(IEnumerable<MarketDataModel> marketDataList);
 
     /// <summary>
     /// Deletes market data for a specific exchange and symbol within a time range

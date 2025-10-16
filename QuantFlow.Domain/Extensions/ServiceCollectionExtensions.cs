@@ -17,7 +17,9 @@ public static class ServiceCollectionExtensions
 
         // Register Domain services
         services.AddScoped<IAlgorithmPositionService, AlgorithmPositionService>();
-        services.AddScoped<IAlgorithmService, AlgorithmService>(); 
+        services.AddScoped<IAlgorithmService, AlgorithmService>();
+        services.AddScoped<IBacktestService, BacktestService>();
+        services.AddScoped<IBacktestExecutionService, BacktestExecutionService>();
         services.AddScoped<IEncryptionService, EncryptionService>();
         services.AddScoped<IHoldingsService, HoldingsService>();
         services.AddScoped<IKrakenMarketDataCollectionService, KrakenMarketDataCollectionService>();

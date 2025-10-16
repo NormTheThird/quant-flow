@@ -6,11 +6,12 @@ global using QuantFlow.Common.Enumerations;
 global using QuantFlow.Common.Exceptions;
 global using QuantFlow.Common.Extensions;
 global using QuantFlow.Common.ExternalModels.Kraken;
+global using QuantFlow.Common.Interfaces.Infrastructure;
 global using QuantFlow.Common.Interfaces.Repositories;
 global using QuantFlow.Common.Interfaces.Services;
 global using QuantFlow.Common.Models;
 global using QuantFlow.Domain.Services;
 global using QuantFlow.Domain.Services.ApiServices;
-
 global using System.Security.Cryptography;
 global using System.Text;
+global using System.Text.RegularExpressions;

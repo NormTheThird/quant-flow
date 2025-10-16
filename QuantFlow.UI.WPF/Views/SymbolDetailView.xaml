@@ -1,0 +1,147 @@
+﻿<UserControl x:Class="QuantFlow.UI.WPF.Views.SymbolDetailView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundColor}">
+    <Grid Margin="40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header with Breadcrumb -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <!-- Breadcrumb -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <Button Content="Market Data"
+                Command="{Binding NavigateBackToExchangeCommand}"
+                Style="{StaticResource SecondaryButton}"
+                Height="32"
+                Padding="12,0"
+                FontSize="12"/>
+                <TextBlock Text="/" 
+                   Margin="8,0"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextSecondaryColor}"/>
+                <TextBlock Text="{Binding ExchangeName}" 
+                   VerticalAlignment="Center"
+                   FontSize="12"
+                   Foreground="{DynamicResource TextSecondaryColor}"/>
+                <TextBlock Text="/" 
+                   Margin="8,0"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextSecondaryColor}"/>
+                <TextBlock Text="{Binding Symbol}" 
+                   VerticalAlignment="Center"
+                   FontSize="12"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextPrimaryColor}"/>
+            </StackPanel>
+
+            <!-- Title -->
+            <TextBlock FontSize="32" 
+               FontWeight="SemiBold"
+               Foreground="{DynamicResource TextPrimaryColor}">
+        <Run Text="{Binding Symbol}"/>
+        <Run Text=" on "/>
+        <Run Text="{Binding ExchangeName}"/>
+            </TextBlock>
+            <TextBlock Text="Select a timeframe to view detailed data" 
+               FontSize="14"
+               Foreground="{DynamicResource TextSecondaryColor}"
+               Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <!-- Timeframe Cards -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding TimeframeSummaries}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Command="{Binding DataContext.SelectTimeframeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Background="{DynamicResource SurfaceColor}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                Padding="24"
+                                Margin="0,0,16,16"
+                                Width="280"
+                                Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        CornerRadius="12"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource HoverColor}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Timeframe -->
+                                <TextBlock Grid.Row="0" 
+                                           Text="{Binding Timeframe}" 
+                                           FontSize="24" 
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryColor}"
+                                           Margin="0,0,0,16"/>
+
+                                <!-- Record Count -->
+                                <StackPanel Grid.Row="1" Margin="0,0,0,8">
+                                    <TextBlock Text="Records" 
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryColor}"/>
+                                    <TextBlock Text="{Binding RecordCount, StringFormat='{}{0:N0}'}" 
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                </StackPanel>
+
+                                <!-- Date Range -->
+                                <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                                    <TextBlock Text="Start Date" 
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryColor}"/>
+                                    <TextBlock Text="{Binding StartDate, StringFormat='MMM dd, yyyy'}" 
+                                               FontSize="14"
+                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="3">
+                                    <TextBlock Text="End Date" 
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryColor}"/>
+                                    <TextBlock Text="{Binding EndDate, StringFormat='MMM dd, yyyy'}" 
+                                               FontSize="14"
+                                               Foreground="{DynamicResource TextPrimaryColor}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

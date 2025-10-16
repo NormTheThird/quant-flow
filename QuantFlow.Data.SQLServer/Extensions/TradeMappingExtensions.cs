@@ -32,10 +32,10 @@ public static class TradeMappingExtensions
             RealizedProfitLoss = entity.RealizedProfitLoss,
             RealizedProfitLossPercent = entity.RealizedProfitLossPercent,
             EntryTradeId = entity.EntryTradeId,
-            CreatedAt = entity.CreatedAt,
-            UpdatedAt = entity.UpdatedAt,
             IsDeleted = entity.IsDeleted,
+            CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
+            UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };
     }
@@ -66,10 +66,10 @@ public static class TradeMappingExtensions
             RealizedProfitLoss = model.RealizedProfitLoss,
             RealizedProfitLossPercent = model.RealizedProfitLossPercent,
             EntryTradeId = model.EntryTradeId,
-            CreatedAt = model.CreatedAt,
-            UpdatedAt = model.UpdatedAt,
             IsDeleted = model.IsDeleted,
-            CreatedBy = model.CreatedBy,
+            CreatedAt = model.CreatedAt,
+            CreatedBy = model.CreatedBy ?? "System",
+            UpdatedAt = model.UpdatedAt,
             UpdatedBy = model.UpdatedBy
         };
     }

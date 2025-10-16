@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="QuantFlow.UI.WPF.Views.PositionsLibraryView"
+﻿<UserControl x:Class="QuantFlow.UI.WPF.Views.PositionsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:QuantFlow.UI.WPF.Controls"
@@ -162,6 +162,11 @@
                                                        Foreground="{DynamicResource AccentColor}"
                                                        FontWeight="Medium"
                                                        Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding PortfolioName}" 
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource TextSecondaryColor}"
+                                                       FontStyle="Italic"
+                                                       Margin="0,2,0,0"/>
                                         </StackPanel>
 
                                         <Border Grid.Column="1"
@@ -237,11 +242,10 @@
                                         <!-- Backtest Button -->
                                         <Button Grid.Column="0"
                                                 Content="📈 Backtest"
-                                                Style="{StaticResource PrimaryButton}"
-                                                Command="{Binding DataContext.BacktestPositionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.RunBacktestCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                Height="36"
-                                                Margin="0,0,8,0"/>
+                                                Style="{StaticResource PrimaryButton}"
+                                                Margin="5,0"/>
 
                                         <!-- Edit Button -->
                                         <Button Grid.Column="1"

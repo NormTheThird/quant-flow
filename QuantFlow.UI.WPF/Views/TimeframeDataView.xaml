@@ -1,0 +1,270 @@
+﻿<UserControl x:Class="QuantFlow.UI.WPF.Views.TimeframeDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundColor}">
+    <Grid Margin="40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header with Breadcrumb -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <!-- Breadcrumb -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <Button Content="Market Data"
+                        Command="{Binding NavigateToExchangeCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Height="32"
+                        Padding="12,0"
+                        FontSize="12"/>
+                <TextBlock Text="/" 
+                           Margin="8,0"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryColor}"/>
+                <Button Content="{Binding ExchangeName}"
+                        Command="{Binding NavigateToExchangeCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Height="32"
+                        Padding="12,0"
+                        FontSize="12"/>
+                <TextBlock Text="/" 
+                           Margin="8,0"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryColor}"/>
+                <Button Content="{Binding Symbol}"
+                        Command="{Binding NavigateToSymbolCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Height="32"
+                        Padding="12,0"
+                        FontSize="12"/>
+                <TextBlock Text="/" 
+                           Margin="8,0"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryColor}"/>
+                <TextBlock Text="{Binding TimeframeDisplay}" 
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryColor}"/>
+            </StackPanel>
+
+            <!-- Title -->
+            <TextBlock FontSize="32" 
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryColor}">
+                <Run Text="{Binding Symbol}"/>
+                <Run Text=" - "/>
+                <Run Text="{Binding TimeframeDisplay}"/>
+            </TextBlock>
+            <TextBlock FontSize="14"
+                       Foreground="{DynamicResource TextSecondaryColor}"
+                       Margin="0,8,0,0">
+                <Run Text="{Binding TotalRecordCount, StringFormat='{}{0:N0}'}"/>
+                <Run Text=" total records from "/>
+                <Run Text="{Binding StartDate, StringFormat='MMM dd, yyyy'}"/>
+                <Run Text=" to "/>
+                <Run Text="{Binding EndDate, StringFormat='MMM dd, yyyy'}"/>
+            </TextBlock>
+        </StackPanel>
+
+        <!-- Gap Detection Summary -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource SurfaceColor}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16"
+                Margin="0,0,0,16"
+                Visibility="{Binding HasGaps, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="⚠️" FontSize="16" Margin="0,0,8,0"/>
+                    <TextBlock Text="Data Gaps Detected" 
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource WarningColor}"/>
+                    <TextBlock Text="{Binding DataGaps.Count, StringFormat=' ({0} gaps)'}" 
+                               FontSize="14"
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               Margin="4,2,0,0"/>
+                </StackPanel>
+
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding DataGaps}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource BackgroundColor}"
+                                        BorderBrush="{DynamicResource BorderColor}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12,8"
+                                        Margin="0,4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" 
+                                                   Text="Gap:" 
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                                   Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"/>
+
+                                        <TextBlock Grid.Column="1" 
+                                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                                   VerticalAlignment="Center">
+                                            <Run Text="{Binding StartTime, StringFormat='MMM dd, yyyy HH:mm', Mode=OneWay}"/>
+                                            <Run Text=" to "/>
+                                            <Run Text="{Binding EndTime, StringFormat='MMM dd, yyyy HH:mm', Mode=OneWay}"/>
+                                        </TextBlock>
+
+                                        <TextBlock Grid.Column="2" 
+                                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                                   Margin="0,0,12,0"
+                                                   VerticalAlignment="Center">
+                                            <Run Text="{Binding MissingDataPoints, Mode=OneWay}"/>
+                                            <Run Text=" missing intervals"/>
+                                        </TextBlock>
+
+                                        <Button Grid.Column="3"
+                                                Content="Fill Gap"
+                                                Command="{Binding DataContext.FillGapCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource PrimaryButton}"
+                                                Height="28"
+                                                Padding="12,4"
+                                                FontSize="12"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </StackPanel>
+        </Border>
+
+        <!-- Search and Filter Controls -->
+        <Grid Grid.Row="2" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Search Box -->
+            <TextBox Grid.Column="0"
+                     Style="{StaticResource SearchBoxStyle}"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Search by timestamp (YYYY-MM-DD)"/>
+
+            <!-- Date Range Filter -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0">
+                <TextBlock Text="From:" 
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           Margin="0,0,8,0"/>
+                <DatePicker Style="{StaticResource DatePickerStyle}"
+                            SelectedDate="{Binding FilterStartDate}"
+                            Width="150"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="16,0,0,0">
+                <TextBlock Text="To:" 
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryColor}"
+                           Margin="0,0,8,0"/>
+                <DatePicker Style="{StaticResource DatePickerStyle}"
+                            SelectedDate="{Binding FilterEndDate}"
+                            Width="150"/>
+            </StackPanel>
+
+            <!-- Export Buttons -->
+            <StackPanel Grid.Column="4" Orientation="Horizontal">
+                <Button Content="Export CSV"
+                        Command="{Binding ExportCsvCommand}"
+                        Style="{StaticResource ExportButtonStyle}"/>
+                <Button Content="Export Excel"
+                        Command="{Binding ExportExcelCommand}"
+                        Style="{StaticResource ExportButtonStyle}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Data Grid -->
+        <DataGrid Grid.Row="3"
+                  ItemsSource="{Binding FilteredMarketData}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  GridLinesVisibility="None"
+                  HeadersVisibility="Column"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  RowBackground="{DynamicResource SurfaceColor}"
+                  AlternatingRowBackground="{DynamicResource BackgroundColor}"
+                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                  CellStyle="{StaticResource CompactDataGridCellStyle}"
+                  RowStyle="{StaticResource CompactDataGridRowStyle}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Timestamp" 
+                                    Binding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss'}" 
+                                    Width="180"/>
+                <DataGridTextColumn Header="Open" 
+                                    Binding="{Binding Open, StringFormat='N2'}" 
+                                    Width="120"/>
+                <DataGridTextColumn Header="High" 
+                                    Binding="{Binding High, StringFormat='N2'}" 
+                                    Width="120"/>
+                <DataGridTextColumn Header="Low" 
+                                    Binding="{Binding Low, StringFormat='N2'}" 
+                                    Width="120"/>
+                <DataGridTextColumn Header="Close" 
+                                    Binding="{Binding Close, StringFormat='N2'}" 
+                                    Width="120"/>
+                <DataGridTextColumn Header="Volume" 
+                                    Binding="{Binding Volume, StringFormat='N4'}" 
+                                    Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Pagination Controls -->
+        <StackPanel Grid.Row="4" Style="{StaticResource PaginationContainerStyle}">
+            <TextBlock Text="Rows per page:" 
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextSecondaryColor}"
+                       Margin="0,0,8,0"/>
+            <ComboBox Style="{StaticResource PaginationComboBoxStyle}"
+                      ItemsSource="{Binding PageSizeOptions}"
+                      SelectedItem="{Binding SelectedPageSize}"
+                      Width="80"/>
+
+            <TextBlock VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextSecondaryColor}"
+                       Margin="16,0,16,0">
+                <Run Text="{Binding CurrentPageStartIndex, Mode=OneWay}"/>
+                <Run Text="-"/>
+                <Run Text="{Binding CurrentPageEndIndex, Mode=OneWay}"/>
+                <Run Text=" of "/>
+                <Run Text="{Binding FilteredRecordCount, Mode=OneWay}"/>
+            </TextBlock>
+
+            <Button Content="Previous"
+                    Command="{Binding PreviousPageCommand}"
+                    Style="{StaticResource PaginationButtonStyle}"/>
+            <Button Content="Next"
+                    Command="{Binding NextPageCommand}"
+                    Style="{StaticResource PaginationButtonStyle}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

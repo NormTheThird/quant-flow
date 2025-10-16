@@ -56,7 +56,6 @@ public class PortfolioEntity
     [MaxLength(100)]
     public string UpdatedBy { get; set; } = string.Empty;
 
-    // EF Core navigation properties
     [ForeignKey(nameof(UserId))]
     public virtual UserEntity User { get; set; } = null!;
 
@@ -64,4 +63,6 @@ public class PortfolioEntity
     public virtual UserExchangeDetailsEntity? UserExchangeDetails { get; set; } = null;
 
     public virtual ICollection<AlgorithmPositionEntity> AlgorithmPositions { get; set; } = [];
+
+    public virtual ICollection<BacktestRunEntity> BacktestRuns { get; set; } = [];
 }

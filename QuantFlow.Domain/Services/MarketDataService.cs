@@ -78,13 +78,52 @@ public class MarketDataService : IMarketDataService
         var marketData = await GetMarketDataAsync(exchange, symbol, timeframe, startDate, endDate);
         var dataList = marketData.OrderBy(x => x.Timestamp).ToList();
 
-        if (dataList.Count == 0)
-            return [];
-
         var intervalMinutes = GetTimeframeMinutes(timeframe);
         var gaps = new List<DataGap>();
         var expectedInterval = TimeSpan.FromMinutes(intervalMinutes);
 
+        // Check for gap from baseline (2020-01-01) to first data point
+        if (dataList.Count > 0)
+        {
+            var baselineDate = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var firstDataPoint = dataList[0].Timestamp;
+            var initialGap = firstDataPoint - baselineDate;
+
+            if (initialGap > expectedInterval)
+            {
+                var missingPoints = (int)(initialGap.TotalMinutes / intervalMinutes) - 1;
+                if (missingPoints > 0)
+                {
+                    gaps.Add(new DataGap
+                    {
+                        StartTime = baselineDate,
+                        EndTime = firstDataPoint.Subtract(expectedInterval),
+                        Duration = initialGap.Subtract(expectedInterval),
+                        MissingDataPoints = missingPoints,
+                        TimeframeInterval = timeframe.ToString()
+                    });
+                }
+            }
+        }
+        else
+        {
+            // No data at all - entire range is a gap
+            var totalGap = endDate - startDate;
+            var missingPoints = (int)(totalGap.TotalMinutes / intervalMinutes);
+            gaps.Add(new DataGap
+            {
+                StartTime = startDate,
+                EndTime = endDate,
+                Duration = totalGap,
+                MissingDataPoints = missingPoints,
+                TimeframeInterval = timeframe.ToString()
+            });
+
+            _logger.LogWarning("No data found for {Symbol} - entire range is a gap", symbol);
+            return gaps;
+        }
+
+        // Check for gaps between existing data points
         for (int i = 1; i < dataList.Count; i++)
         {
             var previousTime = dataList[i - 1].Timestamp;
@@ -178,6 +217,12 @@ public class MarketDataService : IMarketDataService
             _logger.LogError(ex, "Failed to detect missing intervals for {Symbol} on {Exchange}", symbol, exchange);
             throw;
         }
+    }
+
+    public async Task<IEnumerable<MarketDataSummary>> GetDataAvailabilitySummaryAsync()
+    {
+        _logger.LogInformation("Getting market data availability summary");
+        return await _marketDataRepository.GetDataAvailabilitySummaryAsync();
     }
 
     /// <summary>

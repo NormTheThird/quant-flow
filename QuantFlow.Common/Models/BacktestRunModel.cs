@@ -7,8 +7,8 @@ public class BacktestRunModel : BaseModel
 {
     public required string Name { get; set; } = string.Empty;
     public required Guid AlgorithmId { get; set; } = Guid.Empty;
-    public required Guid PortfolioId { get; set; } = Guid.Empty;
     public required Guid UserId { get; set; } = Guid.Empty;
+
     public required string Symbol { get; set; } = string.Empty;
     public required Exchange Exchange { get; set; } = Exchange.Unknown;
     public required Timeframe Timeframe { get; set; } = Timeframe.OneHour;

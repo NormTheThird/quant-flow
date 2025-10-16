@@ -21,6 +21,189 @@ public class MarketDataRepository : IMarketDataRepository
     }
 
     /// <summary>
+    /// Gets a summary of available market data grouped by symbol, exchange, and timeframe
+    /// </summary>
+    /// <returns>Collection of market data availability summaries showing date ranges and record counts</returns>
+    /// <exception cref="InvalidOperationException">Thrown when InfluxDB query fails</exception>
+    public async Task<IEnumerable<MarketDataSummary>> GetDataAvailabilitySummaryAsync()
+    {
+        try
+        {
+            var query = $@"
+                from(bucket: ""{_context.Bucket}"")
+                    |> range(start: -365d)
+                    |> filter(fn: (r) => r._measurement == ""prices"")
+                    |> filter(fn: (r) => r._field == ""close"")
+                    |> group(columns: [""symbol"", ""exchange"", ""timeframe""])
+                    |> count()
+                    |> set(key: ""_field"", value: ""count"")
+            ";
+
+            var tables = await _context.QueryRawAsync(query);
+            var summaries = new List<MarketDataSummary>();
+
+            foreach (var table in tables)
+            {
+                foreach (var record in table.Records)
+                {
+                    summaries.Add(new MarketDataSummary
+                    {
+                        Symbol = record.GetValueByKey("symbol")?.ToString() ?? "",
+                        Exchange = record.GetValueByKey("exchange")?.ToString() ?? "",
+                        Timeframe = record.GetValueByKey("timeframe")?.ToString() ?? "",
+                        RecordCount = Convert.ToInt32(record.GetValueByKey("_value") ?? 0),
+                        StartDate = DateTime.MinValue, // Run separate query for min
+                        EndDate = DateTime.MaxValue  // Run separate query for max
+                    });
+                }
+            }
+
+            return summaries;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get data availability summary");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Retrieves historical market data for a specific symbol, exchange, and timeframe within a date range
+    /// </summary>
+    /// <param name="exchange">Exchange to filter data from (e.g., Kraken, KuCoin)</param>
+    /// <param name="symbol">Trading pair symbol (e.g., "BTCUSDT", "ETHUSDT")</param>
+    /// <param name="timeframe">Time interval for the data (e.g., OneMinute, OneHour, OneDay)</param>
+    /// <param name="start">Start date and time for data retrieval (inclusive)</param>
+    /// <param name="end">End date and time for data retrieval (inclusive)</param>
+    /// <returns>Collection of market data models ordered by timestamp, or empty collection if no data found</returns>
+    /// <exception cref="ArgumentException">Thrown when symbol is null or whitespace</exception>
+    /// <exception cref="InvalidOperationException">Thrown when InfluxDB query fails</exception>
+    /// <remarks>
+    /// Uses custom type-safe Flux query builder to prevent syntax errors.
+    /// Results are automatically sorted by timestamp in ascending order.
+    /// </remarks>
+    public async Task<IEnumerable<MarketDataModel>> GetPriceDataAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime start, DateTime end)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        try
+        {
+            var exchangeString = exchange.ToString();
+            var timeframeString = timeframe.ToString();
+            var query = _context.NewQuery()
+                .Range(start, end)
+                .FilterMeasurement("prices")
+                .FilterTag("symbol", symbol)
+                .FilterTag("timeframe", timeframeString)
+                .FilterTag("exchange", exchangeString)
+                .Pivot()
+                .Sort(new[] { "_time" });
+
+            var fluxQuery = query.Build();
+            var results = await query.ExecuteAsync<PricePoint>(_context);
+
+            var marketData = results.Select(p => new MarketDataModel
+            {
+                Symbol = p.Symbol,
+                Timeframe = timeframe,
+                Exchange = exchange,
+                Open = p.Open,
+                High = p.High,
+                Low = p.Low,
+                Close = p.Close,
+                Volume = p.Volume,
+                VWAP = p.VWAP,
+                TradeCount = p.TradeCount,
+                Bid = p.Bid,
+                Ask = p.Ask,
+                Timestamp = p.Timestamp
+            });
+
+            return marketData;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get price data for {Symbol} from {Exchange}", symbol, exchange);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Retrieves the most recent market data point for a specific symbol, exchange, and timeframe
+    /// </summary>
+    /// <param name="exchange">Exchange to filter data from</param>
+    /// <param name="symbol">Trading pair symbol to retrieve data for</param>
+    /// <param name="timeframe">Time interval to filter by</param>
+    /// <returns>Latest market data model if found, null if no recent data exists</returns>
+    /// <exception cref="ArgumentException">Thrown when symbol is null or whitespace</exception>
+    /// <exception cref="InvalidOperationException">Thrown when InfluxDB query fails</exception>
+    /// <remarks>
+    /// Searches within the last 24 hours for the most recent data point.
+    /// Results are sorted by timestamp in descending order and limited to 1 record.
+    /// Useful for determining current market conditions and data freshness.
+    /// </remarks>
+    public async Task<MarketDataModel?> GetLatestPriceAsync(Exchange exchange, string symbol, Timeframe timeframe)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        try
+        {
+            // Using custom type-safe query builder for latest price query
+            var exchangeString = exchange.ToString().ToLowerInvariant();
+            var timeframeString = timeframe.ToString();
+
+            var query = _context.NewQuery()
+                .Range("-24h")
+                .FilterMeasurement("prices")
+                .FilterTag("symbol", symbol)
+                .FilterTag("timeframe", timeframeString)
+                .FilterTag("exchange", exchangeString)
+                .Pivot()
+                .Sort(new[] { "_time" }, descending: true)
+                .Limit(1);
+
+            var fluxQuery = query.Build();
+            _logger.LogDebug("Generated latest price query: {Query}", fluxQuery);
+
+            var results = await query.ExecuteAsync<PricePoint>(_context);
+            var latestPrice = results.FirstOrDefault();
+
+            if (latestPrice == null)
+            {
+                _logger.LogDebug("No latest price found for {Symbol} {Timeframe} from {Exchange}",
+                    symbol, timeframe, exchange);
+                return null;
+            }
+
+            var marketData = new MarketDataModel
+            {
+                Symbol = latestPrice.Symbol,
+                Timeframe = timeframe,
+                Exchange = exchange,
+                Open = latestPrice.Open,
+                High = latestPrice.High,
+                Low = latestPrice.Low,
+                Close = latestPrice.Close,
+                Volume = latestPrice.Volume,
+                VWAP = latestPrice.VWAP,
+                TradeCount = latestPrice.TradeCount,
+                Bid = latestPrice.Bid,
+                Ask = latestPrice.Ask,
+                Timestamp = latestPrice.Timestamp
+            };
+
+            _logger.LogDebug("Retrieved latest price for {Symbol} {Timeframe} from {Exchange} at {Timestamp}",
+                symbol, timeframe, exchange, latestPrice.Timestamp);
+            return marketData;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get latest price for {Symbol} {Timeframe} from {Exchange}",
+                symbol, timeframe, exchange);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Writes a single market data point to InfluxDB
     /// </summary>
     /// <param name="marketData">Market data model containing OHLCV and additional trading information</param>
@@ -108,259 +291,6 @@ public class MarketDataRepository : IMarketDataRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to write batch of {Count} price data points", dataList.Count);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Retrieves historical market data for a specific symbol, exchange, and timeframe within a date range
-    /// </summary>
-    /// <param name="exchange">Exchange to filter data from (e.g., Kraken, KuCoin)</param>
-    /// <param name="symbol">Trading pair symbol (e.g., "BTCUSDT", "ETHUSDT")</param>
-    /// <param name="timeframe">Time interval for the data (e.g., OneMinute, OneHour, OneDay)</param>
-    /// <param name="start">Start date and time for data retrieval (inclusive)</param>
-    /// <param name="end">End date and time for data retrieval (inclusive)</param>
-    /// <returns>Collection of market data models ordered by timestamp, or empty collection if no data found</returns>
-    /// <exception cref="ArgumentException">Thrown when symbol is null or whitespace</exception>
-    /// <exception cref="InvalidOperationException">Thrown when InfluxDB query fails</exception>
-    /// <remarks>
-    /// Uses custom type-safe Flux query builder to prevent syntax errors.
-    /// Results are automatically sorted by timestamp in ascending order.
-    /// </remarks>
-    public async Task<IEnumerable<MarketDataModel>> GetPriceDataAsync(Exchange exchange, string symbol, Timeframe timeframe, DateTime start, DateTime end)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-
-        try
-        {
-            // Using custom type-safe query builder instead of string interpolation
-            var exchangeString = exchange.ToString().ToLowerInvariant();
-            var timeframeString = timeframe.ToString();
-
-            var query = _context.NewQuery()
-                .Range(start, end)
-                .FilterMeasurement("prices")
-                .FilterTag("symbol", symbol)
-                .FilterTag("timeframe", timeframeString)
-                .FilterTag("exchange", exchangeString)
-                .Pivot()
-                .Sort(new[] { "_time" });
-
-            var fluxQuery = query.Build();
-            _logger.LogDebug("Generated Flux query: {Query}", fluxQuery);
-
-            var results = await query.ExecuteAsync<PricePoint>(_context);
-
-            var marketData = results.Select(p => new MarketDataModel
-            {
-                Symbol = p.Symbol,
-                Timeframe = timeframe,
-                Exchange = exchange,
-                Open = p.Open,
-                High = p.High,
-                Low = p.Low,
-                Close = p.Close,
-                Volume = p.Volume,
-                VWAP = p.VWAP,
-                TradeCount = p.TradeCount,
-                Bid = p.Bid,
-                Ask = p.Ask,
-                Timestamp = p.Timestamp
-            });
-
-            _logger.LogDebug("Retrieved {Count} price data points for {Symbol} from {Exchange}",
-                results.Count(), symbol, exchange);
-            return marketData;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get price data for {Symbol} from {Exchange}", symbol, exchange);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Retrieves the most recent market data point for a specific symbol, exchange, and timeframe
-    /// </summary>
-    /// <param name="exchange">Exchange to filter data from</param>
-    /// <param name="symbol">Trading pair symbol to retrieve data for</param>
-    /// <param name="timeframe">Time interval to filter by</param>
-    /// <returns>Latest market data model if found, null if no recent data exists</returns>
-    /// <exception cref="ArgumentException">Thrown when symbol is null or whitespace</exception>
-    /// <exception cref="InvalidOperationException">Thrown when InfluxDB query fails</exception>
-    /// <remarks>
-    /// Searches within the last 24 hours for the most recent data point.
-    /// Results are sorted by timestamp in descending order and limited to 1 record.
-    /// Useful for determining current market conditions and data freshness.
-    /// </remarks>
-    public async Task<MarketDataModel?> GetLatestPriceAsync(Exchange exchange, string symbol, Timeframe timeframe)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-
-        try
-        {
-            // Using custom type-safe query builder for latest price query
-            var exchangeString = exchange.ToString().ToLowerInvariant();
-            var timeframeString = timeframe.ToString();
-
-            var query = _context.NewQuery()
-                .Range("-24h")
-                .FilterMeasurement("prices")
-                .FilterTag("symbol", symbol)
-                .FilterTag("timeframe", timeframeString)
-                .FilterTag("exchange", exchangeString)
-                .Pivot()
-                .Sort(new[] { "_time" }, descending: true)
-                .Limit(1);
-
-            var fluxQuery = query.Build();
-            _logger.LogDebug("Generated latest price query: {Query}", fluxQuery);
-
-            var results = await query.ExecuteAsync<PricePoint>(_context);
-            var latestPrice = results.FirstOrDefault();
-
-            if (latestPrice == null)
-            {
-                _logger.LogDebug("No latest price found for {Symbol} {Timeframe} from {Exchange}",
-                    symbol, timeframe, exchange);
-                return null;
-            }
-
-            var marketData = new MarketDataModel
-            {
-                Symbol = latestPrice.Symbol,
-                Timeframe = timeframe,
-                Exchange = exchange,
-                Open = latestPrice.Open,
-                High = latestPrice.High,
-                Low = latestPrice.Low,
-                Close = latestPrice.Close,
-                Volume = latestPrice.Volume,
-                VWAP = latestPrice.VWAP,
-                TradeCount = latestPrice.TradeCount,
-                Bid = latestPrice.Bid,
-                Ask = latestPrice.Ask,
-                Timestamp = latestPrice.Timestamp
-            };
-
-            _logger.LogDebug("Retrieved latest price for {Symbol} {Timeframe} from {Exchange} at {Timestamp}",
-                symbol, timeframe, exchange, latestPrice.Timestamp);
-            return marketData;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get latest price for {Symbol} {Timeframe} from {Exchange}",
-                symbol, timeframe, exchange);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Writes a single trade execution record to InfluxDB for tracking and analysis
-    /// </summary>
-    /// <param name="trade">Trade model containing execution details, pricing, and metadata</param>
-    /// <exception cref="ArgumentNullException">Thrown when trade is null</exception>
-    /// <exception cref="InvalidOperationException">Thrown when InfluxDB write operation fails</exception>
-    /// <remarks>
-    /// Stores comprehensive trade information including symbol, exchange, side (buy/sell),
-    /// pricing, quantities, fees, and execution timestamps for portfolio tracking and analysis.
-    /// </remarks>
-    public async Task WriteTradeDataAsync(TradeModel trade)
-    {
-        ArgumentNullException.ThrowIfNull(trade);
-
-        try
-        {
-            var tradePoint = new TradePoint
-            {
-                Symbol = trade.Symbol,
-                Exchange = trade.Exchange.ToString().ToLowerInvariant(),
-                Side = trade.Type == TradeType.Buy ? "buy" : "sell",
-                TradeType = trade.Type.ToString().ToLowerInvariant(),
-                TradeId = trade.Id.ToString(),
-                Price = trade.Price,
-                Quantity = trade.Quantity,
-                Value = trade.Value,
-                Fees = trade.Commission,
-                ExecutionTimeMs = null,
-                Timestamp = trade.ExecutionTimestamp
-            };
-
-            await _context.WritePointAsync(tradePoint);
-            _logger.LogDebug("Written trade data for {Symbol} - {Type} {Quantity} at {Price}",
-                trade.Symbol, trade.Type, trade.Quantity, trade.Price);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to write trade data for {Symbol}", trade.Symbol);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Retrieves historical trade execution data for a specific symbol and exchange within a date range
-    /// </summary>
-    /// <param name="exchange">Exchange to filter trades from</param>
-    /// <param name="symbol">Trading pair symbol to retrieve trades for</param>
-    /// <param name="start">Start date and time for trade retrieval (inclusive)</param>
-    /// <param name="end">End date and time for trade retrieval (inclusive)</param>
-    /// <returns>Collection of trade models ordered by execution timestamp</returns>
-    /// <exception cref="ArgumentException">Thrown when symbol is null or whitespace</exception>
-    /// <exception cref="InvalidOperationException">Thrown when InfluxDB query fails</exception>
-    /// <remarks>
-    /// Useful for backtesting analysis, performance evaluation, and trade history review.
-    /// Trade records include all execution details, fees, and calculated net values.
-    /// Results are sorted chronologically by execution timestamp.
-    /// </remarks>
-    public async Task<IEnumerable<TradeModel>> GetTradeDataAsync(Exchange exchange, string symbol, DateTime start, DateTime end)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-
-        try
-        {
-            // Using custom type-safe query builder for trade data
-            var exchangeString = exchange.ToString().ToLowerInvariant();
-
-            var query = _context.NewQuery()
-                .Range(start, end)
-                .FilterMeasurement("trades")
-                .FilterTag("symbol", symbol)
-                .FilterTag("exchange", exchangeString)
-                .Pivot()
-                .Sort(new[] { "_time" });
-
-            var fluxQuery = query.Build();
-            _logger.LogDebug("Generated trade data query: {Query}", fluxQuery);
-
-            var results = await query.ExecuteAsync<TradePoint>(_context);
-
-            var trades = results.Select(t => new TradeModel
-            {
-                Id = Guid.TryParse(t.TradeId, out var id) ? id : Guid.NewGuid(),
-                Symbol = t.Symbol,
-                Exchange = exchange,
-                Type = t.Side?.ToLowerInvariant() == "buy" ? TradeType.Buy : TradeType.Sell,
-                Price = t.Price,
-                Quantity = t.Quantity,
-                Value = t.Value,
-                Commission = t.Fees,
-                ExecutionTimestamp = t.Timestamp,
-                BacktestRunId = Guid.Empty,
-                NetValue = t.Value - t.Fees,
-                PortfolioBalanceBefore = 0m,
-                PortfolioBalanceAfter = 0m,
-                AlgorithmReason = string.Empty,
-                AlgorithmConfidence = 0m,
-                CreatedAt = t.Timestamp,
-                CreatedBy = "influxdb"
-            });
-
-            _logger.LogDebug("Retrieved {Count} trade data points for {Symbol}", results.Count(), symbol);
-            return trades;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get trade data for {Symbol}", symbol);
             throw;
         }
     }

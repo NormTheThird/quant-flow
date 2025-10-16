@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QuantFlow.Data.SQLServer.Context;
 
@@ -11,9 +12,11 @@ using QuantFlow.Data.SQLServer.Context;
 namespace QuantFlow.Data.SQLServer.Migrations
 {
     [DbContext(typeof(QuantFlowDbContext))]
-    partial class QuantFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251014212102_AddBacktestRunTable")]
+    partial class AddBacktestRunTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -164,10 +167,8 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("Exchange")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("Exchange")
+                        .HasColumnType("int");
 
                     b.Property<long>("ExecutionDurationTicks")
                         .HasColumnType("bigint");
@@ -197,17 +198,15 @@ namespace QuantFlow.Data.SQLServer.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid?>("PortfolioEntityId")
+                    b.Property<Guid>("PortfolioId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("SharpeRatio")
                         .HasPrecision(8, 4)
                         .HasColumnType("decimal(8,4)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
@@ -244,7 +243,8 @@ namespace QuantFlow.Data.SQLServer.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PortfolioEntityId");
+                    b.HasIndex("PortfolioId")
+                        .HasDatabaseName("IX_BacktestRun_PortfolioId");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_BacktestRun_Status");
@@ -836,15 +836,19 @@ namespace QuantFlow.Data.SQLServer.Migrations
 
             modelBuilder.Entity("QuantFlow.Data.SQLServer.Models.BacktestRunEntity", b =>
                 {
-                    b.HasOne("QuantFlow.Data.SQLServer.Models.PortfolioEntity", null)
+                    b.HasOne("QuantFlow.Data.SQLServer.Models.PortfolioEntity", "Portfolio")
                         .WithMany("BacktestRuns")
-                        .HasForeignKey("PortfolioEntityId");
+                        .HasForeignKey("PortfolioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("QuantFlow.Data.SQLServer.Models.UserEntity", "User")
                         .WithMany("BacktestRuns")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Portfolio");
 
                     b.Navigation("User");
                 });

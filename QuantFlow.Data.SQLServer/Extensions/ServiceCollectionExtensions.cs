@@ -26,6 +26,7 @@ public static class ServiceCollectionExtensions
 
         // Register repository implementations
         services.AddScoped<IAlgorithmPositionRepository, AlgorithmPositionRepository>();
+        services.AddScoped<IBacktestRunRepository, BacktestRunRepository>();
         services.AddScoped<IMarketDataConfigurationRepository, MarketDataConfigurationRepository>();
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddScoped<ISymbolRepository, SymbolRepository>();

@@ -3,15 +3,16 @@
 /// <summary>
 /// ViewModel for the Positions Library view showing all standalone positions
 /// </summary>
-public partial class PositionsLibraryViewModel : ObservableObject
+public partial class PositionsViewModel : ObservableObject
 {
-    private readonly ILogger<PositionsLibraryViewModel> _logger;
+    private readonly ILogger<PositionsViewModel> _logger;
     private readonly IAlgorithmService _algorithmService;
     private readonly IAlgorithmPositionService _algorithmPositionService;
-    private readonly IUserSessionService _userSessionService;
+    private readonly IPortfolioService _portfolioService;
+    private readonly Guid _currentUserId;
 
     [ObservableProperty]
-    private List<PositionDisplayModel> _positions = [];
+    private ObservableCollection<PositionDisplayModel> _positions = [];
 
     [ObservableProperty]
     private bool _isLoading = true;
@@ -19,49 +20,58 @@ public partial class PositionsLibraryViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasNoPositions;
 
-    public PositionsLibraryViewModel(ILogger<PositionsLibraryViewModel> logger, IAlgorithmService algorithmService, IAlgorithmPositionService algorithmPositionService,
-                                     IUserSessionService userSessionService)
+    public PositionsViewModel(ILogger<PositionsViewModel> logger, IAlgorithmService algorithmService, IAlgorithmPositionService algorithmPositionService,
+                                      IPortfolioService portfolioService, IUserSessionService userSessionService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _algorithmService = algorithmService ?? throw new ArgumentNullException(nameof(algorithmService));
         _algorithmPositionService = algorithmPositionService ?? throw new ArgumentNullException(nameof(algorithmPositionService));
-        _userSessionService = userSessionService ?? throw new ArgumentNullException(nameof(userSessionService));
+        _portfolioService = portfolioService ?? throw new ArgumentNullException(nameof(portfolioService));
+
+        _currentUserId = userSessionService.CurrentUserId;
+        if (_currentUserId == Guid.Empty)
+            throw new InvalidOperationException("User is not logged in");
 
         _ = LoadPositionsAsync();
     }
 
     private async Task LoadPositionsAsync()
     {
-        IsLoading = true;
-
         try
         {
-            var userId = _userSessionService.CurrentUserId;
-            _logger.LogInformation("Loading unassigned positions for user: {UserId}", userId);
+            _logger.LogInformation("Loading all positions for user: {UserId}", _currentUserId);
 
-            var positions = await _algorithmPositionService.GetUnassignedPositionsByUserIdAsync(userId);
-            var algorithms = await _algorithmService.GetAlgorithmsByUserIdAsync(userId);
+            var positions = await _algorithmPositionService.GetPositionsByUserIdAsync(_currentUserId);
+            var positionDisplays = new List<PositionDisplayModel>();
 
-            var algorithmDict = algorithms.ToDictionary(a => a.Id, a => a.Name);
+            foreach (var position in positions)
+            {
+                var algorithm = await _algorithmService.GetAlgorithmByIdAsync(position.AlgorithmId);
 
-            Positions = positions
-                .OrderByDescending(_ => _.CreatedAt)
-                .Select(p => new PositionDisplayModel
+                string portfolioName = "Unassigned";
+                if (position.PortfolioId.HasValue)
                 {
-                    Position = p,
-                    AlgorithmName = algorithmDict.TryGetValue(p.AlgorithmId, out var name) ? name : "Unknown"
-                })
-                .ToList();
+                    var portfolio = await _portfolioService.GetPortfolioByIdAsync(position.PortfolioId.Value);
+                    portfolioName = portfolio?.Name ?? "Unknown Portfolio";
+                }
 
+                positionDisplays.Add(new PositionDisplayModel
+                {
+                    Position = position,
+                    AlgorithmName = algorithm?.Name ?? "Unknown Algorithm",
+                    PortfolioName = portfolioName
+                });
+            }
+
+            Positions = new ObservableCollection<PositionDisplayModel>(positionDisplays.OrderByDescending(_ => _.Position.UpdatedAt));
             HasNoPositions = Positions.Count == 0;
 
-            _logger.LogInformation("Loaded {Count} unassigned positions", Positions.Count);
+            _logger.LogInformation("Loaded {Count} positions", Positions.Count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading positions");
-            Positions = [];
-            HasNoPositions = true;
+            MessageBox.Show($"Error loading positions: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -114,17 +124,14 @@ public partial class PositionsLibraryViewModel : ObservableObject
     private void EditPosition(PositionDisplayModel positionDisplay)
     {
         _logger.LogInformation("Edit position clicked: {PositionId}", positionDisplay.Position.Id);
+
         var dialog = new AlgorithmPositionDialog();
-        var app = (App)Application.Current;
 
-        // Create a scope to resolve scoped services
-        var scope = app.Services.CreateScope();
-        var scopedProvider = scope.ServiceProvider;
-
-        var dialogLogger = scopedProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
-        var algorithmService = scopedProvider.GetRequiredService<IAlgorithmService>();
-        var symbolService = scopedProvider.GetRequiredService<ISymbolService>();
-        var userSessionService = scopedProvider.GetRequiredService<IUserSessionService>();
+        using var scope = ((App)Application.Current).Services.CreateScope();
+        var dialogLogger = scope.ServiceProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
+        var algorithmService = scope.ServiceProvider.GetRequiredService<IAlgorithmService>();
+        var symbolService = scope.ServiceProvider.GetRequiredService<ISymbolService>();
+        var userSessionService = scope.ServiceProvider.GetRequiredService<IUserSessionService>();
 
         var viewModel = new AlgorithmPositionDialogViewModel(
             dialogLogger,
@@ -182,9 +189,37 @@ public partial class PositionsLibraryViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void BacktestPosition(PositionDisplayModel positionDisplay)
+    private void RunBacktest(PositionDisplayModel positionDisplay)
     {
-        _logger.LogInformation("Backtest position clicked: {PositionId}", positionDisplay.Position.Id);
-        // TODO: Navigate to backtest view
+        _logger.LogInformation("Run backtest clicked for position: {PositionId}", positionDisplay.Position.Id);
+
+        try
+        {
+            var dialog = new BacktestConfigurationDialog();
+
+            using var scope = ((App)Application.Current).Services.CreateScope();
+            var backtestService = scope.ServiceProvider.GetRequiredService<IBacktestService>();
+            var userSessionService = scope.ServiceProvider.GetRequiredService<IUserSessionService>();
+            var dialogLogger = scope.ServiceProvider.GetRequiredService<ILogger<BacktestConfigurationDialogViewModel>>();
+
+            var viewModel = new BacktestConfigurationDialogViewModel(dialogLogger, backtestService, userSessionService, positionDisplay.Position);
+            viewModel.BacktestCompleted += (s, success) =>
+            {
+                if (success)
+                {
+                    dialog.DialogResult = true;
+                    dialog.Close();
+                    MessageBox.Show("Backtest created successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            };
+
+            dialog.DataContext = viewModel;
+            dialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening backtest configuration dialog");
+            MessageBox.Show($"Error opening dialog: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }
