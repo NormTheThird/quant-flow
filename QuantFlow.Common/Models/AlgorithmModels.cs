@@ -51,3 +51,40 @@ public class AlgorithmGlobalsModel
     public PositionModel? currentPosition { get; set; }
     public decimal currentPrice { get; set; }
 }
+
+/// <summary>
+/// Business model for algorithm metadata
+/// </summary>
+public class AlgorithmMetadataModel : BaseModel
+{
+    public required string Name { get; set; } = string.Empty;
+    public string? Abbreviation { get; set; }
+    public required string Description { get; set; } = string.Empty;
+    public AlgorithmType AlgorithmType { get; set; } = AlgorithmType.Unknown;
+    public AlgorithmSource AlgorithmSource { get; set; } = AlgorithmSource.Unknown;
+    public bool IsEnabled { get; set; } = true;
+    public string Version { get; set; } = "1.0";
+}
+
+/// <summary>
+/// Business model for algorithm effectiveness ratings
+/// </summary>
+public class AlgorithmEffectivenessModel : BaseModel
+{
+    public Guid AlgorithmId { get; set; } = Guid.Empty;
+    public required string Timeframe { get; set; } = string.Empty;
+    public int ReliabilityStars { get; set; } = 0;
+    public int OpportunityStars { get; set; } = 0;
+    public int RecommendedStars { get; set; } = 0;
+    public required string ReliabilityReason { get; set; } = string.Empty;
+    public required string OpportunityReason { get; set; } = string.Empty;
+    public decimal? AverageWinRate { get; set; }
+    public decimal? AverageReturnPerTrade { get; set; }
+    public int? AverageTradesPerMonth { get; set; }
+    public decimal? AverageSharpeRatio { get; set; }
+    public decimal? AverageMaxDrawdown { get; set; }
+    public decimal? AverageStopLossPercent { get; set; }
+    public string? BestFor { get; set; }
+    public string? AvoidWhen { get; set; }
+    public int TotalBacktestsRun { get; set; } = 0;
+}

@@ -35,6 +35,7 @@ global using System.Net.Http;
 global using System.Runtime.InteropServices;
 global using System.Text;
 global using System.Text.Json;
+global using System.Text.RegularExpressions;
 global using System.Windows;
 global using System.Windows.Controls;
 global using System.Windows.Data;

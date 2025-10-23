@@ -6,10 +6,10 @@
 public class AlgorithmService : IAlgorithmService
 {
     private readonly ILogger<AlgorithmService> _logger;
-    private readonly IAlgorithmRepository _algorithmRepository;
+    private readonly ICustomAlgorithmRepository _algorithmRepository;
     private readonly IUserService _userService;
 
-    public AlgorithmService(ILogger<AlgorithmService> logger, IAlgorithmRepository algorithmRepository, IUserService userService)
+    public AlgorithmService(ILogger<AlgorithmService> logger, ICustomAlgorithmRepository algorithmRepository, IUserService userService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _algorithmRepository = algorithmRepository ?? throw new ArgumentNullException(nameof(algorithmRepository));

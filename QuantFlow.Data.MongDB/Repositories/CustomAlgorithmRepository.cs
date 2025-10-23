@@ -3,13 +3,13 @@
 /// <summary>
 /// MongoDB implementation of algorithm repository
 /// </summary>
-public class AlgorithmRepository : IAlgorithmRepository
+public class CustomAlgorithmRepository : ICustomAlgorithmRepository
 {
     private readonly MongoDbContext _context;
-    private readonly ILogger<AlgorithmRepository> _logger;
+    private readonly ILogger<CustomAlgorithmRepository> _logger;
     private readonly IMongoCollection<AlgorithmDocument> _collection;
 
-    public AlgorithmRepository(MongoDbContext context, ILogger<AlgorithmRepository> logger)
+    public CustomAlgorithmRepository(MongoDbContext context, ILogger<CustomAlgorithmRepository> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

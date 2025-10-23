@@ -31,7 +31,7 @@ public class AlgorithmPositionEntity
 
     [Required]
     [MaxLength(50)]
-    public string Status { get; set; } = "Inactive"; // Status enum as string
+    public string Status { get; set; } = "Inactive";
 
     [Precision(5, 2)]
     public decimal MaxPositionSizePercent { get; set; } = 10.0m;
@@ -40,6 +40,9 @@ public class AlgorithmPositionEntity
     public decimal ExchangeFees { get; set; } = 0.001m;
 
     public bool AllowShortSelling { get; set; } = false;
+
+    [Required]
+    public string AlgorithmParameters { get; set; } = "{}";
 
     [Precision(18, 2)]
     public decimal CurrentValue { get; set; } = 0.0m;
@@ -61,10 +64,6 @@ public class AlgorithmPositionEntity
     // EF Core navigation properties
     [ForeignKey(nameof(PortfolioId))]
     public virtual PortfolioEntity Portfolio { get; set; } = null!;
-
-    // Note: We don't have AlgorithmEntity yet, so commenting this out for now
-    // [ForeignKey(nameof(AlgorithmId))]
-    // public virtual AlgorithmEntity Algorithm { get; set; } = null!;
 
     public virtual ICollection<TradeEntity> Trades { get; set; } = [];
 }

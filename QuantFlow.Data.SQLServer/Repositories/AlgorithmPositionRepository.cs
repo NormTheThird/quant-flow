@@ -78,19 +78,22 @@ public class AlgorithmPositionRepository : IAlgorithmPositionRepository
         if (entity == null)
             throw new NotFoundException($"Algorithm position with ID {position.Id} not found");
 
-        // Update with CORRECT property names from the model
+        // Update properties
         entity.PositionName = position.PositionName;
         entity.AlgorithmId = position.AlgorithmId;
-        entity.Status = position.Status.ToString(); // Convert enum to string
+        entity.Symbol = position.Symbol;  // ADD THIS
+        entity.Status = position.Status.ToString();
         entity.AllocatedPercent = position.AllocatedPercent;
         entity.MaxPositionSizePercent = position.MaxPositionSizePercent;
         entity.ExchangeFees = position.ExchangeFees;
         entity.AllowShortSelling = position.AllowShortSelling;
+        entity.AlgorithmParameters = position.AlgorithmParameters;  // ADD THIS
+        entity.CurrentValue = position.CurrentValue;  // ADD THIS
+        entity.ActivatedAt = position.ActivatedAt;  // ADD THIS (in case status changes)
         entity.UpdatedAt = DateTime.UtcNow;
         entity.UpdatedBy = position.UpdatedBy;
 
         await _context.SaveChangesAsync();
-
         return entity.ToBusinessModel();
     }
 

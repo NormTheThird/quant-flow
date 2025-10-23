@@ -15,7 +15,17 @@ public static class ServiceCollectionExtensions
         // Register API services
         services.AddScoped<IKrakenApiService, KrakenApiService>();
 
+        // Register Indicators
+        services.AddScoped<SimpleMovingAverageIndicator>();
+        services.AddScoped<ExponentialMovingAverageIndicator>();
+        services.AddScoped<RelativeStrengthIndexIndicator>();
+        services.AddScoped<AverageTrueRangeIndicator>();
+
+        // Register Hard-Coded Algorithms
+        services.AddScoped<MovingAverageCrossoverAlgorithm>();
+
         // Register Domain services
+        services.AddScoped<IAlgorithmRegistryService, AlgorithmRegistryService>();
         services.AddScoped<IAlgorithmPositionService, AlgorithmPositionService>();
         services.AddScoped<IAlgorithmService, AlgorithmService>();
         services.AddScoped<IAlgorithmExecutionService, AlgorithmExecutionService>();

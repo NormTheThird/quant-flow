@@ -92,19 +92,18 @@ public partial class PortfolioDetailViewModel : ObservableObject
             var dialog = new AlgorithmPositionDialog();
             var app = (App)Application.Current;
 
-            // Create a scope to resolve scoped services
             var scope = app.Services.CreateScope();
             var scopedProvider = scope.ServiceProvider;
 
             var dialogLogger = scopedProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
-            var algorithmService = scopedProvider.GetRequiredService<IAlgorithmService>();
+            var algorithmRegistryService = scopedProvider.GetRequiredService<IAlgorithmRegistryService>();
             var symbolService = scopedProvider.GetRequiredService<ISymbolService>();
             var userSessionService = scopedProvider.GetRequiredService<IUserSessionService>();
 
             var viewModel = new AlgorithmPositionDialogViewModel(
                 dialogLogger,
                 _algorithmPositionService,
-                algorithmService,
+                algorithmRegistryService,
                 symbolService,
                 userSessionService,
                 portfolioId: Portfolio.Id,
@@ -118,7 +117,7 @@ public partial class PortfolioDetailViewModel : ObservableObject
                     dialog.Close();
                     await LoadPositionsAsync();
                 }
-                scope.Dispose(); // Clean up the scope
+                scope.Dispose();
             };
 
             dialog.DataContext = viewModel;
@@ -143,19 +142,18 @@ public partial class PortfolioDetailViewModel : ObservableObject
             var dialog = new AlgorithmPositionDialog();
             var app = (App)Application.Current;
 
-            // Create a scope to resolve scoped services
             var scope = app.Services.CreateScope();
             var scopedProvider = scope.ServiceProvider;
 
             var dialogLogger = scopedProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
-            var algorithmService = scopedProvider.GetRequiredService<IAlgorithmService>();
+            var algorithmRegistryService = scopedProvider.GetRequiredService<IAlgorithmRegistryService>();
             var symbolService = scopedProvider.GetRequiredService<ISymbolService>();
             var userSessionService = scopedProvider.GetRequiredService<IUserSessionService>();
 
             var viewModel = new AlgorithmPositionDialogViewModel(
                 dialogLogger,
                 _algorithmPositionService,
-                algorithmService,
+                algorithmRegistryService,
                 symbolService,
                 userSessionService,
                 portfolioId: Portfolio.Id,
@@ -169,7 +167,7 @@ public partial class PortfolioDetailViewModel : ObservableObject
                     dialog.Close();
                     await LoadPositionsAsync();
                 }
-                scope.Dispose(); // Clean up the scope
+                scope.Dispose();
             };
 
             dialog.DataContext = viewModel;

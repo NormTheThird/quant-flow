@@ -77,7 +77,7 @@ public static class ServiceCollectionExtensions
         });
 
         // Register repository implementations
-        services.AddTransient<IAlgorithmRepository, AlgorithmRepository>();
+        services.AddTransient<ICustomAlgorithmRepository, CustomAlgorithmRepository>();
         services.AddTransient<IUserPreferencesRepository, UserPreferencesRepository>();
         services.AddTransient<IConfigurationRepository, ConfigurationRepository>();
         services.AddTransient<ITemplateRepository, TemplateRepository>();

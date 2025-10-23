@@ -83,22 +83,21 @@ public partial class PositionsViewModel : ObservableObject
     private void CreatePosition()
     {
         _logger.LogInformation("Create position clicked");
-        var dialog = new AlgorithmPositionDialog();
+        var dialog = new AlgorithmPositionDialog { Owner = Application.Current.MainWindow };
         var app = (App)Application.Current;
 
-        // Create a scope to resolve scoped services
         var scope = app.Services.CreateScope();
         var scopedProvider = scope.ServiceProvider;
 
         var dialogLogger = scopedProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
-        var algorithmService = scopedProvider.GetRequiredService<IAlgorithmService>();
+        var algorithmRegistryService = scopedProvider.GetRequiredService<IAlgorithmRegistryService>(); // ADD THIS
         var symbolService = scopedProvider.GetRequiredService<ISymbolService>();
         var userSessionService = scopedProvider.GetRequiredService<IUserSessionService>();
 
         var viewModel = new AlgorithmPositionDialogViewModel(
             dialogLogger,
             _algorithmPositionService,
-            algorithmService,
+            algorithmRegistryService,
             symbolService,
             userSessionService,
             portfolioId: null,
@@ -113,7 +112,7 @@ public partial class PositionsViewModel : ObservableObject
                 dialog.Close();
                 await LoadPositionsAsync();
             }
-            scope.Dispose(); // Clean up the scope
+            scope.Dispose();
         };
 
         dialog.DataContext = viewModel;
@@ -129,17 +128,17 @@ public partial class PositionsViewModel : ObservableObject
 
         using var scope = ((App)Application.Current).Services.CreateScope();
         var dialogLogger = scope.ServiceProvider.GetRequiredService<ILogger<AlgorithmPositionDialogViewModel>>();
-        var algorithmService = scope.ServiceProvider.GetRequiredService<IAlgorithmService>();
+        var algorithmRegistryService = scope.ServiceProvider.GetRequiredService<IAlgorithmRegistryService>(); // CHANGE THIS LINE
         var symbolService = scope.ServiceProvider.GetRequiredService<ISymbolService>();
         var userSessionService = scope.ServiceProvider.GetRequiredService<IUserSessionService>();
 
         var viewModel = new AlgorithmPositionDialogViewModel(
             dialogLogger,
             _algorithmPositionService,
-            algorithmService,
+            algorithmRegistryService,
             symbolService,
             userSessionService,
-            portfolioId: null,
+            portfolioId: positionDisplay.Position.PortfolioId,
             existingPosition: positionDisplay.Position
         );
 
@@ -151,7 +150,6 @@ public partial class PositionsViewModel : ObservableObject
                 dialog.Close();
                 await LoadPositionsAsync();
             }
-            scope.Dispose(); // Clean up the scope
         };
 
         dialog.DataContext = viewModel;
@@ -199,10 +197,17 @@ public partial class PositionsViewModel : ObservableObject
 
             using var scope = ((App)Application.Current).Services.CreateScope();
             var backtestService = scope.ServiceProvider.GetRequiredService<IBacktestService>();
+            var algorithmRegistryService = scope.ServiceProvider.GetRequiredService<IAlgorithmRegistryService>();
             var userSessionService = scope.ServiceProvider.GetRequiredService<IUserSessionService>();
             var dialogLogger = scope.ServiceProvider.GetRequiredService<ILogger<BacktestConfigurationDialogViewModel>>();
 
-            var viewModel = new BacktestConfigurationDialogViewModel(dialogLogger, backtestService, userSessionService, positionDisplay.Position);
+            var viewModel = new BacktestConfigurationDialogViewModel(
+           dialogLogger,
+           backtestService,
+           algorithmRegistryService, // ADD THIS BACK
+           userSessionService,
+           positionDisplay.Position);
+
             viewModel.BacktestCompleted += (s, success) =>
             {
                 if (success)
@@ -220,6 +225,29 @@ public partial class PositionsViewModel : ObservableObject
         {
             _logger.LogError(ex, "Error opening backtest configuration dialog");
             MessageBox.Show($"Error opening dialog: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    private void ViewParameters(PositionDisplayModel positionDisplay)
+    {
+        _logger.LogInformation("View parameters clicked: {PositionId}", positionDisplay.Position.Id);
+
+        try
+        {
+            var dialog = new ViewParametersDialog
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            var viewModel = new ViewParametersDialogViewModel(positionDisplay.Position.AlgorithmParameters);
+            dialog.DataContext = viewModel;
+            dialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening view parameters dialog");
+            MessageBox.Show($"Error opening parameters: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

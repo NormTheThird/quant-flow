@@ -8,7 +8,8 @@ public class QuantFlowDbContext : DbContext
     public QuantFlowDbContext(DbContextOptions<QuantFlowDbContext> options) : base(options)
     {
     }
-
+    public DbSet<AlgorithmEffectivenessEntity> AlgorithmEffectiveness { get; set; }
+    public DbSet<AlgorithmEntity> Algorithms { get; set; }
     public DbSet<AlgorithmPositionEntity> AlgorithmPositions { get; set; } = null!;
     public DbSet<BacktestRunEntity> BacktestRuns { get; set; } = null!;
     public DbSet<MarketDataConfigurationEntity> MarketDataConfigurations { get; set; } = null!;

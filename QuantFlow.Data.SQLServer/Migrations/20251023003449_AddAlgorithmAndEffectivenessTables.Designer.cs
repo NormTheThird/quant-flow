@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QuantFlow.Data.SQLServer.Context;
 
@@ -11,9 +12,11 @@ using QuantFlow.Data.SQLServer.Context;
 namespace QuantFlow.Data.SQLServer.Migrations
 {
     [DbContext(typeof(QuantFlowDbContext))]
-    partial class QuantFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251023003449_AddAlgorithmAndEffectivenessTables")]
+    partial class AddAlgorithmAndEffectivenessTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -214,10 +217,6 @@ namespace QuantFlow.Data.SQLServer.Migrations
 
                     b.Property<Guid>("AlgorithmId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AlgorithmParameters")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("AllocatedPercent")
                         .HasPrecision(5, 2)

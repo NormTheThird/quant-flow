@@ -7,6 +7,7 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
 {
     private readonly ILogger<BacktestConfigurationDialogViewModel> _logger;
     private readonly IBacktestService _backtestService;
+    private readonly IAlgorithmRegistryService _algorithmRegistryService;
     private readonly Guid _currentUserId;
     private readonly AlgorithmPositionModel _position;
 
@@ -15,6 +16,9 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
 
     [ObservableProperty]
     private string _backtestName = string.Empty;
+
+    [ObservableProperty]
+    private string _algorithmName = "Loading...";
 
     [ObservableProperty]
     private DateTime? _startDate = DateTime.UtcNow.AddMonths(-3);
@@ -44,11 +48,16 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
 
     public event EventHandler<bool>? BacktestCompleted;
 
-    public BacktestConfigurationDialogViewModel(ILogger<BacktestConfigurationDialogViewModel> logger, IBacktestService backtestService,
-                                                IUserSessionService userSessionService, AlgorithmPositionModel position)
+    public BacktestConfigurationDialogViewModel(
+        ILogger<BacktestConfigurationDialogViewModel> logger,
+        IBacktestService backtestService,
+        IAlgorithmRegistryService algorithmRegistryService,
+        IUserSessionService userSessionService,
+        AlgorithmPositionModel position)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _backtestService = backtestService ?? throw new ArgumentNullException(nameof(backtestService));
+        _algorithmRegistryService = algorithmRegistryService ?? throw new ArgumentNullException(nameof(algorithmRegistryService));
         _position = position ?? throw new ArgumentNullException(nameof(position));
 
         _currentUserId = userSessionService.CurrentUserId;
@@ -56,6 +65,33 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
             throw new InvalidOperationException("User is not logged in");
 
         BacktestName = $"{_position.PositionName} - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
+
+        _ = LoadAlgorithmNameAsync();
+    }
+
+    private async Task LoadAlgorithmNameAsync()
+    {
+        try
+        {
+            var algorithms = await _algorithmRegistryService.GetAllAvailableAlgorithmsAsync(_currentUserId);
+            var algorithm = algorithms.FirstOrDefault(_ => _.Id == _position.AlgorithmId);
+
+            if (algorithm != null)
+            {
+                AlgorithmName = string.IsNullOrEmpty(algorithm.Abbreviation)
+                    ? algorithm.Name
+                    : $"{algorithm.Name} ({algorithm.Abbreviation})";
+            }
+            else
+            {
+                AlgorithmName = "Unknown Algorithm";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading algorithm name");
+            AlgorithmName = "Error loading algorithm";
+        }
     }
 
     [RelayCommand]
@@ -66,7 +102,7 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
 
         try
         {
-            _logger.LogInformation("Running backtest");
+            _logger.LogInformation("Running backtest for position: {PositionId}", _position.Id);
 
             var backtestRun = new BacktestRunModel
             {
@@ -138,9 +174,9 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
             return false;
         }
 
-        if (CommissionRate < 0)
+        if (CommissionRate < 0 || CommissionRate > 100)
         {
-            ValidationMessage = "Commission rate cannot be negative";
+            ValidationMessage = "Commission rate must be between 0 and 100";
             HasValidationError = true;
             return false;
         }
@@ -148,7 +184,7 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
         return true;
     }
 
-    private Timeframe ParseTimeframe(string timeframe) => timeframe switch
+    private static Timeframe ParseTimeframe(string timeframe) => timeframe switch
     {
         "1m" => Timeframe.OneMinute,
         "5m" => Timeframe.FiveMinutes,
@@ -164,12 +200,9 @@ public partial class BacktestConfigurationDialogViewModel : ObservableObject
         Timeframe.OneMinute => "1m",
         Timeframe.FiveMinutes => "5m",
         Timeframe.FifteenMinutes => "15m",
-        Timeframe.ThirtyMinutes => "30m",
         Timeframe.OneHour => "1h",
         Timeframe.FourHours => "4h",
         Timeframe.OneDay => "1d",
-        Timeframe.OneWeek => "1w",
-        Timeframe.OneMonth => "1mo",
         _ => "1h"
     };
 }

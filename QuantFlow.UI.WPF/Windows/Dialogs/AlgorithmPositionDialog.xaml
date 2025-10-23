@@ -3,15 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:controls="clr-namespace:QuantFlow.UI.WPF.Controls"
         mc:Ignorable="d"
         Title="{Binding DialogTitle}"
-        Height="700" 
+        Height="750" 
         Width="500"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
         ResizeMode="NoResize"
-        Background="Transparent"
-        AllowsTransparency="True">
+        Background="Transparent">
     <Border BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="1"
             CornerRadius="8"
@@ -79,15 +78,42 @@
                           Padding="24">
                 <StackPanel>
                     <!-- Position Name -->
-                    <TextBlock Text="Position Name*"
-                               FontSize="13"
-                               FontWeight="SemiBold"
+                    <TextBlock Text="Position Name *"
+                               FontSize="14"
+                               FontWeight="Medium"
                                Foreground="{DynamicResource TextPrimaryColor}"
                                Margin="0,0,0,8"/>
                     <TextBox Text="{Binding PositionName, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource ModernTextBox}"
                              Height="40"
-                             Margin="0,0,0,20"/>
+                             Margin="0,0,0,15"/>
+
+                    <!-- Symbol Selection -->
+                    <TextBlock Text="Symbol *" 
+                               FontSize="14" 
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource TextPrimaryColor}"
+                               Margin="0,0,0,8"/>
+                    <ComboBox ItemsSource="{Binding AvailableSymbols}"
+                              SelectedItem="{Binding SelectedSymbol}"
+                              DisplayMemberPath="Symbol"
+                              Style="{StaticResource ModernComboBox}"
+                              Height="40"
+                              Margin="0,0,0,15"
+                              IsEnabled="{Binding IsLoadingSymbols, Converter={StaticResource InverseBooleanConverter}}"
+                              Visibility="{Binding IsEditMode, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                    <TextBox Text="{Binding SelectedSymbol.Symbol, Mode=OneWay}"
+                             Style="{StaticResource ModernTextBox}"
+                             Height="40"
+                             IsReadOnly="True"
+                             Background="#F5F5F5"
+                             Margin="0,0,0,15"
+                             Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <TextBlock Text="Loading symbols..." 
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryColor}"
+                               Margin="0,4,0,15"
+                               Visibility="{Binding IsLoadingSymbols, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                     <!-- Algorithm Selection -->
                     <TextBlock Text="Algorithm *" 
@@ -122,24 +148,84 @@
                                Margin="0,4,0,20"
                                Visibility="{Binding IsLoadingAlgorithms, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                    <!-- Symbol Selection -->
-                    <TextBlock Text="Symbol *" 
+                    <!-- Algorithm Parameters (Dynamic) -->
+                    <TextBlock Text="Algorithm Parameters *" 
                                FontSize="14" 
-                               FontWeight="Medium"
+                               FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryColor}"
-                               Margin="0,0,0,8"/>
-                    <ComboBox ItemsSource="{Binding AvailableSymbols}"
-                              SelectedItem="{Binding SelectedSymbol}"
-                              DisplayMemberPath="Symbol"
-                              Style="{StaticResource ModernComboBox}"
-                              Height="40"
-                              Margin="0,0,0,4"
-                              IsEnabled="{Binding IsLoadingSymbols, Converter={StaticResource InverseBooleanConverter}}"/>
-                    <TextBlock Text="Loading symbols..." 
-                               FontSize="12"
-                               Foreground="{DynamicResource TextSecondaryColor}"
-                               Margin="0,4,0,20"
-                               Visibility="{Binding IsLoadingSymbols, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Margin="0,15,0,8"
+                               Visibility="{Binding HasParameters, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <Border BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="15"
+                            Background="{DynamicResource SurfaceColor}"
+                            Visibility="{Binding HasParameters, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <ItemsControl ItemsSource="{Binding ParameterViewModels}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,15">
+                                            <TextBlock Text="{Binding DisplayName}" 
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryColor}"
+                                   Margin="0,0,0,5"/>
+
+                                            <TextBlock Text="{Binding Description}" 
+                                   FontSize="11" 
+                                   Foreground="{DynamicResource TextSecondaryColor}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,5"
+                                   Visibility="{Binding Description, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                                            <!-- Integer (Type=1) or Decimal (Type=2) - Use TextBox -->
+                                            <TextBox x:Name="txtNumeric"
+                                 Text="{Binding DisplayValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource ModernTextBox}"
+                                 Height="35"
+                                 Visibility="Collapsed"/>
+
+                                            <!-- Boolean (Type=3) - Use CheckBox -->
+                                            <CheckBox x:Name="chkBoolean"
+                                  IsChecked="{Binding Value, Mode=TwoWay}"
+                                  Foreground="{DynamicResource TextPrimaryColor}"
+                                  Visibility="Collapsed"/>
+
+                                            <!-- Enum (Type=5) - Use ComboBox -->
+                                            <ComboBox x:Name="cmbEnum"
+                                  SelectedIndex="{Binding Value, Mode=TwoWay}"
+                                  Style="{StaticResource ModernComboBox}"
+                                  Height="35"
+                                  Visibility="Collapsed">
+                                                <ComboBoxItem Content="Simple Moving Average (SMA)"/>
+                                                <ComboBoxItem Content="Exponential Moving Average (EMA)"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <!-- Show TextBox for Integer (1) or Decimal (2) -->
+                                            <DataTrigger Binding="{Binding Type}" Value="1">
+                                                <Setter TargetName="txtNumeric" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Type}" Value="2">
+                                                <Setter TargetName="txtNumeric" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+
+                                            <!-- Show CheckBox for Boolean (3) -->
+                                            <DataTrigger Binding="{Binding Type}" Value="3">
+                                                <Setter TargetName="chkBoolean" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+
+                                            <!-- Show ComboBox for Enum (5) -->
+                                            <DataTrigger Binding="{Binding Type}" Value="5">
+                                                <Setter TargetName="cmbEnum" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
 
                     <!-- Allocated Percent (only for portfolio assignments) -->
                     <StackPanel Visibility="{Binding ShowAllocatedPercent, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -160,10 +246,10 @@
 
                     <!-- Max Position Size Percent -->
                     <TextBlock Text="Max Position Size (%)*"
-                               FontSize="13"
-                               FontWeight="SemiBold"
+                               FontSize="14"
+                               FontWeight="Medium"
                                Foreground="{DynamicResource TextPrimaryColor}"
-                               Margin="0,0,0,8"/>
+                               Margin="0,15,0,8"/>
                     <TextBox Text="{Binding MaxPositionSizePercent, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource ModernTextBox}"
                              Height="40"
@@ -175,8 +261,8 @@
 
                     <!-- Exchange Fees -->
                     <TextBlock Text="Exchange Fees (%)*"
-                               FontSize="13"
-                               FontWeight="SemiBold"
+                               FontSize="14"
+                               FontWeight="Medium"
                                Foreground="{DynamicResource TextPrimaryColor}"
                                Margin="0,0,0,8"/>
                     <TextBox Text="{Binding ExchangeFees, UpdateSourceTrigger=PropertyChanged}"
@@ -195,13 +281,6 @@
                               FontSize="13"
                               Margin="0,0,0,20"/>
 
-                    <!-- Validation Message -->
-                    <TextBlock Text="{Binding ValidationMessage}"
-                               Foreground="#db4f4a"
-                               FontSize="12"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,12"
-                               Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
             </ScrollViewer>
 
@@ -212,20 +291,78 @@
                     BorderThickness="0,1,0,0"
                     CornerRadius="0,0,8,8"
                     Padding="24,16">
-                <StackPanel Orientation="Horizontal" 
-                            HorizontalAlignment="Right">
-                    <Button Content="Cancel"
-                            Style="{StaticResource SecondaryButton}"
-                            Click="CancelButton_Click"
-                            Width="100"
-                            Height="40"
-                            Margin="0,0,12,0"/>
-                    <Button Content="Save"
-                            Style="{StaticResource PrimaryButton}"
-                            Command="{Binding SaveCommand}"
-                            Width="100"
-                            Height="40"/>
-                </StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Validation Message -->
+                    <Border Grid.Row="0"
+                            Background="#FEF2F2"
+                            BorderBrush="#db4f4a"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="12"
+                            Margin="0,0,0,12"
+                            Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Path Grid.Column="0"
+                                  Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                                  Fill="#db4f4a"
+                                  Width="20"
+                                  Height="20"
+                                  Stretch="Uniform"
+                                  Margin="0,0,8,0"
+                                  VerticalAlignment="Top"/>
+
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ValidationMessage}"
+                                       Foreground="#991B1B"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center"/>
+
+                            <Button Grid.Column="2"
+                                    Click="CopyErrorButton_Click"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    ToolTip="Copy error message"
+                                    Margin="8,0,0,0"
+                                    Padding="4">
+                                <Path Data="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                                      Fill="#db4f4a"
+                                      Width="18"
+                                      Height="18"
+                                      Stretch="Uniform"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Buttons -->
+                    <StackPanel Grid.Row="1" 
+                                Orientation="Horizontal" 
+                                HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Style="{StaticResource SecondaryButton}"
+                                Click="CancelButton_Click"
+                                Width="100"
+                                Height="40"
+                                Margin="0,0,12,0"/>
+                        <Button Content="Save"
+                                Style="{StaticResource PrimaryButton}"
+                                Command="{Binding SaveCommand}"
+                                Width="100"
+                                Height="40"/>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Grid>
     </Border>

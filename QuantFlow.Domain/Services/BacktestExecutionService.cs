@@ -11,9 +11,16 @@ public class BacktestExecutionService : IBacktestExecutionService
     private readonly IAlgorithmService _algorithmService;
     private readonly IAlgorithmExecutionService _algorithmExecutionService;
     private readonly ITradeService _tradeService;
+    private readonly IAlgorithmRegistryService _algorithmRegistryService;
 
-    public BacktestExecutionService(ILogger<BacktestExecutionService> logger, IBacktestRunRepository backtestRunRepository, IMarketDataService marketDataService,
-                                    IAlgorithmService algorithmService, IAlgorithmExecutionService algorithmExecutionService, ITradeService tradeService)
+    public BacktestExecutionService(
+        ILogger<BacktestExecutionService> logger,
+        IBacktestRunRepository backtestRunRepository,
+        IMarketDataService marketDataService,
+        IAlgorithmService algorithmService,
+        IAlgorithmExecutionService algorithmExecutionService,
+        ITradeService tradeService,
+        IAlgorithmRegistryService algorithmRegistryService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _backtestRunRepository = backtestRunRepository ?? throw new ArgumentNullException(nameof(backtestRunRepository));
@@ -21,6 +28,7 @@ public class BacktestExecutionService : IBacktestExecutionService
         _algorithmService = algorithmService ?? throw new ArgumentNullException(nameof(algorithmService));
         _algorithmExecutionService = algorithmExecutionService ?? throw new ArgumentNullException(nameof(algorithmExecutionService));
         _tradeService = tradeService ?? throw new ArgumentNullException(nameof(tradeService));
+        _algorithmRegistryService = algorithmRegistryService ?? throw new ArgumentNullException(nameof(algorithmRegistryService));
     }
 
     public async Task<BacktestRunModel> ExecuteBacktestAsync(Guid backtestRunId)
@@ -39,16 +47,29 @@ public class BacktestExecutionService : IBacktestExecutionService
             backtestRun.Status = BacktestStatus.Running;
             await _backtestRunRepository.UpdateAsync(backtestRun);
 
-            // Load algorithm
-            var algorithm = await _algorithmService.GetAlgorithmByIdAsync(backtestRun.AlgorithmId);
-            if (algorithm == null)
-                throw new NotFoundException($"Algorithm {backtestRun.AlgorithmId} not found");
+            // Check if this is a hard-coded algorithm
+            var hardCodedAlgorithm = await _algorithmRegistryService.GetHardCodedAlgorithmAsync(backtestRun.AlgorithmId);
 
-            // Load market data
-            var marketData = await LoadMarketDataAsync(backtestRun);
+            BacktestResults results;
 
-            // Execute backtest
-            var results = await RunBacktestAsync(backtestRun, algorithm, marketData);
+            if (hardCodedAlgorithm != null)
+            {
+                // Execute hard-coded algorithm
+                _logger.LogInformation("Executing hard-coded algorithm: {AlgorithmName}", hardCodedAlgorithm.Name);
+                results = await ExecuteHardCodedBacktestAsync(backtestRun, hardCodedAlgorithm);
+            }
+            else
+            {
+                // Execute custom algorithm (existing flow)
+                _logger.LogInformation("Executing custom algorithm: {AlgorithmId}", backtestRun.AlgorithmId);
+
+                var algorithm = await _algorithmService.GetAlgorithmByIdAsync(backtestRun.AlgorithmId);
+                if (algorithm == null)
+                    throw new NotFoundException($"Algorithm {backtestRun.AlgorithmId} not found");
+
+                var marketData = await LoadMarketDataAsync(backtestRun);
+                results = await RunBacktestAsync(backtestRun, algorithm, marketData);
+            }
 
             // Update backtest run with results
             backtestRun.Status = BacktestStatus.Completed;
@@ -80,6 +101,226 @@ public class BacktestExecutionService : IBacktestExecutionService
 
             throw;
         }
+    }
+
+    private async Task<BacktestResults> ExecuteHardCodedBacktestAsync(BacktestRunModel backtestRun, ITradingAlgorithm algorithm)
+    {
+        _logger.LogInformation("Running hard-coded backtest: {BacktestRunId}", backtestRun.Id);
+
+        // Load market data
+        var marketDataList = await LoadMarketDataAsync(backtestRun);
+        var marketData = marketDataList.OrderBy(_ => _.Timestamp).ToArray();
+
+        // Get algorithm parameters (from backtest run or use defaults)
+        var parameters = algorithm.GetDefaultParameters();
+        // TODO: Load custom parameters from backtestRun.AlgorithmParameters if provided
+
+        var results = new BacktestResults
+        {
+            FinalBalance = backtestRun.InitialBalance,
+            TotalReturnPercent = 0,
+            MaxDrawdownPercent = 0,
+            TotalTrades = 0,
+            WinningTrades = 0,
+            LosingTrades = 0,
+            WinRatePercent = 0
+        };
+
+        var currentBalance = backtestRun.InitialBalance;
+        var currentPosition = (PositionModel?)null;
+        var trades = new List<TradeModel>();
+        var peakEquity = currentBalance;
+        var maxDrawdown = 0m;
+
+        // Main backtest loop
+        for (int i = 0; i < marketData.Length; i++)
+        {
+            var currentBar = marketData[i];
+            var historicalData = marketData.Take(i + 1).ToArray();
+
+            // Check stop loss BEFORE getting algorithm signal
+            if (currentPosition != null)
+            {
+                // Check if stop loss hit
+                if (currentBar.Low <= currentPosition.EntryPrice * (1 - parameters.StopLossPercent / 100m))
+                {
+                    var stopLossPrice = currentPosition.EntryPrice * (1 - parameters.StopLossPercent / 100m);
+                    var saleValue = currentPosition.Quantity * stopLossPrice;
+                    var commission = saleValue * backtestRun.CommissionRate;
+                    currentBalance = saleValue - commission;
+
+                    trades.Add(new TradeModel
+                    {
+                        Id = Guid.NewGuid(),
+                        BacktestRunId = backtestRun.Id,
+                        Symbol = backtestRun.Symbol,
+                        Exchange = backtestRun.Exchange,
+                        Type = TradeType.Sell,
+                        Price = stopLossPrice,
+                        Quantity = currentPosition.Quantity,
+                        Value = saleValue,
+                        Commission = commission,
+                        ExecutionTimestamp = currentBar.Timestamp,
+                        AlgorithmReason = $"{algorithm.Name} - Stop Loss",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = "BacktestEngine"
+                    });
+
+                    _logger.LogDebug("STOP LOSS: {Quantity} @ {Price} on {Date}", currentPosition.Quantity, stopLossPrice, currentBar.Timestamp);
+                    currentPosition = null;
+                    continue;
+                }
+
+                // Update position value
+                currentPosition.CurrentValue = currentPosition.Quantity * currentBar.Close;
+                currentPosition.UnrealizedPnL = currentPosition.CurrentValue - (currentPosition.Quantity * currentPosition.EntryPrice);
+            }
+
+            // Get algorithm signal
+            var signal = algorithm.Analyze(historicalData, currentPosition, parameters);
+
+            // Process BUY signal
+            if (signal.Action == TradeSignal.Buy && currentPosition == null && currentBalance > 0)
+            {
+                var buyPrice = signal.EntryPrice ?? currentBar.Close;
+                var commission = buyPrice * backtestRun.CommissionRate;
+                var totalCost = buyPrice + commission;
+
+                if (totalCost <= currentBalance)
+                {
+                    var quantity = currentBalance / totalCost;
+
+                    currentPosition = new PositionModel
+                    {
+                        Quantity = quantity,
+                        EntryPrice = buyPrice,
+                        EntryTime = currentBar.Timestamp,
+                        CurrentValue = quantity * buyPrice,
+                        UnrealizedPnL = 0
+                    };
+
+                    currentBalance = 0;
+
+                    trades.Add(new TradeModel
+                    {
+                        Id = Guid.NewGuid(),
+                        BacktestRunId = backtestRun.Id,
+                        Symbol = backtestRun.Symbol,
+                        Exchange = backtestRun.Exchange,
+                        Type = TradeType.Buy,
+                        Price = buyPrice,
+                        Quantity = quantity,
+                        Value = quantity * buyPrice,
+                        Commission = commission,
+                        ExecutionTimestamp = currentBar.Timestamp,
+                        AlgorithmReason = $"{algorithm.Name} - {signal.Reason}",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = "BacktestEngine"
+                    });
+
+                    _logger.LogDebug("BUY: {Quantity} @ {Price} on {Date}", quantity, buyPrice, currentBar.Timestamp);
+                }
+            }
+            // Process SELL signal
+            else if (signal.Action == TradeSignal.Sell && currentPosition != null)
+            {
+                var sellPrice = signal.EntryPrice ?? currentBar.Close;
+                var saleValue = currentPosition.Quantity * sellPrice;
+                var commission = saleValue * backtestRun.CommissionRate;
+                currentBalance = saleValue - commission;
+
+                trades.Add(new TradeModel
+                {
+                    Id = Guid.NewGuid(),
+                    BacktestRunId = backtestRun.Id,
+                    Symbol = backtestRun.Symbol,
+                    Exchange = backtestRun.Exchange,
+                    Type = TradeType.Sell,
+                    Price = sellPrice,
+                    Quantity = currentPosition.Quantity,
+                    Value = saleValue,
+                    Commission = commission,
+                    ExecutionTimestamp = currentBar.Timestamp,
+                    AlgorithmReason = $"{algorithm.Name} - {signal.Reason}",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = "BacktestEngine"
+                });
+
+                _logger.LogDebug("SELL: {Quantity} @ {Price} on {Date}", currentPosition.Quantity, sellPrice, currentBar.Timestamp);
+                currentPosition = null;
+            }
+
+            // Calculate current equity and drawdown
+            var currentEquity = currentBalance + (currentPosition?.CurrentValue ?? 0);
+
+            if (currentEquity > peakEquity)
+                peakEquity = currentEquity;
+            else
+            {
+                var drawdown = (peakEquity - currentEquity) / peakEquity * 100m;
+                if (drawdown > maxDrawdown)
+                    maxDrawdown = drawdown;
+            }
+        }
+
+        // Close any open position at final price
+        if (currentPosition != null)
+        {
+            var finalBar = marketData.Last();
+            var finalPrice = finalBar.Close;
+            var finalValue = currentPosition.Quantity * finalPrice;
+            var commission = finalValue * backtestRun.CommissionRate;
+            currentBalance = finalValue - commission;
+
+            trades.Add(new TradeModel
+            {
+                Id = Guid.NewGuid(),
+                BacktestRunId = backtestRun.Id,
+                Symbol = backtestRun.Symbol,
+                Exchange = backtestRun.Exchange,
+                Type = TradeType.Sell,
+                Price = finalPrice,
+                Quantity = currentPosition.Quantity,
+                Value = finalValue,
+                Commission = commission,
+                ExecutionTimestamp = finalBar.Timestamp,
+                AlgorithmReason = $"{algorithm.Name} - Final Close",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "BacktestEngine"
+            });
+        }
+
+        // Calculate results
+        results.FinalBalance = currentBalance;
+        results.TotalReturnPercent = ((currentBalance - backtestRun.InitialBalance) / backtestRun.InitialBalance) * 100m;
+        results.MaxDrawdownPercent = maxDrawdown;
+        results.TotalTrades = trades.Count;
+
+        // Calculate win/loss
+        decimal? lastBuyPrice = null;
+        foreach (var trade in trades)
+        {
+            if (trade.Type == TradeType.Buy)
+                lastBuyPrice = trade.Price;
+            else if (trade.Type == TradeType.Sell && lastBuyPrice.HasValue)
+            {
+                if (trade.Price > lastBuyPrice.Value)
+                    results.WinningTrades++;
+                else
+                    results.LosingTrades++;
+            }
+        }
+
+        results.WinRatePercent = results.TotalTrades > 0 ? (results.WinningTrades / (decimal)results.TotalTrades) * 100m : 0;
+
+        // Store trades
+        foreach (var trade in trades)
+            await _tradeService.CreateTradeAsync(trade);
+
+        _logger.LogInformation("Hard-coded backtest completed: Final Balance = {Balance}, Return = {Return}%, Trades = {Trades}",
+            results.FinalBalance, results.TotalReturnPercent, results.TotalTrades);
+
+        return results;
     }
 
     private async Task<List<MarketDataModel>> LoadMarketDataAsync(BacktestRunModel backtestRun)

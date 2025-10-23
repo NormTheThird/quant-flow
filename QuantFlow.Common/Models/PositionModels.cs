@@ -27,7 +27,7 @@ public class AlgorithmPositionModel : BaseModel
     public decimal MaxPositionSizePercent { get; set; } = 10.0m;
     public decimal ExchangeFees { get; set; } = 0.001m;
     public bool AllowShortSelling { get; set; } = false;
-
+    public string AlgorithmParameters { get; set; } = "{}";
     // Performance Tracking
     public decimal CurrentValue { get; set; } = 0.0m;
     public DateTime? ActivatedAt { get; set; } = null;
