@@ -1,9 +1,9 @@
-﻿namespace QuantFlow.Common.Models;
+﻿namespace QuantFlow.Common.Models.AlgorithmParameters;
 
 /// <summary>
 /// Parameters for Moving Average Crossover algorithm
 /// </summary>
-public class MovingAverageCrossoverParameters : AlgorithmParameters
+public class MovingAverageCrossoverParameters : BaseParameters
 {
     /// <summary>
     /// Fast moving average period (default 9)

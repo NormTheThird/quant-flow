@@ -25,7 +25,7 @@ global using QuantFlow.Common.Exceptions;
 global using QuantFlow.Common.Extensions;
 global using QuantFlow.Common.Infrastructure;
 global using QuantFlow.Common.Interfaces.Infrastructure;
-global using QuantFlow.Common.Interfaces.Repositories;
+global using QuantFlow.Common.Interfaces.Repositories.Mongo;
 global using QuantFlow.Common.Models;
 global using QuantFlow.Common.Responses;
 global using QuantFlow.Data.InfluxDB.Extensions;

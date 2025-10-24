@@ -11,8 +11,9 @@ public class MovingAverageCrossoverAlgorithm : ITradingAlgorithm
     private readonly ExponentialMovingAverageIndicator _emaIndicator;
     private readonly AverageTrueRangeIndicator _atrIndicator;
 
-    public Guid AlgorithmId => new Guid("10000000-0000-0000-0000-000000000001");
-    public string Name => "Moving Average Crossover (9/21)";
+    public Guid AlgorithmId { get; set; }
+    public string Name => HardCodedAlgorithmName.MovingAverageCrossover.GetDescription();
+
     public string Description => "Classic trend following strategy that buys when fast MA crosses above slow MA (golden cross) and sells when fast crosses below slow MA (death cross)";
     public AlgorithmType Type => AlgorithmType.TrendFollowing;
     public AlgorithmSource Source => AlgorithmSource.HardCoded;
@@ -26,7 +27,7 @@ public class MovingAverageCrossoverAlgorithm : ITradingAlgorithm
         _atrIndicator = atrIndicator ?? throw new ArgumentNullException(nameof(atrIndicator));
     }
 
-    public TradeSignalModel Analyze(MarketDataModel[] data, PositionModel? currentPosition, AlgorithmParameters parameters)
+    public TradeSignalModel Analyze(MarketDataModel[] data, PositionModel? currentPosition, BaseParameters parameters)
     {
         if (parameters is not MovingAverageCrossoverParameters maParams)
             throw new ArgumentException("Invalid parameter type. Expected MovingAverageCrossoverParameters.", nameof(parameters));
@@ -120,12 +121,12 @@ public class MovingAverageCrossoverAlgorithm : ITradingAlgorithm
         };
     }
 
-    public AlgorithmParameters GetDefaultParameters()
+    public BaseParameters GetDefaultParameters()
     {
         return new MovingAverageCrossoverParameters();
     }
 
-    public bool ValidateParameters(AlgorithmParameters parameters, out string errorMessage)
+    public bool ValidateParameters(BaseParameters parameters, out string errorMessage)
     {
         if (parameters is not MovingAverageCrossoverParameters maParams)
         {

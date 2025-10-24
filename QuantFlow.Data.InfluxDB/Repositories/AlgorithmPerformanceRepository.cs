@@ -1,4 +1,4 @@
-﻿using QuantFlow.Common.Interfaces.Repositories;
+﻿using QuantFlow.Common.Interfaces.Repositories.SQLServer;
 
 namespace QuantFlow.Data.InfluxDB.Repositories;
 

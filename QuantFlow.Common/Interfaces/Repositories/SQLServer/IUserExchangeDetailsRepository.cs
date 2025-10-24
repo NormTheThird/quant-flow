@@ -1,4 +1,4 @@
-﻿namespace QuantFlow.Common.Interfaces.Repositories;
+﻿namespace QuantFlow.Common.Interfaces.Repositories.SQLServer;
 
 /// <summary>
 /// Repository interface for user exchange details operations

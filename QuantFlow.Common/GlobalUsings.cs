@@ -13,7 +13,7 @@ global using QuantFlow.Common.Interfaces.Infrastructure;
 global using QuantFlow.Common.Models;
 global using Serilog;
 global using Serilog.Sinks.Grafana.Loki;
-global using System;
+global using System.ComponentModel;
 global using System.Collections.Generic;
 global using System.Net.Sockets;
 global using VaultSharp;

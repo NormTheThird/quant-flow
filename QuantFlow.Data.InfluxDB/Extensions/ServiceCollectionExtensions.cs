@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.Data.InfluxDB.Extensions;
+﻿using QuantFlow.Common.Interfaces.Repositories.SQLServer;
+
+namespace QuantFlow.Data.InfluxDB.Extensions;
 
 /// <summary>
 /// Extension methods for configuring InfluxDB services

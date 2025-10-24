@@ -6,9 +6,9 @@
 public interface ITradingAlgorithm
 {
     /// <summary>
-    /// Unique identifier for this algorithm
+    /// Unique identifier for this algorithm (set by AlgorithmRegistryService from database)
     /// </summary>
-    Guid AlgorithmId { get; }
+    Guid AlgorithmId { get; set; }
 
     /// <summary>
     /// Display name of the algorithm
@@ -37,16 +37,13 @@ public interface ITradingAlgorithm
     /// <param name="currentPosition">Current open position, if any</param>
     /// <param name="parameters">Algorithm-specific parameters</param>
     /// <returns>Trade signal with action and risk management levels</returns>
-    TradeSignalModel Analyze(
-        MarketDataModel[] data,
-        PositionModel? currentPosition,
-        AlgorithmParameters parameters);
+    TradeSignalModel Analyze(MarketDataModel[] data, PositionModel? currentPosition, BaseParameters parameters);
 
     /// <summary>
     /// Gets the default parameters for this algorithm
     /// </summary>
     /// <returns>Default parameter configuration</returns>
-    AlgorithmParameters GetDefaultParameters();
+    BaseParameters GetDefaultParameters();
 
     /// <summary>
     /// Gets parameter definitions for UI generation
@@ -60,5 +57,5 @@ public interface ITradingAlgorithm
     /// <param name="parameters">Parameters to validate</param>
     /// <param name="errorMessage">Error message if validation fails</param>
     /// <returns>True if valid, false otherwise</returns>
-    bool ValidateParameters(AlgorithmParameters parameters, out string errorMessage);
+    bool ValidateParameters(BaseParameters parameters, out string errorMessage);
 }

@@ -1,4 +1,4 @@
-﻿namespace QuantFlow.Common.Interfaces.Repositories;
+﻿namespace QuantFlow.Common.Interfaces.Repositories.Mongo;
 
 /// <summary>
 /// Repository interface for configuration operations using business models

@@ -20,9 +20,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ExponentialMovingAverageIndicator>();
         services.AddScoped<RelativeStrengthIndexIndicator>();
         services.AddScoped<AverageTrueRangeIndicator>();
+        services.AddScoped<BollingerBandsIndicator>();
+        services.AddScoped<MacdIndicator>();
 
         // Register Hard-Coded Algorithms
         services.AddScoped<MovingAverageCrossoverAlgorithm>();
+        services.AddScoped<RsiMeanReversionAlgorithm>();
+        services.AddScoped<BollingerBandsBreakoutAlgorithm>();
+        services.AddScoped<MacdCrossoverAlgorithm>();
+        services.AddScoped<VwapAlgorithm>();
 
         // Register Domain services
         services.AddScoped<IAlgorithmRegistryService, AlgorithmRegistryService>();

@@ -56,6 +56,12 @@ public class VaultConfigurationProvider : ConfigurationProvider
             // Load SQL Server connection string
             var sqlServerSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("sqlserver", mountPoint: _mountPoint);
             Data["ConnectionStrings:DefaultConnection"] = sqlServerSecret.Data.Data["defaultConnection"].ToString();
+
+            // ---- MongoDB (NEW) ----
+            var mongoSecret = await vaultClient.V1.Secrets.KeyValue.V2.ReadSecretAsync("mongodb", mountPoint: _mountPoint);
+            Data["ConnectionStrings:MongoDB"] = mongoSecret.Data.Data["connectionString"].ToString();
+            Data["MongoDB:DatabaseName"] = mongoSecret.Data.Data["databaseName"].ToString();
+
         }
         catch (Exception ex)
         {

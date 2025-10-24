@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.Data.SQLServer.Extensions;
+﻿using QuantFlow.Common.Interfaces.Repositories.SQLServer;
+
+namespace QuantFlow.Data.SQLServer.Extensions;
 
 /// <summary>
 /// Extension methods for configuring SQL Server data services

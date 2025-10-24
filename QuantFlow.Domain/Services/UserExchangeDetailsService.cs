@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.Domain.Services;
+﻿using QuantFlow.Common.Interfaces.Repositories.SQLServer;
+
+namespace QuantFlow.Domain.Services;
 
 /// <summary>
 /// Service for managing user exchange details with encryption support

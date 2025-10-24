@@ -1,10 +1,7 @@
-﻿global using Microsoft.EntityFrameworkCore;
-global using Microsoft.Extensions.Logging;
-global using NSubstitute;
+﻿global using Microsoft.Extensions.Logging;
 global using QuantFlow.Common.Enumerations;
-global using QuantFlow.Common.Exceptions;
 global using QuantFlow.Common.Models;
-global using QuantFlow.Data.SQLServer.Context;
-global using QuantFlow.Data.SQLServer.Extensions;
-global using QuantFlow.Data.SQLServer.Models;
-global using QuantFlow.Data.SQLServer.Repositories;
+global using QuantFlow.Common.Models.AlgorithmParameters;
+global using QuantFlow.Domain.Algorithms;
+global using QuantFlow.Domain.Indicators;
+global using QuantFlow.Test.Shared.Fixtures;

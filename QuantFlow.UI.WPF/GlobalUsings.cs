@@ -9,7 +9,7 @@ global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using QuantFlow.Common.Enumerations;
 global using QuantFlow.Common.Extensions;
-global using QuantFlow.Common.Interfaces.Repositories;
+global using QuantFlow.Common.Interfaces.Repositories.Mongo;
 global using QuantFlow.Common.Interfaces.Services;
 global using QuantFlow.Common.Models;
 global using QuantFlow.Common.Responses;

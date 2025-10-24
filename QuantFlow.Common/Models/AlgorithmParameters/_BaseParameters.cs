@@ -3,7 +3,7 @@
 /// <summary>
 /// Base class for all algorithm parameters
 /// </summary>
-public abstract class AlgorithmParameters
+public abstract class BaseParameters
 {
     /// <summary>
     /// Stop loss percentage (e.g., 5.0 = 5% below entry)

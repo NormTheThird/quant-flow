@@ -98,6 +98,9 @@ public class AlgorithmRegistryService : IAlgorithmRegistryService
             return null;
         }
 
+        // Set the AlgorithmId from the database
+        algorithm.AlgorithmId = metadata.Id;
+
         _logger.LogInformation("Successfully retrieved hard-coded algorithm: {Name}", metadata.Name);
         return algorithm;
     }
@@ -143,8 +146,11 @@ public class AlgorithmRegistryService : IAlgorithmRegistryService
     {
         _hardCodedAlgorithmMap = new Dictionary<string, Type>
         {
-            { "Moving Average Crossover", typeof(MovingAverageCrossoverAlgorithm) }
-            // Add other hard-coded algorithms here as we create them
+            { "Moving Average Crossover", typeof(MovingAverageCrossoverAlgorithm) },
+            { "RSI Mean Reversion", typeof(RsiMeanReversionAlgorithm) },
+            { "Bollinger Bands Breakout", typeof(BollingerBandsBreakoutAlgorithm) },
+            { "MACD Crossover", typeof(MacdCrossoverAlgorithm) },
+            { "VWAP Mean Reversion", typeof(VwapAlgorithm) }
         };
 
         _logger.LogInformation("Initialized hard-coded algorithm map with {Count} algorithms",

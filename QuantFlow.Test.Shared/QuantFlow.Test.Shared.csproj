@@ -7,11 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\QuantFlow.Common\QuantFlow.Common.csproj" />
+    <PackageReference Include="xunit" Version="2.9.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Fixtures\" />
+    <ProjectReference Include="..\QuantFlow.Common\QuantFlow.Common.csproj" />
+    <ProjectReference Include="..\QuantFlow.Domain\QuantFlow.Domain.csproj" />
   </ItemGroup>
 
 </Project>

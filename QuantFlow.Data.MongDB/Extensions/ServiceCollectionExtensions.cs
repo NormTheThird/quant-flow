@@ -1,4 +1,6 @@
-﻿namespace QuantFlow.Data.MongoDB.Extensions;
+﻿using QuantFlow.Common.Interfaces.Repositories.Mongo;
+
+namespace QuantFlow.Data.MongoDB.Extensions;
 
 /// <summary>
 /// Extension methods for registering MongoDB services in the dependency injection container
