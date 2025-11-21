@@ -33,7 +33,7 @@ jobs:
     
     - name: Login to Harbor
       run: |
-        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
+        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login https://${{ env.HARBOR_REGISTRY }} \
           --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
     
     - name: Build and Push DataCollection Image
@@ -69,7 +69,7 @@ jobs:
     
     - name: Login to Harbor
       run: |
-        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
+        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login https://${{ env.HARBOR_REGISTRY }} \
           --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
     
     - name: Build and Push Discord Bot Image
@@ -105,7 +105,7 @@ jobs:
     
     - name: Login to Harbor
       run: |
-        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login ${{ env.HARBOR_REGISTRY }} \
+        echo "${{ secrets.HARBOR_PASSWORD }}" | docker login https://${{ env.HARBOR_REGISTRY }} \
           --username "${{ secrets.HARBOR_USERNAME }}" --password-stdin
     
     - name: Build and Push API Image
@@ -138,7 +138,7 @@ jobs:
       run: |
         export KUBECONFIG=kubeconfig
         kubectl create secret docker-registry harbor-registry \
-          --docker-server=${{ env.HARBOR_REGISTRY }} \
+          --docker-server=https://${{ env.HARBOR_REGISTRY }} \
           --docker-username="${{ secrets.HARBOR_USERNAME }}" \
           --docker-password="${{ secrets.HARBOR_PASSWORD }}" \
           -n test --dry-run=client -o yaml | kubectl apply -f -
@@ -220,11 +220,11 @@ jobs:
                   value: "${{ secrets.VAULT_TOKEN }}"
                 resources:
                   requests:
-                    memory: "128Mi"
-                    cpu: "100m"
-                  limits:
                     memory: "256Mi"
                     cpu: "200m"
+                  limits:
+                    memory: "512Mi"
+                    cpu: "400m"
         EOF
         
         kubectl rollout status deployment/quantflow-discord -n test --timeout=300s
